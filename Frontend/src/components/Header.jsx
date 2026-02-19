@@ -11,45 +11,46 @@ const Header = () => {
   };
 
   return (
-    <header className="main-header glass">
+    <header className="header-main">
       <div className="header-container">
-        <Link to="/" className="logo-section">
-          <span className="logo-icon">🤫</span>
-          <span className="logo-text">
-            Whisper<span className="accent">Secrets</span>
-          </span>
+        <Link to="/" className="flex items-center space-x-2">
+          <span className="logo-text">POSTFEED</span>
         </Link>
 
-        <nav className="nav-menu">
-          <Link to="/" className="nav-link">
+        <nav className="flex items-center gap-6">
+          <Link to="/" className="nav-link-base">
             Feed
           </Link>
           {user ? (
-            <>
-              <Link to="/create-post" className="nav-link">
-                Share Secret
+            <div className="flex items-center gap-4">
+              <Link to="/create-post" className="hidden nav-link-base sm:block">
+                Create
               </Link>
-              <Link to="/profile" className="nav-user">
-                <img
-                  src={
-                    user.profilePic ||
-                    "https://ik.imagekit.io/sanujii/default-profile.png"
-                  }
-                  alt="Profile"
-                  className="nav-avatar"
-                />
-                <span className="nav-username">{user.username}</span>
+              <Link to="/profile" className="flex items-center gap-2 group">
+                <div className="user-avatar-ring">
+                  <img
+                    src={
+                      user.profilePic ||
+                      "https://ik.imagekit.io/sanujii/default-profile.png"
+                    }
+                    alt={user.username}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <span className="hidden text-sm font-bold text-gray-200 sm:inline-block">
+                  {user.username}
+                </span>
               </Link>
-              <button onClick={handleLogout} className="logout-btn-nav">
+              <button onClick={handleLogout} className="btn-logout">
                 Logout
               </button>
-            </>
+            </div>
           ) : (
-            <div className="auth-links">
-              <Link to="/login" className="nav-link">
+            <div className="flex items-center gap-4">
+              <Link to="/login" className="nav-link-base">
                 Login
               </Link>
-              <Link to="/register" className="btn-primary-small">
+              <Link to="/register" className="btn-join">
                 Join Free
               </Link>
             </div>

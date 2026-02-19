@@ -51,50 +51,89 @@ const Profile = () => {
     navigate("/login");
   };
 
-  if (!user) return <div className="loading">Loading...</div>;
+  if (!user)
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+      </div>
+    );
 
   return (
-    <div className="profile-container">
-      <div className="profile-card glass">
-        <div className="profile-header">
-          <img
-            src={user.profilePic}
-            alt="Profile"
-            className="profile-pic-large"
-          />
-          <h1>{user.username}</h1>
+    <div className="min-h-[calc(100vh-64px)] bg-black px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-2xl overflow-hidden rounded-3xl border border-white/5 bg-gray-950 shadow-2xl">
+        <div className="profile-banner">
+          <div className="absolute -bottom-12 left-8">
+            <div className="profile-avatar-large">
+              <img
+                src={user.profilePic}
+                alt="Profile"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleUpdate} className="profile-form">
-          <label>Update Username</label>
-          <input
-            type="text"
-            value={newUsername}
-            onChange={(e) => setNewUsername(e.target.value)}
-          />
+        <div className="px-8 pt-16 pb-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-white">
+                {user.username}
+              </h1>
+              <p className="text-sm font-medium text-gray-500">
+                Member since {new Date().getUTCFullYear()}
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="rounded-full bg-red-500/10 px-6 py-2 text-xs font-black uppercase tracking-widest text-red-500 transition-all hover:bg-red-500 hover:text-white"
+            >
+              Logout
+            </button>
+          </div>
 
-          <label>Bio</label>
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Tell us about yourself..."
-            className="profile-textarea"
-          />
+          <form onSubmit={handleUpdate} className="mt-10 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-500 ml-1">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  className="input-field"
+                />
+              </div>
 
-          <label>Update Profile Picture</label>
-          <input
-            type="file"
-            onChange={(e) => setNewProfilePic(e.target.files[0])}
-          />
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-500 ml-1">
+                  Bio
+                </label>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell us about yourself..."
+                  className="textarea-field"
+                />
+              </div>
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Updating..." : "Save Changes"}
-          </button>
-        </form>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-500 ml-1">
+                  Profile Picture
+                </label>
+                <input
+                  type="file"
+                  onChange={(e) => setNewProfilePic(e.target.files[0])}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 transition-all cursor-pointer"
+                />
+              </div>
+            </div>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          Logout
-        </button>
+            <button type="submit" disabled={loading} className="btn-submit">
+              {loading ? "Saving Changes..." : "Save Changes"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
