@@ -4,14 +4,18 @@ import axios from "axios";
 const CreatePost = () => {
   const [image, setImage] = useState(null);
   const [caption, setCaption] = useState("");
+  const [isSecret, setIsSecret] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append("image", image);
     formData.append("caption", caption);
+    formData.append("isSecret", isSecret);
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-    const res = await axios.post(`${apiUrl}/api/posts/create`, formData);
+    const res = await axios.post(`${apiUrl}/api/posts/create`, formData, {
+      withCredentials: true,
+    });
     console.log(res.data);
   };
 
@@ -34,6 +38,15 @@ const CreatePost = () => {
           onChange={(e) => setCaption(e.target.value)}
           required
         />
+        <div className="checkbox-wrapper">
+          <input
+            type="checkbox"
+            id="isSecret"
+            checked={isSecret}
+            onChange={(e) => setIsSecret(e.target.checked)}
+          />
+          <label htmlFor="isSecret">Share as a Secret</label>
+        </div>
         <button type="submit">Submit</button>
       </form>
     </section>

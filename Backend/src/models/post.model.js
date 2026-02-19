@@ -8,6 +8,10 @@ const postSchema = new mongoose.Schema({
     ref: "user",
     required: true,
   },
+  isSecret: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 // here this post like the collection of data of postschema with user information

@@ -1,5 +1,6 @@
 const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
+const storageService = require("../services/storage.service");
 
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
@@ -16,7 +17,20 @@ exports.register = async (req, res) => {
       return res.status(409).json({ message: "User already exists" });
     }
 
-    const user = await userModel.create({ username, email, password });
+    let profilePicUrl;
+    if (req.file) {
+      const uploadResult = await storageService.uploadFromBuffer(
+        req.file.buffer,
+      );
+      profilePicUrl = uploadResult.url;
+    }
+
+    const user = await userModel.create({
+      username,
+      email,
+      password,
+      profilePic: profilePicUrl, // If undefined, model default kicks in
+    });
     const token = jwt.sign(
       { id: user._id, username: user.username },
       process.env.JWT_SECRET,
@@ -27,12 +41,10 @@ exports.register = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     });
-    res
-      .status(201)
-      .json({
-        message: "User registered successfully",
-        user: { id: user._id, username: user.username, email: user.email },
-      });
+    res.status(201).json({
+      message: "User registered successfully",
+      user: { id: user._id, username: user.username, email: user.email },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
@@ -62,12 +74,14 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     });
-    res
-      .status(200)
-      .json({
-        message: "Login successful",
-        user: { id: user._id, username: user.username },
-      });
+    res.status(200).json({
+      message: "Login successful",
+      user: {
+        id: user._id,
+        username: user.username,
+        profilePic: user.profilePic,
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });

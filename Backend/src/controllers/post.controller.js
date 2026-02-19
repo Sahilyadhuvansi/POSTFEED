@@ -20,6 +20,7 @@ exports.createPost = async (req, res) => {
       image: uploadResult.url,
       caption,
       user: req.user.id,
+      isSecret: req.body.isSecret === "true" || req.body.isSecret === true,
     });
 
     res.status(201).json({ message: "Post created successfully", post });
@@ -33,7 +34,7 @@ exports.getFeed = async (req, res) => {
   try {
     const posts = await postModel
       .find()
-      .populate("user", "username")
+      .populate("user", "username profilePic")
       .sort({ createdAt: -1 });
     res.status(200).json({ posts });
   } catch (err) {

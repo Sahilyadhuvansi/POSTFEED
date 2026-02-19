@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema(
       minlength: [6, "Password must be at least 6 characters"],
       select: false,
     },
+    profilePic: {
+      type: String,
+      default: "https://ik.imagekit.io/sanujii/default-profile.png", // We should provide a default
+    },
   },
   {
     timestamps: true,
