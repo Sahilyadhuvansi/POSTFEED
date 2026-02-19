@@ -3,7 +3,9 @@ const app = require("./src/app");
 const connectDB = require("./src/db/db");
 
 // Connect to Database
-connectDB();
+connectDB().catch((err) => {
+  console.error("Database connection failed:", err);
+});
 
 // Only listen if not running in a serverless environment (like Vercel)
 if (process.env.NODE_ENV !== "production") {

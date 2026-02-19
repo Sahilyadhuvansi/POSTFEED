@@ -12,9 +12,12 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ message: "Caption is required" });
     }
 
-    // Since we now have auth, the user ID is in req.user.id
+    // Upload to ImageKit using our storage service
+    const uploadResult = await uploadFile.uploadFromBuffer(req.file.buffer);
+
+    // Save to Database
     const post = await postModel.create({
-      image: req.file.path || req.file.location, // Depends on storage config
+      image: uploadResult.url,
       caption,
       user: req.user.id,
     });
