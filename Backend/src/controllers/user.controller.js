@@ -12,10 +12,11 @@ exports.getProfile = async (req, res) => {
 };
 
 exports.updateProfile = async (req, res) => {
-  const { username } = req.body;
+  const { username, bio } = req.body;
   try {
     const updateData = {};
     if (username) updateData.username = username;
+    if (bio !== undefined) updateData.bio = bio;
 
     if (req.file) {
       const uploadResult = await storageService.uploadFromBuffer(

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [newUsername, setNewUsername] = useState("");
+  const [bio, setBio] = useState("");
   const [newProfilePic, setNewProfilePic] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -14,8 +15,10 @@ const Profile = () => {
     if (!storedUser) {
       navigate("/login");
     } else {
-      setUser(JSON.parse(storedUser));
-      setNewUsername(JSON.parse(storedUser).username);
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setNewUsername(parsedUser.username);
+      setBio(parsedUser.bio || "");
     }
   }, [navigate]);
 
@@ -25,6 +28,7 @@ const Profile = () => {
 
     const formData = new FormData();
     formData.append("username", newUsername);
+    formData.append("bio", bio);
     if (newProfilePic) formData.append("profilePic", newProfilePic);
 
     try {
@@ -67,6 +71,14 @@ const Profile = () => {
             type="text"
             value={newUsername}
             onChange={(e) => setNewUsername(e.target.value)}
+          />
+
+          <label>Bio</label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Tell us about yourself..."
+            className="profile-textarea"
           />
 
           <label>Update Profile Picture</label>

@@ -241,6 +241,24 @@ body {
   border: 1px solid var(--glass-border);
 }
 
+input[type="text"],
+input[type="email"],
+input[type="password"],
+.profile-textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  padding: 12px 15px;
+  border-radius: 10px;
+  color: white;
+  width: 100%;
+}
+
+.profile-textarea {
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
+}
+
 /* CONTENT LAYOUT */
 .content-wrapper {
   min-height: calc(100vh - 150px); /* Adjust based on header/footer height */

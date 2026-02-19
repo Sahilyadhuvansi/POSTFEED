@@ -25,7 +25,12 @@ const userSchema = new mongoose.Schema(
     },
     profilePic: {
       type: String,
-      default: "https://ik.imagekit.io/sanujii/default-profile.png", // We should provide a default
+      default: "https://ik.imagekit.io/sanujii/default-profile.png",
+    },
+    bio: {
+      type: String,
+      default: "",
+      maxlength: [160, "Bio cannot be longer than 160 characters"],
     },
   },
   {
