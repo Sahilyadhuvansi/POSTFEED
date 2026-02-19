@@ -5,22 +5,35 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="footer-main">
-      <div className="footer-container">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-          {/* Brand Section */}
+    <footer className="border-t border-white/[0.06] bg-black">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-12 sm:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12 mb-10">
+          {/* Brand */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <Link to="/" className="inline-block mb-4 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-indigo-500 to-pink-500 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-                <div className="relative px-3 py-1 bg-black rounded-lg">
-                  <span className="text-lg font-black tracking-tight bg-gradient-to-r from-blue-400 via-indigo-500 to-pink-500 bg-clip-text text-transparent">
-                    POSTFEED
-                  </span>
-                </div>
+            <Link to="/" className="inline-flex items-center gap-2 mb-4">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-pink-500">
+                <svg
+                  className="h-3.5 w-3.5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2.5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 12L3.27 3.13a1 1 0 01.95-1.32h15.56a1 1 0 01.95 1.32L18 12m-12 0v6a2 2 0 002 2h8a2 2 0 002-2v-6"
+                  />
+                </svg>
               </div>
+              <span className="text-sm font-extrabold text-white tracking-tight">
+                POST
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
+                  FEED
+                </span>
+              </span>
             </Link>
-            <p className="max-w-xs text-sm text-gray-400 leading-relaxed">
+            <p className="max-w-xs text-sm text-gray-500 leading-relaxed">
               The modern way to share your world. Connect, express yourself, and
               discover amazing stories from our community.
             </p>
@@ -28,81 +41,79 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-300 mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
               Quick Links
             </h3>
-            <div className="space-y-2">
-              <Link to="/" className="footer-link text-gray-400 text-sm">
-                Home Feed
+            <div className="space-y-2.5">
+              <Link
+                to="/"
+                className="block text-sm text-gray-500 hover:text-white transition-colors"
+              >
+                Home
               </Link>
               <Link
                 to="/create-post"
-                className="footer-link text-gray-400 text-sm"
+                className="block text-sm text-gray-500 hover:text-white transition-colors"
               >
                 Create Post
               </Link>
-              <Link to="/profile" className="footer-link text-gray-400 text-sm">
-                My Profile
+              <Link
+                to="/profile"
+                className="block text-sm text-gray-500 hover:text-white transition-colors"
+              >
+                Profile
               </Link>
-              <a href="#" className="footer-link text-gray-400 text-sm">
-                Help Center
-              </a>
             </div>
           </div>
 
-          {/* Legal Links */}
+          {/* Legal */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-300 mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
               Legal
             </h3>
-            <div className="space-y-2">
-              <a href="#" className="footer-link text-gray-400 text-sm">
+            <div className="space-y-2.5">
+              <a
+                href="#"
+                className="block text-sm text-gray-500 hover:text-white transition-colors"
+              >
                 Privacy Policy
               </a>
-              <a href="#" className="footer-link text-gray-400 text-sm">
+              <a
+                href="#"
+                className="block text-sm text-gray-500 hover:text-white transition-colors"
+              >
                 Terms of Service
               </a>
-              <a href="#" className="footer-link text-gray-400 text-sm">
-                Cookie Policy
-              </a>
-              <a href="#" className="footer-link text-gray-400 text-sm">
+              <a
+                href="#"
+                className="block text-sm text-gray-500 hover:text-white transition-colors"
+              >
                 Contact Us
               </a>
             </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-white/10"></div>
-
-        {/* Bottom Section */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-600">
-            © {currentYear} POSTFEED CORP. ALL RIGHTS RESERVED.
+        {/* Bottom */}
+        <div className="border-t border-white/[0.06] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-gray-600">
+            &copy; {currentYear} POSTFEED. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <a
               href="#"
-              className="p-2 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-white"
+              className="p-2 rounded-lg text-gray-600 hover:text-white hover:bg-white/[0.06] transition"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8.29 20v-7.21H5.93V9.98h2.36V8.41c0-2.33 1.43-3.61 3.48-3.61.99 0 1.84.07 2.09.1v2.42h-1.44c-1.13 0-1.35.53-1.35 1.32v1.73h2.7l-.35 2.81h-2.35V20z"></path>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8.29 20v-7.21H5.93V9.98h2.36V8.41c0-2.33 1.43-3.61 3.48-3.61.99 0 1.84.07 2.09.1v2.42h-1.44c-1.13 0-1.35.53-1.35 1.32v1.73h2.7l-.35 2.81h-2.35V20z" />
               </svg>
             </a>
             <a
               href="#"
-              className="p-2 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-white"
+              className="p-2 rounded-lg text-gray-600 hover:text-white hover:bg-white/[0.06] transition"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3-8a2 2 0 100-4 2 2 0 000 4zm6 0a2 2 0 100-4 2 2 0 000 4z"></path>
-              </svg>
-            </a>
-            <a
-              href="#"
-              className="p-2 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-white"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M23 3a10.9 10.9 0 11-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2s9 5 20 5a9.5 9.5 0 00-9-5.5c4.75 2.25 7-7 7-7"></path>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.97 4.97 0 00-.09-.91A7.72 7.72 0 0023 3z" />
               </svg>
             </a>
           </div>

@@ -56,18 +56,20 @@ const CreatePost = () => {
   };
 
   return (
-    <div className="auth-wrapper">
+    <div className="relative flex min-h-screen items-center justify-center bg-black px-4 py-12 sm:px-6">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-600/20 rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      <div className="create-post-card relative">
+      <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-gray-950/80 backdrop-blur-xl p-8 sm:p-10 shadow-2xl">
         {/* Header */}
-        <div className="auth-header mb-8">
-          <h1 className="auth-title">Share Your Story</h1>
-          <p className="auth-subtitle">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-black text-white tracking-tight">
+            Share Your Story
+          </h1>
+          <p className="mt-2 text-sm text-gray-500">
             Create a post and share it with the world
           </p>
         </div>
@@ -126,7 +128,7 @@ const CreatePost = () => {
                   </button>
                 </div>
               ) : (
-                <label className="image-upload-zone">
+                <label className="flex flex-col items-center justify-center w-full h-56 rounded-xl border-2 border-dashed border-white/15 hover:border-indigo-500/50 bg-white/[0.02] hover:bg-indigo-500/5 cursor-pointer transition-all">
                   <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform">
                       <svg
@@ -176,7 +178,7 @@ const CreatePost = () => {
               onChange={(e) => setCaption(e.target.value)}
               required
               maxLength={500}
-              className="textarea-field h-32 resize-none"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 h-32 resize-none"
             />
             <div className="flex justify-end">
               <span className="text-xs text-gray-500">
@@ -186,7 +188,7 @@ const CreatePost = () => {
           </div>
 
           {/* Secret Post Toggle */}
-          <div className="toggle-box">
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">🤫</span>
@@ -215,7 +217,7 @@ const CreatePost = () => {
           <button
             type="submit"
             disabled={loading || !image || !caption.trim()}
-            className="btn-submit w-full mt-8"
+            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed mt-4"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-2">
