@@ -13,7 +13,7 @@ const App = () => {
   return (
     <Router>
       <Header />
-      <main className="content-wrapper">
+      <main>
         <Routes>
           <Route path="/" element={<Feed />} />
           <Route path="/feed" element={<Feed />} />

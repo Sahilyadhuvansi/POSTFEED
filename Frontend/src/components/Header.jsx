@@ -1,184 +1,338 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const Header = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
     navigate("/login");
   };
 
+  const isActive = (path) =>
+    location.pathname === path
+      ? "text-white"
+      : "text-gray-400 hover:text-white";
+
+  const activeDot = (path) =>
+    location.pathname === path
+      ? "absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-gradient-to-r from-indigo-400 to-pink-400"
+      : "hidden";
+
   return (
-    <header className="header-main">
-      <div className="header-container">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0 group">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-indigo-500 to-pink-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
-            <div className="relative px-3 py-1 bg-black rounded-lg">
-              <span className="text-lg font-black tracking-tight bg-gradient-to-r from-blue-400 via-indigo-500 to-pink-500 bg-clip-text text-transparent">
-                POSTFEED
-              </span>
-            </div>
+    <nav className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between px-4 sm:px-6">
+        {/* ── Logo ── */}
+        <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-pink-500">
+            <svg
+              className="h-4 w-4 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2.5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 12L3.27 3.13a1 1 0 01.95-1.32h15.56a1 1 0 01.95 1.32L18 12m-12 0v6a2 2 0 002 2h8a2 2 0 002-2v-6"
+              />
+            </svg>
           </div>
+          <span className="text-base font-extrabold tracking-tight text-white">
+            POST
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
+              FEED
+            </span>
+          </span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden sm:flex items-center gap-8 flex-1 justify-center">
-          <Link to="/" className="nav-link-base flex items-center gap-2">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-            </svg>
-            Feed
-          </Link>
-          {user && (
-            <Link
-              to="/create-post"
-              className="nav-link-base flex items-center gap-2"
+        {/* ── Center Nav (desktop) ── */}
+        <div className="hidden sm:flex items-center gap-1">
+          <Link
+            to="/"
+            className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/")}`}
+          >
+            <svg
+              className="w-[18px] h-[18px]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                  clipRule="evenodd"
-                ></path>
-              </svg>
-              Create
-            </Link>
-          )}
-        </nav>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"
+              />
+            </svg>
+            Home
+            <span className={activeDot("/")} />
+          </Link>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-4">
-          {user ? (
-            <div className="hidden sm:flex items-center gap-4">
+          {user && (
+            <>
+              <Link
+                to="/create-post"
+                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/create-post")}`}
+              >
+                <svg
+                  className="w-[18px] h-[18px]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Create
+                <span className={activeDot("/create-post")} />
+              </Link>
+
               <Link
                 to="/profile"
-                className="flex items-center gap-2 group p-2 rounded-lg hover:bg-white/5 transition"
+                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/profile")}`}
               >
-                <div className="user-avatar-ring">
+                <svg
+                  className="w-[18px] h-[18px]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                Profile
+                <span className={activeDot("/profile")} />
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* ── Right Section (desktop) ── */}
+        <div className="hidden sm:flex items-center gap-3">
+          {user ? (
+            <>
+              {/* Avatar */}
+              <Link to="/profile" className="group flex items-center gap-2">
+                <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 p-[1.5px]">
                   <img
                     src={
                       user.profilePic ||
                       "https://ik.imagekit.io/sanujii/default-profile.png"
                     }
                     alt={user.username}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full rounded-full object-cover bg-black"
                   />
                 </div>
-                <span className="text-sm font-bold text-gray-200 group-hover:text-white transition">
+                <span className="text-xs font-semibold text-gray-300 group-hover:text-white transition-colors hidden lg:block">
                   {user.username}
                 </span>
               </Link>
+
+              {/* Logout */}
               <button
                 onClick={handleLogout}
-                className="btn-logout flex items-center gap-2"
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:border-white/20 hover:bg-white/[0.06] transition-all"
               >
                 <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
                 >
                   <path
-                    fillRule="evenodd"
-                    d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1h12a1 1 0 110 2H4v12a1 1 0 001 1h4a1 1 0 110 2H3a1 1 0 01-1-1V3z"
-                    clipRule="evenodd"
-                  ></path>
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
+                  />
                 </svg>
                 Logout
               </button>
-            </div>
+            </>
           ) : (
-            <div className="hidden sm:flex items-center gap-4">
-              <Link to="/login" className="nav-link-base">
-                Login
+            <>
+              <Link
+                to="/login"
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+              >
+                Log in
               </Link>
-              <Link to="/register" className="btn-join">
-                Join free
+              <Link
+                to="/register"
+                className="rounded-lg bg-gradient-to-r from-indigo-500 to-pink-500 px-4 py-1.5 text-sm font-bold text-white hover:opacity-90 transition-opacity"
+              >
+                Sign up
               </Link>
-            </div>
+            </>
           )}
+        </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="sm:hidden p-2 rounded-lg hover:bg-white/10 transition"
+        {/* ── Mobile hamburger ── */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="sm:hidden flex items-center justify-center h-9 w-9 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition"
+          aria-label="Menu"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d={
+                mobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"
+              }
+            />
+          </svg>
+        </button>
+      </div>
+
+      {/* ── Mobile Dropdown ── */}
+      <div
+        className={`sm:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+          mobileOpen ? "max-h-80 border-t border-white/[0.06]" : "max-h-0"
+        }`}
+      >
+        <div className="px-4 py-3 space-y-1 bg-black/95 backdrop-blur-xl">
+          <Link
+            to="/"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
           >
             <svg
-              className="w-6 h-6 text-gray-300"
+              className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              strokeWidth="2"
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
-                d={
-                  mobileMenuOpen
-                    ? "M6 18L18 6M6 6l12 12"
-                    : "M4 6h16M4 12h16M4 18h16"
-                }
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"
               />
             </svg>
-          </button>
-        </div>
-      </div>
+            Home
+          </Link>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-white/5 bg-black/95 backdrop-blur-xl">
-          <div className="w-full max-w-7xl mx-auto px-4 py-4 space-y-3">
-            <Link
-              to="/"
-              className="block px-3 py-2 rounded-lg hover:bg-white/10 transition text-gray-300 hover:text-white"
-            >
-              Feed
-            </Link>
-            {user ? (
-              <>
-                <Link
-                  to="/create-post"
-                  className="block px-3 py-2 rounded-lg hover:bg-white/10 transition text-gray-300 hover:text-white"
+          {user ? (
+            <>
+              <Link
+                to="/create-post"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
                 >
-                  Create Post
-                </Link>
-                <Link
-                  to="/profile"
-                  className="block px-3 py-2 rounded-lg hover:bg-white/10 transition text-gray-300 hover:text-white"
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Create Post
+              </Link>
+              <Link
+                to="/profile"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
                 >
-                  Profile
-                </Link>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                Profile
+              </Link>
+              <div className="pt-1 border-t border-white/[0.06]">
                 <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 transition text-gray-300 hover:text-white"
+                  onClick={() => {
+                    handleLogout();
+                    setMobileOpen(false);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition"
                 >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
+                    />
+                  </svg>
                   Logout
                 </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="block px-3 py-2 rounded-lg hover:bg-white/10 transition text-gray-300 hover:text-white"
+              </div>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
                 >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="block px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition text-white font-bold"
-                >
-                  Join Free
-                </Link>
-              </>
-            )}
-          </div>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
+                  />
+                </svg>
+                Log in
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center rounded-lg bg-gradient-to-r from-indigo-500 to-pink-500 px-3 py-2.5 text-sm font-bold text-white hover:opacity-90 transition"
+              >
+                Sign up free
+              </Link>
+            </>
+          )}
         </div>
-      )}
-    </header>
+      </div>
+    </nav>
   );
 };
 
