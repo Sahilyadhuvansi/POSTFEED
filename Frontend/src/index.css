@@ -220,20 +220,3 @@ body {
     animation: shimmer 2s infinite;
   }
 }
-
-  /* PROFILE */
-  .profile-banner {
-    @apply relative h-32 bg-gradient-to-r from-blue-600 to-indigo-700;
-  }
-  .profile-avatar-large {
-    @apply h-24 w-24 overflow-hidden rounded-full border-4 border-gray-950 bg-gray-900 shadow-xl;
-  }
-  .textarea-field {
-    @apply block h-32 w-full rounded-2xl border border-white/10 bg-black px-4 py-4 text-gray-200 outline-none transition-all focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm resize-none;
-  }
-
-  /* FOOTER */
-  .footer-main {
-    @apply mt-20 border-t border-white/5 bg-black py-16;
-  }
-}
