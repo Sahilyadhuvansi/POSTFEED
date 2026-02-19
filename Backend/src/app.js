@@ -12,6 +12,11 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root Health Check
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "PostFeed Backend is running!" });
+});
+
 // Professional Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
