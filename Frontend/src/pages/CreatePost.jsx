@@ -8,18 +8,31 @@ const CreatePost = () => {
   const [caption, setCaption] = useState("");
   const [isSecret, setIsSecret] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size must be less than 5MB");
+        return;
+      }
       setImage(file);
       setImagePreview(URL.createObjectURL(file));
+      setError("");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    if (!image || !caption.trim()) {
+      setError("Please add both an image and caption");
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData();
@@ -34,7 +47,9 @@ const CreatePost = () => {
       });
       navigate("/");
     } catch (err) {
-      alert("Error creating post. Please try again.");
+      setError(
+        err.response?.data?.message || "Error creating post. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -42,25 +57,52 @@ const CreatePost = () => {
 
   return (
     <div className="auth-wrapper">
-      <div className="w-full max-w-xl space-y-8 rounded-3xl border border-white/5 bg-gray-950 p-10 shadow-2xl">
-        <div className="text-center">
-          <h1 className="text-3xl font-black tracking-tighter text-white">
-            Create a <span className="text-indigo-500">New Post</span>
-          </h1>
-          <p className="mt-2 text-sm font-medium text-gray-500">
-            Share your story or whisper a secret.
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-600/20 rounded-full blur-3xl animate-pulse"></div>
+      </div>
+
+      <div className="create-post-card relative">
+        {/* Header */}
+        <div className="auth-header mb-8">
+          <h1 className="auth-title">Share Your Story</h1>
+          <p className="auth-subtitle">
+            Create a post and share it with the world
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          <div className="space-y-6">
-            <div className="group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-white/10 transition-all hover:border-indigo-500/50">
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 rounded-lg border border-red-500/50 bg-red-500/10 text-red-400 text-sm font-medium flex items-start gap-3">
+            <svg
+              className="w-5 h-5 flex-shrink-0 mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Image Upload */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold uppercase tracking-widest text-gray-500 block">
+              📸 Upload Image
+            </label>
+            <div className="group relative">
               {imagePreview ? (
-                <>
+                <div className="relative w-full rounded-xl overflow-hidden border border-white/15 bg-black">
                   <img
                     src={imagePreview}
                     alt="Preview"
-                    className="h-full w-full object-cover"
+                    className="w-full h-auto max-h-96 object-contain"
                   />
                   <button
                     type="button"
@@ -68,65 +110,92 @@ const CreatePost = () => {
                       setImage(null);
                       setImagePreview(null);
                     }}
-                    className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md hover:bg-white hover:text-black"
+                    className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-white hover:text-black transition"
                   >
-                    &times;
-                  </button>
-                </>
-              ) : (
-                <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center space-y-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform">
                     <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-8 w-8"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                      className="w-6 h-6"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
                     >
                       <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      ></path>
                     </svg>
+                  </button>
+                </div>
+              ) : (
+                <label className="image-upload-zone">
+                  <div className="flex flex-col items-center justify-center space-y-4">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-10 w-10"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-sm font-bold text-gray-300">
+                        Click to upload or drag and drop
+                      </span>
+                      <p className="text-xs text-gray-500 mt-1">
+                        PNG, JPG, GIF up to 5MB
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      required
+                    />
                   </div>
-                  <span className="text-sm font-bold text-gray-400">
-                    Upload Image
-                  </span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    required
-                  />
                 </label>
               )}
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-gray-500 ml-1">
-                Caption
-              </label>
-              <textarea
-                placeholder="What's on your mind?"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                required
-                className="textarea-field"
-              />
+          {/* Caption */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold uppercase tracking-widest text-gray-500 block">
+              ✍️ Caption
+            </label>
+            <textarea
+              placeholder="What's on your mind? Share your thoughts..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              required
+              maxLength={500}
+              className="textarea-field h-32 resize-none"
+            />
+            <div className="flex justify-end">
+              <span className="text-xs text-gray-500">
+                {caption.length}/500
+              </span>
             </div>
+          </div>
 
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black p-4">
+          {/* Secret Post Toggle */}
+          <div className="toggle-box">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-xl">🤫</span>
+                <span className="text-2xl">🤫</span>
                 <div className="flex flex-col">
                   <span className="text-sm font-bold text-gray-200">
-                    Share as a Secret
+                    Post as Secret
                   </span>
-                  <span className="text-[10px] text-gray-500">
-                    Your identity will be protected.
+                  <span className="text-xs text-gray-500">
+                    Your identity stays anonymous
                   </span>
                 </div>
               </div>
@@ -137,13 +206,34 @@ const CreatePost = () => {
                   checked={isSecret}
                   onChange={(e) => setIsSecret(e.target.checked)}
                 />
-                <div className="peer h-6 w-11 rounded-full bg-gray-800 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none focus:ring-2 focus:ring-indigo-500"></div>
+                <div className="peer relative h-7 w-14 rounded-full bg-gray-700 after:absolute after:top-[3px] after:left-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-gradient-to-r peer-checked:from-indigo-600 peer-checked:to-pink-600 peer-checked:after:translate-x-7 peer-focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-black"></div>
               </label>
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="btn-submit">
-            {loading ? "Creating Post..." : "Share Post"}
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading || !image || !caption.trim()}
+            className="btn-submit w-full mt-8"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                <span>Sharing your post...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"></path>
+                </svg>
+                Share Post
+              </div>
+            )}
           </button>
         </form>
       </div>
