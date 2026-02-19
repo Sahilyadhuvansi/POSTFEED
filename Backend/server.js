@@ -1,16 +1,16 @@
-// to excess keys of .env
 require("dotenv").config();
-
 const app = require("./src/app");
 const connectDB = require("./src/db/db");
-const dns = require("dns");
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
-
+// Connect to Database
 connectDB();
 
-app.listen(3001, () => {
-  console.log("server is running on port 3001");
-});
+// Only listen if not running in a serverless environment (like Vercel)
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 
 module.exports = app;
