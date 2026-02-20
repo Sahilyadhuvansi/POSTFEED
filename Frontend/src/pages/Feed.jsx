@@ -39,7 +39,7 @@ const Feed = () => {
   }, [selectedImage, handleKeyDown]);
 
   const openPost = (post) => {
-    setSelectedImage(post.image);
+    setSelectedImage(post.image || "");
     setSelectedPost(post);
   };
 
@@ -95,13 +95,21 @@ const Feed = () => {
                 className="group relative cursor-pointer overflow-hidden rounded-xl bg-gray-900 aspect-square"
                 onClick={() => openPost(post)}
               >
-                {/* Image */}
-                <img
-                  src={post.image}
-                  alt={post.caption}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+                {/* Image or Text Placeholder */}
+                {post.image ? (
+                  <img
+                    src={post.image}
+                    alt={post.caption}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-pink-900/40 p-4">
+                    <p className="text-sm text-gray-300 text-center line-clamp-6 font-medium leading-relaxed">
+                      {post.caption}
+                    </p>
+                  </div>
+                )}
 
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3 sm:p-4">
@@ -228,12 +236,20 @@ const Feed = () => {
               </svg>
             </button>
 
-            {/* Image */}
-            <img
-              src={selectedImage}
-              alt="Preview"
-              className="w-full max-h-[80vh] object-contain rounded-xl"
-            />
+            {/* Image or Text */}
+            {selectedImage ? (
+              <img
+                src={selectedImage}
+                alt="Preview"
+                className="w-full max-h-[80vh] object-contain rounded-xl"
+              />
+            ) : (
+              <div className="w-full rounded-xl bg-gray-900 border border-white/10 p-8 flex items-center justify-center min-h-[200px]">
+                <p className="text-lg text-gray-200 text-center leading-relaxed">
+                  {selectedPost?.caption}
+                </p>
+              </div>
+            )}
 
             {/* Post Info Below Image */}
             {selectedPost && (

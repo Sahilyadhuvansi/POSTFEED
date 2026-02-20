@@ -3,21 +3,22 @@ const uploadFile = require("../services/storage.service");
 
 exports.createPost = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "Image is required" });
-    }
-
     const { caption } = req.body;
     if (!caption) {
       return res.status(400).json({ message: "Caption is required" });
     }
 
-    // Upload to ImageKit using our storage service
-    const uploadResult = await uploadFile.uploadFromBuffer(req.file.buffer);
+    let imageUrl = null;
+
+    // Upload image to ImageKit only if provided
+    if (req.file) {
+      const uploadResult = await uploadFile.uploadFromBuffer(req.file.buffer);
+      imageUrl = uploadResult.url;
+    }
 
     // Save to Database
     const post = await postModel.create({
-      image: uploadResult.url,
+      ...(imageUrl && { image: imageUrl }),
       caption,
       user: req.user.id,
       isSecret: req.body.isSecret === "true" || req.body.isSecret === true,

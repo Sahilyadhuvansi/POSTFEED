@@ -28,15 +28,17 @@ const CreatePost = () => {
     e.preventDefault();
     setError("");
 
-    if (!image || !caption.trim()) {
-      setError("Please add both an image and caption");
+    if (!caption.trim()) {
+      setError("Please add a caption");
       return;
     }
 
     setLoading(true);
 
     const formData = new FormData();
-    formData.append("image", image);
+    if (image) {
+      formData.append("image", image);
+    }
     formData.append("caption", caption);
     formData.append("isSecret", isSecret);
 
@@ -96,7 +98,10 @@ const CreatePost = () => {
           {/* Image Upload */}
           <div className="space-y-3">
             <label className="text-xs font-bold uppercase tracking-widest text-gray-500 block">
-              📸 Upload Image
+              📸 Upload Image{" "}
+              <span className="text-gray-600 normal-case font-normal">
+                (optional)
+              </span>
             </label>
             <div className="group relative">
               {imagePreview ? (
@@ -159,7 +164,6 @@ const CreatePost = () => {
                       className="hidden"
                       accept="image/*"
                       onChange={handleImageChange}
-                      required
                     />
                   </div>
                 </label>
@@ -216,7 +220,7 @@ const CreatePost = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading || !image || !caption.trim()}
+            disabled={loading || !caption.trim()}
             className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed mt-4"
           >
             {loading ? (

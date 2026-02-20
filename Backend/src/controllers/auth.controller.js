@@ -4,6 +4,7 @@ const storageService = require("../services/storage.service");
 
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
+  console.log("Register endpoint hit. Body:", req.body);
 
   if (!username || !email || !password) {
     return res.status(400).json({ message: "All fields are required" });
@@ -31,6 +32,8 @@ exports.register = async (req, res) => {
       password,
       profilePic: profilePicUrl, // If undefined, model default kicks in
     });
+    console.log("User created in DB:", user);
+
     const token = jwt.sign(
       { id: user._id, username: user.username },
       process.env.JWT_SECRET,
