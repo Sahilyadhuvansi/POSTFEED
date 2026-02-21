@@ -48,12 +48,6 @@ main {
 }
 
 /* Skeleton Loader Styles */
-.skeleton {
-  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
-  background-size: 200% 100%;
-  animation: pulse 1.5s infinite;
-}
-
 @keyframes pulse {
   0% {
     opacity: 0.6;
@@ -69,11 +63,17 @@ main {
 }
 
 .skeleton-avatar {
-  @apply w-10 h-10 rounded-full bg-gray-700 skeleton;
+  @apply w-10 h-10 rounded-full;
+  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  background-size: 200% 100%;
+  animation: pulse 1.5s infinite;
 }
 
 .skeleton-text {
-  @apply h-4 bg-gray-700 skeleton rounded mb-2;
+  @apply h-4 rounded mb-2;
+  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  background-size: 200% 100%;
+  animation: pulse 1.5s infinite;
 }
 
 .skeleton-text.short {
