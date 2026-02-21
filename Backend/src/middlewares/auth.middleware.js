@@ -4,7 +4,10 @@ const authMiddleware = async (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
-    return res.status(401).json({ message: "Unauthorized: Access denied" });
+    return res.status(401).json({
+      success: false,
+      error: "You are not logged in. Please log in and try again.",
+    });
   }
 
   try {
@@ -12,7 +15,10 @@ const authMiddleware = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+    return res.status(401).json({
+      success: false,
+      error: "Your session has expired. Please log in again.",
+    });
   }
 };
 

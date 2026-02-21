@@ -12,9 +12,11 @@ const getImageKitAuth = async (req, res) => {
     });
   } catch (error) {
     console.error("ImageKit Auth Error:", error);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      error:
+        "Could not initialize file upload service. Please try again later.",
+    });
   }
 };
 
@@ -57,9 +59,18 @@ const createMusic = async (req, res) => {
     });
   } catch (error) {
     console.error("Create Music Error:", error);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res
+        .status(400)
+        .json({ success: false, error: messages.join(". ") });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: "Failed to save music. Please try again.",
+    });
   }
 };
 
@@ -73,9 +84,10 @@ const getAllMusics = async (req, res) => {
     return res.status(200).json({ success: true, musics });
   } catch (error) {
     console.error("Get Musics Error:", error);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      error: "Failed to load music tracks. Please refresh the page.",
+    });
   }
 };
 
@@ -109,9 +121,10 @@ const deleteMusic = async (req, res) => {
       .json({ success: true, message: "Music deleted successfully" });
   } catch (error) {
     console.error("Delete Music Error:", error);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      error: "Failed to delete track. Please try again.",
+    });
   }
 };
 

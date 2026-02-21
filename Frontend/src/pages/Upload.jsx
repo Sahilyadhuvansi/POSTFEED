@@ -18,6 +18,79 @@ const Upload = () => {
 
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
+  const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_AUDIO = [
+    "audio/mpeg",
+    "audio/wav",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/webm",
+    "audio/flac",
+    "audio/aac",
+  ];
+  const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+  const formatSize = (bytes) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  };
+
+  const handleAudioChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (
+      !ALLOWED_AUDIO.includes(file.type) &&
+      !file.name.match(/\.(mp3|wav|ogg|m4a|webm|flac|aac)$/i)
+    ) {
+      setStatus({
+        type: "error",
+        message: `Unsupported audio format. Please use MP3, WAV, OGG, M4A, FLAC, or AAC.`,
+      });
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_AUDIO_SIZE) {
+      setStatus({
+        type: "error",
+        message: `Audio file is too large (${formatSize(file.size)}). Maximum size is 25MB.`,
+      });
+      e.target.value = "";
+      return;
+    }
+
+    setAudioFile(file);
+    setStatus({ type: "", message: "" });
+  };
+
+  const handleThumbnailChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE.includes(file.type)) {
+      setStatus({
+        type: "error",
+        message: `Unsupported image format. Please use JPG, PNG, WEBP, or GIF.`,
+      });
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setStatus({
+        type: "error",
+        message: `Thumbnail is too large (${formatSize(file.size)}). Maximum size is 5MB.`,
+      });
+      e.target.value = "";
+      return;
+    }
+
+    setThumbnail(file);
+    setStatus({ type: "", message: "" });
+  };
+
   // Upload a file directly to ImageKit from the browser
   const uploadToImageKit = async (file, authParams) => {
     const formData = new FormData();
@@ -49,21 +122,29 @@ const Upload = () => {
       return;
     }
 
+    if (!title.trim()) {
+      setStatus({ type: "error", message: "Please enter a track title" });
+      return;
+    }
+
     setLoading(true);
     setStatus({ type: "", message: "" });
 
     try {
       // 1. Get auth params from backend
+      setStatus({ type: "", message: "Preparing upload..." });
       const { data: authParams } = await axios.get(
         `${apiUrl}/api/music/imagekit-auth`,
       );
 
       // 2. Upload audio directly to ImageKit
+      setStatus({ type: "", message: "Uploading audio file..." });
       const audioResult = await uploadToImageKit(audioFile, authParams);
 
       // 3. Upload thumbnail if provided (get fresh auth params)
       let thumbnailResult = null;
       if (thumbnail) {
+        setStatus({ type: "", message: "Uploading thumbnail..." });
         const { data: thumbAuth } = await axios.get(
           `${apiUrl}/api/music/imagekit-auth`,
         );
@@ -71,6 +152,7 @@ const Upload = () => {
       }
 
       // 4. Save metadata in our backend
+      setStatus({ type: "", message: "Saving track info..." });
       await axios.post(`${apiUrl}/api/music`, {
         title,
         audioUrl: audioResult.url,
@@ -82,11 +164,25 @@ const Upload = () => {
       setStatus({ type: "success", message: "Music uploaded successfully!" });
       setTimeout(() => navigate("/music"), 2000);
     } catch (error) {
-      setStatus({
-        type: "error",
-        message:
-          error.response?.data?.error || error.message || "Upload failed",
-      });
+      let message = "Upload failed. Please try again.";
+
+      if (error.response?.status === 401) {
+        message = "You are not logged in. Please log in and try again.";
+      } else if (error.response?.status === 413) {
+        message = "File is too large. Please use a smaller file.";
+      } else if (error.response?.data?.error) {
+        message = error.response.data.error;
+      } else if (error.message?.includes("Network Error")) {
+        message =
+          "Network error. Check your internet connection and try again.";
+      } else if (error.message?.includes("ImageKit")) {
+        message =
+          "File upload service error. The file may be corrupted or in an unsupported format.";
+      } else if (error.message) {
+        message = error.message;
+      }
+
+      setStatus({ type: "error", message });
     } finally {
       setLoading(false);
     }
@@ -122,13 +218,17 @@ const Upload = () => {
             className={`mb-6 p-3.5 rounded-xl text-sm font-medium flex items-center gap-2.5 ${
               status.type === "success"
                 ? "border border-green-500/30 bg-green-500/10 text-green-400"
-                : "border border-red-500/30 bg-red-500/10 text-red-400"
+                : status.type === "error"
+                  ? "border border-red-500/30 bg-red-500/10 text-red-400"
+                  : "border border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
             }`}
           >
             {status.type === "success" ? (
               <CheckCircle className="w-4 h-4 flex-shrink-0" />
-            ) : (
+            ) : status.type === "error" ? (
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            ) : (
+              <div className="w-4 h-4 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin flex-shrink-0"></div>
             )}
             {status.message}
           </div>
@@ -164,13 +264,18 @@ const Upload = () => {
             >
               <Music className="w-8 h-8 text-gray-500 mb-2" />
               <span className="text-sm font-medium text-gray-300">
-                {audioFile ? audioFile.name : "Click to select audio file"}
+                {audioFile
+                  ? `${audioFile.name} (${formatSize(audioFile.size)})`
+                  : "Click to select audio file"}
+              </span>
+              <span className="text-xs text-gray-600 mt-1">
+                MP3, WAV, OGG, M4A, FLAC — max 25MB
               </span>
               <input
                 type="file"
                 accept="audio/*"
                 className="hidden"
-                onChange={(e) => setAudioFile(e.target.files[0])}
+                onChange={handleAudioChange}
               />
             </label>
           </div>
@@ -190,13 +295,18 @@ const Upload = () => {
             >
               <Music className="w-8 h-8 text-gray-500 mb-2" />
               <span className="text-sm font-medium text-gray-300">
-                {thumbnail ? thumbnail.name : "Click to select thumbnail"}
+                {thumbnail
+                  ? `${thumbnail.name} (${formatSize(thumbnail.size)})`
+                  : "Click to select thumbnail"}
+              </span>
+              <span className="text-xs text-gray-600 mt-1">
+                JPG, PNG, WEBP — max 5MB
               </span>
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => setThumbnail(e.target.files[0])}
+                onChange={handleThumbnailChange}
               />
             </label>
           </div>

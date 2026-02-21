@@ -27,8 +27,21 @@ const Profile = () => {
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setError(
+          `Unsupported image format. Please use JPG, PNG, WEBP, or GIF.`,
+        );
+        return;
+      }
       if (file.size > 5 * 1024 * 1024) {
-        setError("Image size must be less than 5MB");
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        setError(`Image is too large (${sizeMB}MB). Maximum size is 5MB.`);
         return;
       }
       setNewProfilePic(file);
@@ -37,6 +50,7 @@ const Profile = () => {
         setProfilePicPreview(reader.result);
       };
       reader.readAsDataURL(file);
+      setError("");
     }
   };
 
@@ -59,7 +73,22 @@ const Profile = () => {
       setIsEditing(false);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || "Update failed");
+      let message = "Update failed. Please try again.";
+
+      if (err.response?.status === 401) {
+        message = "Your session has expired. Please log in again.";
+      } else if (err.response?.status === 409) {
+        message = "That username is already taken. Please choose another.";
+      } else if (err.response?.status === 413) {
+        message =
+          "Profile picture is too large. Please use an image under 4.5MB.";
+      } else if (err.response?.data?.error) {
+        message = err.response.data.error;
+      } else if (err.message?.includes("Network Error")) {
+        message = "Network error. Check your internet connection.";
+      }
+
+      setError(message);
     } finally {
       setLoading(false);
     }

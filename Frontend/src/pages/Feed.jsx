@@ -17,7 +17,10 @@ const Feed = () => {
         setPosts(res.data.posts);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        console.error("Feed Error:", err.response?.data?.error || err.message);
+        setLoading(false);
+      });
   }, []);
 
   // Escape key to close modal

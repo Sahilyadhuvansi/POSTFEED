@@ -11,11 +11,29 @@ const CreatePost = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+  const formatSize = (bytes) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Image size must be less than 5MB");
+      if (!ALLOWED_IMAGE.includes(file.type)) {
+        setError(
+          `Unsupported image format (${file.type || "unknown"}). Please use JPG, PNG, WEBP, or GIF.`,
+        );
+        e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        setError(
+          `Image is too large (${formatSize(file.size)}). Maximum size is 5MB.`,
+        );
+        e.target.value = "";
         return;
       }
       setImage(file);
@@ -47,9 +65,23 @@ const CreatePost = () => {
       await axios.post(`${apiUrl}/api/posts/create`, formData);
       navigate("/");
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Error creating post. Please try again.",
-      );
+      let message = "Error creating post. Please try again.";
+
+      if (err.response?.status === 401) {
+        message = "You are not logged in. Please log in and try again.";
+      } else if (err.response?.status === 413) {
+        message =
+          "Image is too large for the server. Please use an image under 4.5MB.";
+      } else if (err.response?.data?.error) {
+        message = err.response.data.error;
+      } else if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err.message?.includes("Network Error")) {
+        message =
+          "Network error. Check your internet connection and try again.";
+      }
+
+      setError(message);
     } finally {
       setLoading(false);
     }

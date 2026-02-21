@@ -12,12 +12,10 @@ exports.register = async (req, res) => {
   }
 
   if (password.length < 6) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        error: "Password must be at least 6 characters long",
-      });
+    return res.status(400).json({
+      success: false,
+      error: "Password must be at least 6 characters long",
+    });
   }
 
   try {
@@ -25,12 +23,10 @@ exports.register = async (req, res) => {
       $or: [{ email: email.toLowerCase() }, { username }],
     });
     if (isUserExist) {
-      return res
-        .status(409)
-        .json({
-          success: false,
-          error: "User with this email or username already exists",
-        });
+      return res.status(409).json({
+        success: false,
+        error: "User with this email or username already exists",
+      });
     }
 
     let profilePicUrl;
@@ -76,9 +72,34 @@ exports.register = async (req, res) => {
     });
   } catch (err) {
     console.error("Signup error:", err);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
+
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(409).json({
+        success: false,
+        error: `An account with this ${field} already exists.`,
+      });
+    }
+
+    if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors).map((e) => e.message);
+      return res
+        .status(400)
+        .json({ success: false, error: messages.join(". ") });
+    }
+
+    if (err.message?.includes("ImageKit") || err.message?.includes("upload")) {
+      return res.status(500).json({
+        success: false,
+        error:
+          "Failed to upload profile picture. Try a smaller image (under 5MB) or a different format (JPG, PNG).",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: "Registration failed. Please try again later.",
+    });
   }
 };
 

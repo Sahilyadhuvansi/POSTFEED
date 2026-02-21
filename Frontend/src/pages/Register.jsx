@@ -20,8 +20,23 @@ const Register = () => {
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setError(
+          `Unsupported image format. Please use JPG, PNG, WEBP, or GIF.`,
+        );
+        e.target.value = "";
+        return;
+      }
       if (file.size > 5 * 1024 * 1024) {
-        setError("Image size must be less than 5MB");
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        setError(`Image is too large (${sizeMB}MB). Maximum size is 5MB.`);
+        e.target.value = "";
         return;
       }
       setProfilePic(file);
@@ -30,6 +45,7 @@ const Register = () => {
         setProfilePicPreview(reader.result);
       };
       reader.readAsDataURL(file);
+      setError("");
     }
   };
 

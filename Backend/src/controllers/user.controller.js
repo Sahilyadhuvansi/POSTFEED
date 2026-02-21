@@ -18,7 +18,7 @@ const getProfile = async (req, res) => {
     console.error("Get Profile Error:", error);
     return res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error: "Failed to load profile. Please try again.",
     });
   }
 };
@@ -40,7 +40,7 @@ const getUserById = async (req, res) => {
     console.error("Error fetching user:", error);
     return res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error: "Failed to load user. Please try again.",
     });
   }
 };
@@ -103,9 +103,35 @@ const updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Update Profile Error:", error);
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        error: "That username is already taken.",
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res
+        .status(400)
+        .json({ success: false, error: messages.join(". ") });
+    }
+
+    if (
+      error.message?.includes("ImageKit") ||
+      error.message?.includes("upload")
+    ) {
+      return res.status(500).json({
+        success: false,
+        error:
+          "Failed to upload profile picture. Try a smaller image (under 5MB) or a different format.",
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error: "Failed to update profile. Please try again.",
     });
   }
 };
@@ -140,7 +166,7 @@ const deleteAccount = async (req, res) => {
     console.error("Delete Account Error:", error);
     return res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error: "Failed to delete account. Please try again.",
     });
   }
 };

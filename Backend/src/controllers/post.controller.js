@@ -8,7 +8,8 @@ const createPost = async (req, res) => {
     // Validation
     if (!caption || caption.trim() === "") {
       return res.status(400).json({
-        message: "Caption is required",
+        success: false,
+        error: "Caption is required",
       });
     }
 
@@ -36,13 +37,34 @@ const createPost = async (req, res) => {
     const post = await postModel.create(postData);
 
     return res.status(201).json({
+      success: true,
       message: "Post created successfully",
       post,
     });
   } catch (error) {
     console.error("Create Post Error:", error);
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res
+        .status(400)
+        .json({ success: false, error: messages.join(". ") });
+    }
+
+    if (
+      error.message?.includes("ImageKit") ||
+      error.message?.includes("upload")
+    ) {
+      return res.status(500).json({
+        success: false,
+        error:
+          "Failed to upload image. The file may be too large or in an unsupported format.",
+      });
+    }
+
     return res.status(500).json({
-      message: "Internal server error",
+      success: false,
+      error: "Failed to create post. Please try again.",
     });
   }
 };
@@ -60,11 +82,12 @@ const getFeed = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    return res.status(200).json({ posts });
+    return res.status(200).json({ success: true, posts });
   } catch (error) {
     console.error("Get Feed Error:", error);
     return res.status(500).json({
-      message: "Internal server error",
+      success: false,
+      error: "Failed to load feed. Please refresh the page.",
     });
   }
 };

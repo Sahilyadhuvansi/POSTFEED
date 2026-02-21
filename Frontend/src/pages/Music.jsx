@@ -18,7 +18,10 @@ const Music = () => {
         const response = await axios.get(`${apiUrl}/api/music`);
         setMusics(response.data.musics);
       } catch (error) {
-        console.error("Failed to fetch musics", error);
+        console.error(
+          "Failed to fetch musics:",
+          error.response?.data?.error || error.message,
+        );
       } finally {
         setLoading(false);
       }
@@ -34,8 +37,14 @@ const Music = () => {
       await axios.delete(`${apiUrl}/api/music/${musicId}`);
       setMusics(musics.filter((m) => m._id !== musicId));
     } catch (error) {
-      console.error("Failed to delete music", error);
-      alert(error.response?.data?.error || "Failed to delete track");
+      const message =
+        error.response?.status === 401
+          ? "You are not logged in. Please log in and try again."
+          : error.response?.status === 403
+            ? "You don't have permission to delete this track."
+            : error.response?.data?.error ||
+              "Failed to delete track. Please try again.";
+      alert(message);
     }
   };
 
