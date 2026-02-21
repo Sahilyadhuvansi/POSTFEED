@@ -14,7 +14,6 @@ const postSchema = new mongoose.Schema({
   },
 });
 
-// here this post like the collection of data of postschema with user information
 const Post = mongoose.model("Post", postSchema);
 
 module.exports = Post;

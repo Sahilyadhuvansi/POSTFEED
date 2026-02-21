@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-module.exports = async (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
@@ -15,3 +15,5 @@ module.exports = async (req, res, next) => {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+module.exports = authMiddleware;

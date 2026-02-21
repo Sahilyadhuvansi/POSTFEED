@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -44,9 +44,7 @@ const CreatePost = () => {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      await axios.post(`${apiUrl}/api/posts/create`, formData, {
-        withCredentials: true,
-      });
+      await axios.post(`${apiUrl}/api/posts/create`, formData);
       navigate("/");
     } catch (err) {
       setError(

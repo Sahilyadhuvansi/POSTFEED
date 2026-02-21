@@ -4,18 +4,33 @@ const storageService = require("../services/storage.service");
 
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
-  console.log("Register endpoint hit. Body:", req.body);
 
   if (!username || !email || !password) {
-    return res.status(400).json({ message: "All fields are required" });
+    return res
+      .status(400)
+      .json({ success: false, error: "All fields are required" });
+  }
+
+  if (password.length < 6) {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        error: "Password must be at least 6 characters long",
+      });
   }
 
   try {
     const isUserExist = await userModel.findOne({
-      $or: [{ email }, { username }],
+      $or: [{ email: email.toLowerCase() }, { username }],
     });
     if (isUserExist) {
-      return res.status(409).json({ message: "User already exists" });
+      return res
+        .status(409)
+        .json({
+          success: false,
+          error: "User with this email or username already exists",
+        });
     }
 
     let profilePicUrl;
@@ -28,29 +43,42 @@ exports.register = async (req, res) => {
 
     const user = await userModel.create({
       username,
-      email,
+      email: email.toLowerCase(),
       password,
-      profilePic: profilePicUrl, // If undefined, model default kicks in
+      profilePic: profilePicUrl,
     });
-    console.log("User created in DB:", user);
 
     const token = jwt.sign(
       { id: user._id, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" },
+      { expiresIn: "7d" },
     );
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
-    res.status(201).json({
-      message: "User registered successfully",
-      user: { id: user._id, username: user.username, email: user.email },
+
+    return res.status(201).json({
+      success: true,
+      message: "Account created successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        profilePic: user.profilePic,
+        bio: user.bio,
+        createdAt: user.createdAt,
+      },
+      token,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Signup error:", err);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -58,41 +86,73 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required" });
+    return res
+      .status(400)
+      .json({ success: false, error: "Email and password are required" });
   }
 
   try {
-    const user = await userModel.findOne({ email }).select("+password");
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    const user = await userModel
+      .findOne({ email: email.toLowerCase() })
+      .select("+password");
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: "User not found" });
+    }
+
+    const isValidPassword = await user.comparePassword(password);
+    if (!isValidPassword) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Invalid credentials" });
     }
 
     const token = jwt.sign(
       { id: user._id, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" },
+      { expiresIn: "7d" },
     );
+
+    const userData = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      profilePic: user.profilePic,
+      bio: user.bio,
+      createdAt: user.createdAt,
+    };
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
-    res.status(200).json({
+
+    return res.status(200).json({
+      success: true,
       message: "Login successful",
-      user: {
-        id: user._id,
-        username: user.username,
-        profilePic: user.profilePic,
-        bio: user.bio,
-      },
+      user: userData,
+      token,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Login error:", err);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
   }
 };
 
 exports.logout = (req, res) => {
-  res.clearCookie("token");
-  res.status(200).json({ message: "Logged out successfully" });
+  res.cookie("token", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 0,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
 };

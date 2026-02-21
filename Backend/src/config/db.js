@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 async function connectDB() {
-  require("node:dns").setServers(["8.8.8.8", "8.8.4.4"]);
+  if (mongoose.connection.readyState >= 1) return; // Already connected
 
   const conn = await mongoose.connect(process.env.MONGO_URI);
 

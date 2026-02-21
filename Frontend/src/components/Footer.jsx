@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
@@ -49,7 +48,13 @@ const Footer = () => {
                 to="/"
                 className="block text-sm text-gray-500 hover:text-white transition-colors"
               >
-                Home
+                Feed
+              </Link>
+              <Link
+                to="/music"
+                className="block text-sm text-gray-500 hover:text-white transition-colors"
+              >
+                Music
               </Link>
               <Link
                 to="/create-post"

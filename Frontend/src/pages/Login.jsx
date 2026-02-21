@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import axios from "axios";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -9,27 +9,20 @@ const Login = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const res = await axios.post(`${apiUrl}/api/auth/login`, {
-        email,
-        password,
-      });
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+    const result = await login({ email, password });
+    if (result.success) {
       navigate("/");
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Login failed. Please try again.",
-      );
-    } finally {
-      setLoading(false);
+    } else {
+      setError(result.message);
     }
+    setLoading(false);
   };
 
   return (

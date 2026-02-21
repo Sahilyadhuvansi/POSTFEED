@@ -1,6 +1,6 @@
-import React, { useState, useRef } from "react";
-import axios from "axios";
+import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -15,6 +15,7 @@ const Register = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
@@ -54,17 +55,13 @@ const Register = () => {
     formData.append("password", password);
     if (profilePic) formData.append("profilePic", profilePic);
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      await axios.post(`${apiUrl}/api/auth/register`, formData);
-      navigate("/login");
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Registration failed. Please try again.",
-      );
-    } finally {
-      setLoading(false);
+    const result = await register(formData);
+    if (result.success) {
+      navigate("/");
+    } else {
+      setError(result.message);
     }
+    setLoading(false);
   };
 
   return (

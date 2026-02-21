@@ -1,14 +1,16 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { Music, Upload } from "lucide-react";
 
 const Header = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -69,8 +71,17 @@ const Header = () => {
                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"
               />
             </svg>
-            Home
+            Feed
             <span className={activeDot("/")} />
+          </Link>
+
+          <Link
+            to="/music"
+            className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/music")}`}
+          >
+            <Music className="w-[18px] h-[18px]" />
+            Music
+            <span className={activeDot("/music")} />
           </Link>
 
           {user && (
@@ -94,6 +105,15 @@ const Header = () => {
                 </svg>
                 Create
                 <span className={activeDot("/create-post")} />
+              </Link>
+
+              <Link
+                to="/upload"
+                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/upload")}`}
+              >
+                <Upload className="w-[18px] h-[18px]" />
+                Upload
+                <span className={activeDot("/upload")} />
               </Link>
 
               <Link
@@ -229,7 +249,16 @@ const Header = () => {
                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"
               />
             </svg>
-            Home
+            Feed
+          </Link>
+
+          <Link
+            to="/music"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
+          >
+            <Music className="w-4 h-4" />
+            Music
           </Link>
 
           {user ? (
@@ -254,6 +283,16 @@ const Header = () => {
                 </svg>
                 Create Post
               </Link>
+
+              <Link
+                to="/upload"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
+              >
+                <Upload className="w-4 h-4" />
+                Upload Music
+              </Link>
+
               <Link
                 to="/profile"
                 onClick={() => setMobileOpen(false)}

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Profile = () => {
-  const [user, setUser] = useState(null);
+  const { user, logout, updateUser } = useAuth();
   const [newUsername, setNewUsername] = useState("");
   const [bio, setBio] = useState("");
   const [newProfilePic, setNewProfilePic] = useState(null);
@@ -16,17 +17,12 @@ const Profile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
-      navigate("/login");
-    } else {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setNewUsername(parsedUser.username);
-      setBio(parsedUser.bio || "");
-      setProfilePicPreview(parsedUser.profilePic);
+    if (user) {
+      setNewUsername(user.username);
+      setBio(user.bio || "");
+      setProfilePicPreview(user.profilePic);
     }
-  }, [navigate]);
+  }, [user]);
 
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
@@ -57,37 +53,24 @@ const Profile = () => {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const res = await axios.put(`${apiUrl}/api/users/profile`, formData, {
-        withCredentials: true,
-      });
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      setUser(res.data.user);
+      const res = await axios.put(`${apiUrl}/api/users/profile`, formData);
+      updateUser(res.data.user);
       setSuccess("Profile updated successfully!");
       setIsEditing(false);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || "Update failed");
+      setError(err.response?.data?.error || "Update failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
-  if (!user)
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <div className="text-center">
-          <div className="spinner-ring h-10 w-10 mx-auto mb-3"></div>
-          <p className="text-sm text-gray-500 font-medium">
-            Loading profile...
-          </p>
-        </div>
-      </div>
-    );
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-black">

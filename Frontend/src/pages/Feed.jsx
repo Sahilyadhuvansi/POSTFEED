@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [loading, setLoading] = useState(true);
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { user } = useAuth();
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
