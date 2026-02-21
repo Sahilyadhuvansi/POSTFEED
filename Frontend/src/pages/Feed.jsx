@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { API_URL, DEFAULT_AVATAR } from "../config";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
@@ -10,9 +11,8 @@ const Feed = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
     axios
-      .get(`${apiUrl}/api/posts/feed`)
+      .get(`${API_URL}/api/posts/feed`)
       .then((res) => {
         setPosts(res.data.posts);
         setLoading(false);
@@ -45,6 +45,28 @@ const Feed = () => {
   const openPost = (post) => {
     setSelectedImage(post.image || "");
     setSelectedPost(post);
+  };
+
+  const handleDeletePost = async (e, postId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+    try {
+      await axios.delete(`${API_URL}/api/posts/${postId}`);
+      setPosts(posts.filter((p) => p._id !== postId));
+      // Close modal if the deleted post was open
+      if (selectedPost?._id === postId) {
+        setSelectedImage(null);
+        setSelectedPost(null);
+      }
+    } catch (error) {
+      const message =
+        error.response?.status === 403
+          ? "You don't have permission to delete this post."
+          : error.response?.data?.error ||
+            "Failed to delete post. Please try again.";
+      alert(message);
+    }
   };
 
   return (
@@ -120,14 +142,10 @@ const Feed = () => {
                   {/* Username */}
                   <div className="flex items-center gap-2 mb-1.5">
                     <img
-                      src={
-                        post.user?.profilePic ||
-                        "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
-                      }
+                      src={post.user?.profilePic || DEFAULT_AVATAR}
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src =
-                          "https://www.gravatar.com/avatar/?d=mp&f=y&s=200";
+                        e.target.src = DEFAULT_AVATAR;
                       }}
                       alt=""
                       className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30"
@@ -195,6 +213,30 @@ const Feed = () => {
                         d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
                       />
                     </svg>
+
+                    {/* Delete button - only for post owner */}
+                    {user &&
+                      (post.user?._id === user.id || post.user === user.id) && (
+                        <button
+                          onClick={(e) => handleDeletePost(e, post._id)}
+                          className="ml-auto"
+                          title="Delete post"
+                        >
+                          <svg
+                            className="w-4 h-4 text-white/50 hover:text-red-500 transition-colors"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            strokeWidth="2"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      )}
                   </div>
                 </div>
 
@@ -264,19 +306,15 @@ const Feed = () => {
             {selectedPost && (
               <div className="mt-4 flex items-center gap-3">
                 <img
-                  src={
-                    selectedPost.user?.profilePic ||
-                    "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
-                  }
+                  src={selectedPost.user?.profilePic || DEFAULT_AVATAR}
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src =
-                      "https://www.gravatar.com/avatar/?d=mp&f=y&s=200";
+                    e.target.src = DEFAULT_AVATAR;
                   }}
                   alt=""
                   className="h-8 w-8 rounded-full object-cover ring-2 ring-white/20"
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-white truncate">
                     {selectedPost.user?.username || "Anonymous"}
                   </p>
@@ -284,6 +322,31 @@ const Feed = () => {
                     {selectedPost.caption}
                   </p>
                 </div>
+
+                {/* Delete button in modal */}
+                {user &&
+                  (selectedPost.user?._id === user.id ||
+                    selectedPost.user === user.id) && (
+                    <button
+                      onClick={(e) => handleDeletePost(e, selectedPost._id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors"
+                    >
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                      Delete
+                    </button>
+                  )}
               </div>
             )}
           </div>

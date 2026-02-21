@@ -21,14 +21,18 @@ connectDB().catch((err) => {
 });
 
 // Middlewares
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5001",
-      "http://localhost:5173",
-      "https://postfeeds-xi.vercel.app",
-      process.env.FRONTEND_URL,
-    ].filter(Boolean),
+    origin: allowedOrigins,
     credentials: true,
   }),
 );

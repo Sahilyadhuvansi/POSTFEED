@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+const OLD_DEFAULT_PIC =
+  process.env.OLD_DEFAULT_PIC ||
+  "https://ik.imagekit.io/sanujii/default-profile.png";
+const NEW_DEFAULT_PIC =
+  process.env.DEFAULT_AVATAR ||
+  "https://www.gravatar.com/avatar/?d=mp&f=y&s=200";
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -25,7 +32,7 @@ const userSchema = new mongoose.Schema(
     },
     profilePic: {
       type: String,
-      default: "https://www.gravatar.com/avatar/?d=mp&f=y&s=200",
+      default: NEW_DEFAULT_PIC,
     },
     bio: {
       type: String,
@@ -35,6 +42,22 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: {
+      transform(doc, ret) {
+        if (ret.profilePic === OLD_DEFAULT_PIC) {
+          ret.profilePic = NEW_DEFAULT_PIC;
+        }
+        return ret;
+      },
+    },
+    toObject: {
+      transform(doc, ret) {
+        if (ret.profilePic === OLD_DEFAULT_PIC) {
+          ret.profilePic = NEW_DEFAULT_PIC;
+        }
+        return ret;
+      },
+    },
   },
 );
 

@@ -18,8 +18,17 @@ async function uploadFromBuffer(buffer) {
 
 // Delete a file from ImageKit by its file ID
 async function deleteFile(fileId) {
-  const result = await imagekit.deleteFile(fileId);
-  return result;
+  try {
+    const result = await imagekit.files.delete(fileId);
+    return result;
+  } catch (error) {
+    // Ignore "file not found" errors — the file may already be deleted
+    if (error?.statusCode === 404 || error?.message?.includes("not found")) {
+      console.warn(`File ${fileId} not found in ImageKit, skipping delete.`);
+      return null;
+    }
+    throw error;
+  }
 }
 
 // Get auth params for client-side uploads

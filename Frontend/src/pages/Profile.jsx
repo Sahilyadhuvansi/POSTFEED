@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { API_URL, DEFAULT_AVATAR } from "../config";
 
 const Profile = () => {
   const { user, logout, updateUser } = useAuth();
@@ -66,8 +67,7 @@ const Profile = () => {
     if (newProfilePic) formData.append("profilePic", newProfilePic);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const res = await axios.put(`${apiUrl}/api/users/profile`, formData);
+      const res = await axios.put(`${API_URL}/api/users/profile`, formData);
       updateUser(res.data.user);
       setSuccess("Profile updated successfully!");
       setIsEditing(false);
@@ -117,15 +117,10 @@ const Profile = () => {
             >
               <div className="h-full w-full rounded-full overflow-hidden bg-gray-900 ring-4 ring-black">
                 <img
-                  src={
-                    profilePicPreview ||
-                    user.profilePic ||
-                    "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
-                  }
+                  src={profilePicPreview || user.profilePic || DEFAULT_AVATAR}
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src =
-                      "https://www.gravatar.com/avatar/?d=mp&f=y&s=200";
+                    e.target.src = DEFAULT_AVATAR;
                   }}
                   alt="Profile"
                   className="h-full w-full object-cover"

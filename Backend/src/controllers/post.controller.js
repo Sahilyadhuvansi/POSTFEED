@@ -92,7 +92,37 @@ const getFeed = async (req, res) => {
   }
 };
 
+const deletePost = async (req, res) => {
+  try {
+    const post = await postModel.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ success: false, error: "Post not found." });
+    }
+
+    if (post.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: "You don't have permission to delete this post.",
+      });
+    }
+
+    await postModel.findByIdAndDelete(req.params.postId);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Post deleted successfully." });
+  } catch (error) {
+    console.error("Delete Post Error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to delete post. Please try again.",
+    });
+  }
+};
+
 module.exports = {
   createPost,
   getFeed,
+  deletePost,
 };

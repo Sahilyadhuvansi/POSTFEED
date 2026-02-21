@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Music, Upload } from "lucide-react";
+import { DEFAULT_AVATAR } from "../config";
 
 const Header = () => {
   const { user, logout } = useAuth();
@@ -148,14 +149,10 @@ const Header = () => {
               <Link to="/profile" className="group flex items-center gap-2">
                 <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 p-[1.5px]">
                   <img
-                    src={
-                      user.profilePic ||
-                      "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
-                    }
+                    src={user.profilePic || DEFAULT_AVATAR}
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src =
-                        "https://www.gravatar.com/avatar/?d=mp&f=y&s=200";
+                      e.target.src = DEFAULT_AVATAR;
                     }}
                     alt={user.username}
                     className="h-full w-full rounded-full object-cover bg-black"

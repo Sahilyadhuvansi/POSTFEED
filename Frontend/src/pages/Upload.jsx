@@ -7,6 +7,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
+import { API_URL, IMAGEKIT_UPLOAD_URL } from "../config";
 
 const Upload = () => {
   const [title, setTitle] = useState("");
@@ -16,7 +17,7 @@ const Upload = () => {
   const [status, setStatus] = useState({ type: "", message: "" });
   const navigate = useNavigate();
 
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+  const apiUrl = API_URL;
 
   const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -102,7 +103,7 @@ const Upload = () => {
     formData.append("expire", authParams.expire);
     formData.append("token", authParams.token);
 
-    const res = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+    const res = await fetch(IMAGEKIT_UPLOAD_URL, {
       method: "POST",
       body: formData,
     });

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../config";
 
 const CreatePost = () => {
   const [image, setImage] = useState(null);
@@ -61,8 +62,7 @@ const CreatePost = () => {
     formData.append("isSecret", isSecret);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      await axios.post(`${apiUrl}/api/posts/create`, formData);
+      await axios.post(`${API_URL}/api/posts/create`, formData);
       navigate("/");
     } catch (err) {
       let message = "Error creating post. Please try again.";

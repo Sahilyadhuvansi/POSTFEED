@@ -3,6 +3,7 @@ import axios from "axios";
 import { useMusic } from "../context/MusicContext";
 import { useAuth } from "../context/AuthContext";
 import { Play, Pause, Music as MusicIcon, Disc, Trash2 } from "lucide-react";
+import { API_URL } from "../config";
 
 const Music = () => {
   const [musics, setMusics] = useState([]);
@@ -10,7 +11,7 @@ const Music = () => {
   const { currentTrack, playTrack, isPlaying } = useMusic();
   const { user } = useAuth();
 
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+  const apiUrl = API_URL;
 
   useEffect(() => {
     const fetchMusics = async () => {
