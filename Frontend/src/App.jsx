@@ -3,9 +3,12 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MusicProvider } from "./context/MusicContext";
+import { PageLoadProvider, usePageLoad } from "./context/PageLoadContext";
 
 import CreatePost from "./pages/CreatePost";
 import Feed from "./pages/Feed";
@@ -28,47 +31,77 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+const AppRouter = () => {
+  const location = useLocation();
+  const { isPageReady, nextPageReady, resetPageState, allowPageSwitch } =
+    usePageLoad();
+  const [displayLocation, setDisplayLocation] = useState(location);
+
+  useEffect(() => {
+    // When location changes, signal page is not ready
+    if (displayLocation.pathname !== location.pathname) {
+      resetPageState();
+    }
+  }, [location, displayLocation, resetPageState]);
+
+  // When next page is ready, switch to it
+  useEffect(() => {
+    if (nextPageReady && !isPageReady) {
+      allowPageSwitch();
+      setDisplayLocation(location);
+    }
+  }, [nextPageReady, isPageReady, allowPageSwitch, location]);
+
+  return (
+    <>
+      <Header />
+      <main>
+        <Routes location={displayLocation}>
+          <Route path="/" element={<Feed />} />
+          <Route path="/music" element={<Music />} />
+          <Route
+            path="/create-post"
+            element={
+              <ProtectedRoute>
+                <CreatePost />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute>
+                <Upload />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
+      <Footer />
+      <Player />
+    </>
+  );
+};
+
 const App = () => {
   return (
     <AuthProvider>
       <MusicProvider>
-        <Router>
-          <Header />
-          <main>
-            <Routes>
-              <Route path="/" element={<Feed />} />
-              <Route path="/music" element={<Music />} />
-              <Route
-                path="/create-post"
-                element={
-                  <ProtectedRoute>
-                    <CreatePost />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/upload"
-                element={
-                  <ProtectedRoute>
-                    <Upload />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </main>
-          <Footer />
-          <Player />
-        </Router>
+        <PageLoadProvider>
+          <Router>
+            <AppRouter />
+          </Router>
+        </PageLoadProvider>
       </MusicProvider>
     </AuthProvider>
   );

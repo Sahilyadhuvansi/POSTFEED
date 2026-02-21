@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { usePageReady } from "../hooks/usePageReady";
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -13,6 +14,9 @@ const Register = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // Page is ready immediately
+  usePageReady(true);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const { register } = useAuth();

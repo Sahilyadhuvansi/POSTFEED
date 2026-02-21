@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { usePageReady } from "../hooks/usePageReady";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,6 +11,9 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Page is ready immediately
+  usePageReady(true);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

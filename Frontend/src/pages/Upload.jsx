@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { API_URL, IMAGEKIT_UPLOAD_URL } from "../config";
+import { usePageReady } from "../hooks/usePageReady";
 
 const Upload = () => {
   const [title, setTitle] = useState("");
@@ -18,6 +19,9 @@ const Upload = () => {
   const navigate = useNavigate();
 
   const apiUrl = API_URL;
+
+  // Page is ready immediately
+  usePageReady(true);
 
   const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB

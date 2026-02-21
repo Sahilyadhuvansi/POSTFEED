@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { API_URL, DEFAULT_AVATAR } from "../config";
 import { PostSkeletonLoader } from "../components/SkeletonLoader";
+import { usePageReady } from "../hooks/usePageReady";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
@@ -10,6 +11,9 @@ const Feed = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+
+  // Signal when page is ready to display
+  usePageReady(!loading);
 
   useEffect(() => {
     axios

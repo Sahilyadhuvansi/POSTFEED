@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Play, Pause, Music as MusicIcon, Disc, Trash2 } from "lucide-react";
 import { API_URL } from "../config";
 import { MusicSkeleton } from "../components/SkeletonLoader";
+import { usePageReady } from "../hooks/usePageReady";
 
 const Music = () => {
   const [musics, setMusics] = useState([]);
@@ -13,6 +14,9 @@ const Music = () => {
   const { user } = useAuth();
 
   const apiUrl = API_URL;
+
+  // Signal when page is ready to display
+  usePageReady(!loading);
 
   useEffect(() => {
     const fetchMusics = async () => {

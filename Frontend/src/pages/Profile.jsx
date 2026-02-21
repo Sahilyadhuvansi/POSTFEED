@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API_URL, DEFAULT_AVATAR } from "../config";
+import { usePageReady } from "../hooks/usePageReady";
 
 const Profile = () => {
   const { user, logout, updateUser } = useAuth();
@@ -16,6 +17,9 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+
+  // Signal page is ready once user data is available
+  usePageReady(!!user);
 
   useEffect(() => {
     if (user) {
