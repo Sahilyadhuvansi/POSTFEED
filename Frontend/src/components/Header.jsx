@@ -150,7 +150,7 @@ const Header = () => {
                   <img
                     src={
                       user.profilePic ||
-                      "https://ik.imagekit.io/sanujii/default-profile.png"
+                      "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
                     }
                     alt={user.username}
                     className="h-full w-full rounded-full object-cover bg-black"

@@ -91,7 +91,7 @@ const Profile = () => {
                   src={
                     profilePicPreview ||
                     user.profilePic ||
-                    "https://ik.imagekit.io/sanujii/default-profile.png"
+                    "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
                   }
                   alt="Profile"
                   className="h-full w-full object-cover"

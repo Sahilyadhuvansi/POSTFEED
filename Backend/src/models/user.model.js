@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
     },
     profilePic: {
       type: String,
-      default: "https://ik.imagekit.io/sanujii/default-profile.png",
+      default: "https://www.gravatar.com/avatar/?d=mp&f=y&s=200",
     },
     bio: {
       type: String,

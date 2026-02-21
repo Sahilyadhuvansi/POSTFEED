@@ -119,7 +119,7 @@ const Feed = () => {
                     <img
                       src={
                         post.user?.profilePic ||
-                        "https://ik.imagekit.io/sanujii/default-profile.png"
+                        "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
                       }
                       alt=""
                       className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30"
@@ -258,7 +258,7 @@ const Feed = () => {
                 <img
                   src={
                     selectedPost.user?.profilePic ||
-                    "https://ik.imagekit.io/sanujii/default-profile.png"
+                    "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
                   }
                   alt=""
                   className="h-8 w-8 rounded-full object-cover ring-2 ring-white/20"
