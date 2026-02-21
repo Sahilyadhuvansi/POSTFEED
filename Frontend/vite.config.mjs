@@ -8,4 +8,7 @@ export default defineConfig({
   server: {
     port: 5001,
   },
+  build: {
+    sourcemap: false, // Disable sourcemaps in production to avoid eval() in CSP
+  },
 });
