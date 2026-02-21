@@ -5,10 +5,13 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MusicProvider } from "./context/MusicContext";
-import { PageLoadProvider, usePageLoad } from "./context/PageLoadContext";
+import {
+  PageReadinessProvider,
+  usePageReadiness,
+} from "./context/PageReadinessContext";
 
 import CreatePost from "./pages/CreatePost";
 import Feed from "./pages/Feed";
@@ -31,77 +34,65 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-const AppRouter = () => {
+/**
+ * Detects route changes and marks app as navigating
+ * This allows keeping old page visible while new page loads
+ */
+const RouteChangeDetector = () => {
   const location = useLocation();
-  const { isPageReady, nextPageReady, resetPageState, allowPageSwitch } =
-    usePageLoad();
-  const [displayLocation, setDisplayLocation] = useState(location);
+  const { markNavigating } = usePageReadiness();
 
   useEffect(() => {
-    // When location changes, signal page is not ready
-    if (displayLocation.pathname !== location.pathname) {
-      resetPageState();
-    }
-  }, [location, displayLocation, resetPageState]);
+    markNavigating(location.pathname);
+  }, [location.pathname, markNavigating]);
 
-  // When next page is ready, switch to it
-  useEffect(() => {
-    if (nextPageReady && !isPageReady) {
-      allowPageSwitch();
-      setDisplayLocation(location);
-    }
-  }, [nextPageReady, isPageReady, allowPageSwitch, location]);
-
-  return (
-    <>
-      <Header />
-      <main>
-        <Routes location={displayLocation}>
-          <Route path="/" element={<Feed />} />
-          <Route path="/music" element={<Music />} />
-          <Route
-            path="/create-post"
-            element={
-              <ProtectedRoute>
-                <CreatePost />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/upload"
-            element={
-              <ProtectedRoute>
-                <Upload />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </main>
-      <Footer />
-      <Player />
-    </>
-  );
+  return null;
 };
 
 const App = () => {
   return (
     <AuthProvider>
       <MusicProvider>
-        <PageLoadProvider>
+        <PageReadinessProvider>
           <Router>
-            <AppRouter />
+            <RouteChangeDetector />
+            <Header />
+            <main>
+              <Routes>
+                <Route path="/" element={<Feed />} />
+                <Route path="/music" element={<Music />} />
+                <Route
+                  path="/create-post"
+                  element={
+                    <ProtectedRoute>
+                      <CreatePost />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/upload"
+                  element={
+                    <ProtectedRoute>
+                      <Upload />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </main>
+            <Footer />
+            <Player />
           </Router>
-        </PageLoadProvider>
+        </PageReadinessProvider>
       </MusicProvider>
     </AuthProvider>
   );

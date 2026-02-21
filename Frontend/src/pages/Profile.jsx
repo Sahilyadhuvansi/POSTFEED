@@ -18,7 +18,7 @@ const Profile = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  // Signal page is ready once user data is available
+  // Signal page readiness when user data is available
   usePageReady(!!user);
 
   useEffect(() => {

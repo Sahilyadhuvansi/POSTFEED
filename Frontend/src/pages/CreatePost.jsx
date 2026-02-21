@@ -13,7 +13,7 @@ const CreatePost = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Page is ready immediately
+  // CreatePost page is ready immediately (static form)
   usePageReady(true);
 
   const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];

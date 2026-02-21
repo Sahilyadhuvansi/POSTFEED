@@ -18,9 +18,7 @@ const Upload = () => {
   const [status, setStatus] = useState({ type: "", message: "" });
   const navigate = useNavigate();
 
-  const apiUrl = API_URL;
-
-  // Page is ready immediately
+  // Upload page is ready immediately (static form)
   usePageReady(true);
 
   const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB

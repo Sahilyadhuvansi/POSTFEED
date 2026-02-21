@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePageReady } from "../hooks/usePageReady";
@@ -12,7 +12,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // Page is ready immediately
+  // Login page is ready immediately (static form)
   usePageReady(true);
 
   const handleSubmit = async (e) => {

@@ -14,12 +14,12 @@ const Register = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
-
-  // Page is ready immediately
-  usePageReady(true);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const { register } = useAuth();
+
+  // Register page is ready immediately (static form)
+  usePageReady(true);
 
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];

@@ -3,8 +3,8 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { API_URL, DEFAULT_AVATAR } from "../config";
 import { PostSkeletonLoader } from "../components/SkeletonLoader";
-import { usePageReady } from "../hooks/usePageReady";
 import { useApiCache } from "../hooks/useApiCache";
+import { usePageReady } from "../hooks/usePageReady";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
@@ -17,9 +17,12 @@ const Feed = () => {
   const { getFromCache, setCache } = useApiCache();
   const observerTarget = useRef(null);
 
+  // Signal page readiness when initial load completes
+  usePageReady(!loading);
+
   const POSTS_PER_PAGE = 10;
 
-  // Load initial posts with caching
+  // Load initial posts with caching and pagination
   useEffect(() => {
     const cacheKey = "feed_posts_page_1";
     const cached = getFromCache(cacheKey);
@@ -48,9 +51,6 @@ const Feed = () => {
         setLoading(false);
       });
   }, [getFromCache, setCache]);
-
-  // Signal page is ready after initial load (not waiting for all posts)
-  usePageReady(!loading);
 
   // Infinite scroll handler
   useEffect(() => {
