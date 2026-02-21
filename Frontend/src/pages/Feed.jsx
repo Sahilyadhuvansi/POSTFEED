@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { API_URL, DEFAULT_AVATAR } from "../config";
 import { PostSkeletonLoader } from "../components/SkeletonLoader";
 import { useApiCache } from "../hooks/useApiCache";
-import { usePageReady } from "../hooks/usePageReady";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
@@ -16,9 +15,6 @@ const Feed = () => {
   const { user } = useAuth();
   const { getFromCache, setCache } = useApiCache();
   const observerTarget = useRef(null);
-
-  // Signal page readiness when initial load completes
-  usePageReady(!loading);
 
   const POSTS_PER_PAGE = 10;
 

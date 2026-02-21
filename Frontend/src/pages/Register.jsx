@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { usePageReady } from "../hooks/usePageReady";
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -17,9 +16,6 @@ const Register = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const { register } = useAuth();
-
-  // Register page is ready immediately (static form)
-  usePageReady(true);
 
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];

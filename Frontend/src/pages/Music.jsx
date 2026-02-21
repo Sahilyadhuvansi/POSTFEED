@@ -6,7 +6,6 @@ import { Play, Pause, Music as MusicIcon, Disc, Trash2 } from "lucide-react";
 import { API_URL } from "../config";
 import { MusicSkeleton } from "../components/SkeletonLoader";
 import { useApiCache } from "../hooks/useApiCache";
-import { usePageReady } from "../hooks/usePageReady";
 
 const Music = () => {
   const [musics, setMusics] = useState([]);
@@ -20,9 +19,6 @@ const Music = () => {
   const MUSIC_PER_PAGE = 15;
   const { getFromCache, setCache } = useApiCache();
   const observerTarget = useRef(null);
-
-  // Signal page readiness when initial load completes
-  usePageReady(!loading);
 
   // Load initial music with caching and pagination
   useEffect(() => {

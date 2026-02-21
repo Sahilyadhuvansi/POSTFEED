@@ -2,7 +2,6 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
-import { usePageReady } from "../hooks/usePageReady";
 
 const CreatePost = () => {
   const [image, setImage] = useState(null);
@@ -12,9 +11,6 @@ const CreatePost = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  // CreatePost page is ready immediately (static form)
-  usePageReady(true);
 
   const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB

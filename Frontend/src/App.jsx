@@ -3,15 +3,9 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation,
 } from "react-router-dom";
-import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MusicProvider } from "./context/MusicContext";
-import {
-  PageReadinessProvider,
-  usePageReadiness,
-} from "./context/PageReadinessContext";
 
 import CreatePost from "./pages/CreatePost";
 import Feed from "./pages/Feed";
@@ -35,64 +29,56 @@ const ProtectedRoute = ({ children }) => {
 };
 
 /**
- * Detects route changes and marks app as navigating
- * This allows keeping old page visible while new page loads
+ * Simple routing - pages show skeleton loaders during data loading
+ * Smooth content fill-in as data arrives
  */
-const RouteChangeDetector = () => {
-  const location = useLocation();
-  const { markNavigating } = usePageReadiness();
-
-  useEffect(() => {
-    markNavigating(location.pathname);
-  }, [location.pathname, markNavigating]);
-
-  return null;
+const AppRouter = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<Feed />} />
+      <Route path="/music" element={<Music />} />
+      <Route
+        path="/create-post"
+        element={
+          <ProtectedRoute>
+            <CreatePost />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/upload"
+        element={
+          <ProtectedRoute>
+            <Upload />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
 };
 
 const App = () => {
   return (
     <AuthProvider>
       <MusicProvider>
-        <PageReadinessProvider>
-          <Router>
-            <RouteChangeDetector />
-            <Header />
-            <main>
-              <Routes>
-                <Route path="/" element={<Feed />} />
-                <Route path="/music" element={<Music />} />
-                <Route
-                  path="/create-post"
-                  element={
-                    <ProtectedRoute>
-                      <CreatePost />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/upload"
-                  element={
-                    <ProtectedRoute>
-                      <Upload />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </main>
-            <Footer />
-            <Player />
-          </Router>
-        </PageReadinessProvider>
+        <Router>
+          <Header />
+          <main>
+            <AppRouter />
+          </main>
+          <Footer />
+          <Player />
+        </Router>
       </MusicProvider>
     </AuthProvider>
   );
