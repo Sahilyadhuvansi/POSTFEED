@@ -152,6 +152,11 @@ const Header = () => {
                       user.profilePic ||
                       "https://www.gravatar.com/avatar/?d=mp&f=y&s=200"
                     }
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src =
+                        "https://www.gravatar.com/avatar/?d=mp&f=y&s=200";
+                    }}
                     alt={user.username}
                     className="h-full w-full rounded-full object-cover bg-black"
                   />

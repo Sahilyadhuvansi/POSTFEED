@@ -1,18 +1,14 @@
 const express = require("express");
-const multer = require("multer");
 const auth = require("../middlewares/auth.middleware");
 const musicController = require("../controllers/music.controller");
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
-// Upload music (any logged-in user)
-router.post(
-  "/",
-  auth,
-  upload.fields([{ name: "audioFile" }, { name: "thumbnail" }]),
-  musicController.createMusic,
-);
+// Get ImageKit auth params for client-side upload
+router.get("/imagekit-auth", auth, musicController.getImageKitAuth);
+
+// Save music metadata after client-side upload (any logged-in user)
+router.post("/", auth, musicController.createMusic);
 
 // Get all music tracks (public)
 router.get("/", musicController.getAllMusics);

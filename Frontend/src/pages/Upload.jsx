@@ -18,6 +18,30 @@ const Upload = () => {
 
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
+  // Upload a file directly to ImageKit from the browser
+  const uploadToImageKit = async (file, authParams) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("fileName", `music_${Date.now()}_${file.name}`);
+    formData.append("folder", "postfeed");
+    formData.append("publicKey", authParams.publicKey);
+    formData.append("signature", authParams.signature);
+    formData.append("expire", authParams.expire);
+    formData.append("token", authParams.token);
+
+    const res = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "ImageKit upload failed");
+    }
+
+    return res.json();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!audioFile) {
@@ -28,19 +52,40 @@ const Upload = () => {
     setLoading(true);
     setStatus({ type: "", message: "" });
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("audioFile", audioFile);
-    if (thumbnail) formData.append("thumbnail", thumbnail);
-
     try {
-      await axios.post(`${apiUrl}/api/music`, formData);
+      // 1. Get auth params from backend
+      const { data: authParams } = await axios.get(
+        `${apiUrl}/api/music/imagekit-auth`,
+      );
+
+      // 2. Upload audio directly to ImageKit
+      const audioResult = await uploadToImageKit(audioFile, authParams);
+
+      // 3. Upload thumbnail if provided (get fresh auth params)
+      let thumbnailResult = null;
+      if (thumbnail) {
+        const { data: thumbAuth } = await axios.get(
+          `${apiUrl}/api/music/imagekit-auth`,
+        );
+        thumbnailResult = await uploadToImageKit(thumbnail, thumbAuth);
+      }
+
+      // 4. Save metadata in our backend
+      await axios.post(`${apiUrl}/api/music`, {
+        title,
+        audioUrl: audioResult.url,
+        audioFileId: audioResult.fileId,
+        thumbnailUrl: thumbnailResult?.url || null,
+        thumbnailFileId: thumbnailResult?.fileId || null,
+      });
+
       setStatus({ type: "success", message: "Music uploaded successfully!" });
       setTimeout(() => navigate("/music"), 2000);
     } catch (error) {
       setStatus({
         type: "error",
-        message: error.response?.data?.message || "Upload failed",
+        message:
+          error.response?.data?.error || error.message || "Upload failed",
       });
     } finally {
       setLoading(false);

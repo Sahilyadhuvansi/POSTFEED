@@ -22,7 +22,13 @@ async function deleteFile(fileId) {
   return result;
 }
 
+// Get auth params for client-side uploads
+function getAuthParams() {
+  return imagekit.helper.getAuthenticationParameters();
+}
+
 module.exports = {
   uploadFromBuffer,
   deleteFile,
+  getAuthParams,
 };

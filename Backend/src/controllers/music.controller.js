@@ -1,11 +1,27 @@
 const musicModel = require("../models/music.model");
 const storageService = require("../services/storage.service");
 
+// Return ImageKit auth params for client-side upload
+const getImageKitAuth = async (req, res) => {
+  try {
+    const authParams = storageService.getAuthParams();
+    return res.status(200).json({
+      success: true,
+      ...authParams,
+      publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+    });
+  } catch (error) {
+    console.error("ImageKit Auth Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal server error" });
+  }
+};
+
 const createMusic = async (req, res) => {
   try {
-    const { title } = req.body;
-    const audioFile = req.files?.audioFile?.[0];
-    const thumbnailFile = req.files?.thumbnail?.[0];
+    const { title, audioUrl, audioFileId, thumbnailUrl, thumbnailFileId } =
+      req.body;
 
     if (!title || !title.trim()) {
       return res
@@ -13,27 +29,18 @@ const createMusic = async (req, res) => {
         .json({ success: false, error: "Title is required" });
     }
 
-    if (!audioFile) {
+    if (!audioUrl || !audioFileId) {
       return res
         .status(400)
         .json({ success: false, error: "Audio file is required" });
     }
 
-    const audioUpload = await storageService.uploadFromBuffer(audioFile.buffer);
-
-    let thumbnailUpload = null;
-    if (thumbnailFile) {
-      thumbnailUpload = await storageService.uploadFromBuffer(
-        thumbnailFile.buffer,
-      );
-    }
-
     const music = await musicModel.create({
-      uri: audioUpload.url,
+      uri: audioUrl,
       title: title.trim(),
-      thumbnail: thumbnailUpload?.url || null,
-      audioFileId: audioUpload.fileId,
-      thumbnailFileId: thumbnailUpload?.fileId || null,
+      thumbnail: thumbnailUrl || null,
+      audioFileId,
+      thumbnailFileId: thumbnailFileId || null,
       artist: req.user.id,
     });
 
@@ -108,4 +115,4 @@ const deleteMusic = async (req, res) => {
   }
 };
 
-module.exports = { createMusic, getAllMusics, deleteMusic };
+module.exports = { getImageKitAuth, createMusic, getAllMusics, deleteMusic };
