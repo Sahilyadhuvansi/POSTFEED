@@ -11,6 +11,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const postRoutes = require("./routes/post.routes");
 const userRoutes = require("./routes/user.routes");
+const musicRoutes = require("./routes/music.routes");
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/music", musicRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

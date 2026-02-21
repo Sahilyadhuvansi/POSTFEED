@@ -10,13 +10,12 @@ const Music = () => {
   const { currentTrack, playTrack, isPlaying } = useMusic();
   const { user } = useAuth();
 
-  const musicApiUrl =
-    import.meta.env.VITE_MUSIC_API_URL || "http://localhost:3000";
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
   useEffect(() => {
     const fetchMusics = async () => {
       try {
-        const response = await axios.get(`${musicApiUrl}/api/music`);
+        const response = await axios.get(`${apiUrl}/api/music`);
         setMusics(response.data.musics);
       } catch (error) {
         console.error("Failed to fetch musics", error);
@@ -25,18 +24,18 @@ const Music = () => {
       }
     };
     fetchMusics();
-  }, [musicApiUrl]);
+  }, [apiUrl]);
 
   const handleDelete = async (e, musicId) => {
     e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this track?")) return;
 
     try {
-      await axios.delete(`${musicApiUrl}/api/music/${musicId}`);
+      await axios.delete(`${apiUrl}/api/music/${musicId}`);
       setMusics(musics.filter((m) => m._id !== musicId));
     } catch (error) {
       console.error("Failed to delete music", error);
-      alert(error.response?.data?.message || "Failed to delete track");
+      alert(error.response?.data?.error || "Failed to delete track");
     }
   };
 

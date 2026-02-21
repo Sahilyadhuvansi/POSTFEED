@@ -16,6 +16,13 @@ async function uploadFromBuffer(buffer) {
   return result;
 }
 
+// Delete a file from ImageKit by its file ID
+async function deleteFile(fileId) {
+  const result = await imagekit.deleteFile(fileId);
+  return result;
+}
+
 module.exports = {
   uploadFromBuffer,
+  deleteFile,
 };

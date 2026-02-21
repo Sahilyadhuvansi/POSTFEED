@@ -16,8 +16,7 @@ const Upload = () => {
   const [status, setStatus] = useState({ type: "", message: "" });
   const navigate = useNavigate();
 
-  const musicApiUrl =
-    import.meta.env.VITE_MUSIC_API_URL || "http://localhost:3000";
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,7 +34,7 @@ const Upload = () => {
     if (thumbnail) formData.append("thumbnail", thumbnail);
 
     try {
-      await axios.post(`${musicApiUrl}/api/music`, formData);
+      await axios.post(`${apiUrl}/api/music`, formData);
       setStatus({ type: "success", message: "Music uploaded successfully!" });
       setTimeout(() => navigate("/music"), 2000);
     } catch (error) {
