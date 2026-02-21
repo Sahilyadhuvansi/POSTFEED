@@ -4,6 +4,7 @@ import { useMusic } from "../context/MusicContext";
 import { useAuth } from "../context/AuthContext";
 import { Play, Pause, Music as MusicIcon, Disc, Trash2 } from "lucide-react";
 import { API_URL } from "../config";
+import { MusicSkeleton } from "../components/SkeletonLoader";
 
 const Music = () => {
   const [musics, setMusics] = useState([]);
@@ -51,10 +52,20 @@ const Music = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center space-y-3">
-          <Disc className="h-12 w-12 mx-auto text-indigo-500 animate-spin" />
-          <p className="text-sm text-gray-500 font-medium">Loading tracks...</p>
+      <div className="min-h-screen bg-black pb-28">
+        <div className="mx-auto max-w-[1400px] px-3 sm:px-5 lg:px-6 pt-6 pb-4">
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Explore{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
+                Music
+              </span>
+            </h1>
+            <p className="text-sm text-gray-500 mt-2">
+              Discover new tracks from trending artists
+            </p>
+          </div>
+          <MusicSkeleton />
         </div>
       </div>
     );

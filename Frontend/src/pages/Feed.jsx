@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { API_URL, DEFAULT_AVATAR } from "../config";
+import { PostSkeletonLoader } from "../components/SkeletonLoader";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
@@ -96,12 +97,7 @@ const Feed = () => {
 
         {/* Loading */}
         {loading ? (
-          <div className="flex min-h-[60vh] items-center justify-center">
-            <div className="text-center space-y-3">
-              <div className="spinner-ring h-10 w-10 mx-auto"></div>
-              <p className="text-sm text-gray-500 font-medium">Loading...</p>
-            </div>
-          </div>
+          <PostSkeletonLoader />
         ) : posts.length === 0 ? (
           <div className="flex min-h-[60vh] items-center justify-center">
             <div className="text-center space-y-3">
