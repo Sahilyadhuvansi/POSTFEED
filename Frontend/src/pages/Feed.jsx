@@ -1,32 +1,102 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { API_URL, DEFAULT_AVATAR } from "../config";
 import { PostSkeletonLoader } from "../components/SkeletonLoader";
 import { usePageReady } from "../hooks/usePageReady";
+import { useApiCache } from "../hooks/useApiCache";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const { user } = useAuth();
+  const { getFromCache, setCache } = useApiCache();
+  const observerTarget = useRef(null);
 
-  // Signal when page is ready to display
-  usePageReady(!loading);
+  const POSTS_PER_PAGE = 10;
 
+  // Load initial posts with caching
   useEffect(() => {
+    const cacheKey = "feed_posts_page_1";
+    const cached = getFromCache(cacheKey);
+
+    if (cached) {
+      setPosts(cached.posts);
+      setPage(cached.page);
+      setLoading(false);
+      return;
+    }
+
     axios
-      .get(`${API_URL}/api/posts/feed`)
+      .get(`${API_URL}/api/posts/feed?page=1&limit=${POSTS_PER_PAGE}`)
       .then((res) => {
-        setPosts(res.data.posts);
+        const newPosts = res.data.posts || [];
+        setPosts(newPosts);
         setLoading(false);
+        setPage(1);
+        setHasMore(newPosts.length === POSTS_PER_PAGE);
+
+        // Cache the first page
+        setCache(cacheKey, { posts: newPosts, page: 1 });
       })
       .catch((err) => {
         console.error("Feed Error:", err.response?.data?.error || err.message);
         setLoading(false);
       });
-  }, []);
+  }, [getFromCache, setCache]);
+
+  // Signal page is ready after initial load (not waiting for all posts)
+  usePageReady(!loading);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loading]);
+
+  const loadMorePosts = () => {
+    const nextPage = page + 1;
+    const cacheKey = `feed_posts_page_${nextPage}`;
+    const cached = getFromCache(cacheKey);
+
+    if (cached) {
+      setPosts((prev) => [...prev, ...cached.posts]);
+      setPage(nextPage);
+      setHasMore(cached.posts.length === POSTS_PER_PAGE);
+      return;
+    }
+
+    axios
+      .get(`${API_URL}/api/posts/feed?page=${nextPage}&limit=${POSTS_PER_PAGE}`)
+      .then((res) => {
+        const newPosts = res.data.posts || [];
+        setPosts((prev) => [...prev, ...newPosts]);
+        setPage(nextPage);
+        setHasMore(newPosts.length === POSTS_PER_PAGE);
+
+        // Cache this page
+        setCache(cacheKey, { posts: newPosts });
+      })
+      .catch((err) => {
+        console.error("Load more error:", err.message);
+      });
+  };
 
   // Escape key to close modal
   const handleKeyDown = useCallback((e) => {
@@ -245,6 +315,16 @@ const Feed = () => {
               </div>
             ))}
           </div>
+
+          {/* Infinite Scroll Loader */}
+          {hasMore && (
+            <div ref={observerTarget} className="py-8 flex justify-center">
+              <div className="text-center space-y-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-600 to-pink-600 mx-auto spinner-ring" />
+                <p className="text-xs text-gray-500">Loading more posts...</p>
+              </div>
+            </div>
+          )}
         )}
       </div>
 

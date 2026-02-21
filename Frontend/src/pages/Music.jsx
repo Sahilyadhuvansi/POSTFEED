@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useMusic } from "../context/MusicContext";
 import { useAuth } from "../context/AuthContext";
@@ -6,23 +6,48 @@ import { Play, Pause, Music as MusicIcon, Disc, Trash2 } from "lucide-react";
 import { API_URL } from "../config";
 import { MusicSkeleton } from "../components/SkeletonLoader";
 import { usePageReady } from "../hooks/usePageReady";
+import { useApiCache } from "../hooks/useApiCache";
 
 const Music = () => {
   const [musics, setMusics] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const { currentTrack, playTrack, isPlaying } = useMusic();
   const { user } = useAuth();
 
   const apiUrl = API_URL;
+  const MUSIC_PER_PAGE = 15;
+  const { getFromCache, setCache } = useApiCache();
+  const observerTarget = useRef(null);
 
   // Signal when page is ready to display
   usePageReady(!loading);
 
+  // Load initial music with caching
   useEffect(() => {
+    const cacheKey = "music_tracks_page_1";
+    const cached = getFromCache(cacheKey);
+
+    if (cached) {
+      setMusics(cached.musics);
+      setPage(cached.page);
+      setLoading(false);
+      return;
+    }
+
     const fetchMusics = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/api/music`);
-        setMusics(response.data.musics);
+        const response = await axios.get(
+          `${apiUrl}/api/music?page=1&limit=${MUSIC_PER_PAGE}`,
+        );
+        const newMusics = response.data.musics || [];
+        setMusics(newMusics);
+        setPage(1);
+        setHasMore(newMusics.length === MUSIC_PER_PAGE);
+
+        // Cache first page
+        setCache(cacheKey, { musics: newMusics, page: 1 });
       } catch (error) {
         console.error(
           "Failed to fetch musics:",
@@ -33,7 +58,53 @@ const Music = () => {
       }
     };
     fetchMusics();
-  }, [apiUrl]);
+  }, [apiUrl, getFromCache, setCache]);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMoreMusic();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loading]);
+
+  const loadMoreMusic = () => {
+    const nextPage = page + 1;
+    const cacheKey = `music_tracks_page_${nextPage}`;
+    const cached = getFromCache(cacheKey);
+
+    if (cached) {
+      setMusics((prev) => [...prev, ...cached.musics]);
+      setPage(nextPage);
+      setHasMore(cached.musics.length === MUSIC_PER_PAGE);
+      return;
+    }
+
+    axios
+      .get(`${apiUrl}/api/music?page=${nextPage}&limit=${MUSIC_PER_PAGE}`)
+      .then((res) => {
+        const newMusics = res.data.musics || [];
+        setMusics((prev) => [...prev, ...newMusics]);
+        setPage(nextPage);
+        setHasMore(newMusics.length === MUSIC_PER_PAGE);
+
+        // Cache this page
+        setCache(cacheKey, { musics: newMusics });
+      })
+      .catch((err) => {
+        console.error("Load more error:", err.message);
+      });
+  };
 
   const handleDelete = async (e, musicId) => {
     e.stopPropagation();
@@ -164,6 +235,16 @@ const Music = () => {
               </div>
             ))}
           </div>
+
+          {/* Infinite Scroll Loader */}
+          {hasMore && (
+            <div ref={observerTarget} className="py-8 flex justify-center">
+              <div className="text-center space-y-2">
+                <Disc className="w-8 h-8 text-indigo-500 mx-auto spinner-ring" />
+                <p className="text-xs text-gray-500">Loading more tracks...</p>
+              </div>
+            </div>
+          )}
         )}
       </div>
     </div>

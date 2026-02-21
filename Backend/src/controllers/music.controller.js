@@ -76,10 +76,16 @@ const createMusic = async (req, res) => {
 
 const getAllMusics = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const skip = (page - 1) * limit;
+
     const musics = await musicModel
       .find()
       .populate("artist", "username profilePic")
-      .sort({ _id: -1 });
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit);
 
     return res.status(200).json({ success: true, musics });
   } catch (error) {
