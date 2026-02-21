@@ -314,17 +314,20 @@ const Feed = () => {
                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none group-hover:opacity-0 transition-opacity" />
               </div>
             ))}
-          </div>
 
-          {/* Infinite Scroll Loader */}
-          {hasMore && (
-            <div ref={observerTarget} className="py-8 flex justify-center">
-              <div className="text-center space-y-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-600 to-pink-600 mx-auto spinner-ring" />
-                <p className="text-xs text-gray-500">Loading more posts...</p>
+            {/* Infinite Scroll Loader */}
+            {hasMore && (
+              <div
+                ref={observerTarget}
+                className="col-span-2 sm:col-span-3 lg:col-span-4 py-8 flex justify-center"
+              >
+                <div className="text-center space-y-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-600 to-pink-600 mx-auto spinner-ring" />
+                  <p className="text-xs text-gray-500">Loading more posts...</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         )}
       </div>
 

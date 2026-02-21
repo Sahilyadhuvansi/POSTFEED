@@ -234,17 +234,22 @@ const Music = () => {
                 </p>
               </div>
             ))}
-          </div>
 
-          {/* Infinite Scroll Loader */}
-          {hasMore && (
-            <div ref={observerTarget} className="py-8 flex justify-center">
-              <div className="text-center space-y-2">
-                <Disc className="w-8 h-8 text-indigo-500 mx-auto spinner-ring" />
-                <p className="text-xs text-gray-500">Loading more tracks...</p>
+            {/* Infinite Scroll Loader */}
+            {hasMore && (
+              <div
+                ref={observerTarget}
+                className="py-8 flex justify-center col-span-full"
+              >
+                <div className="text-center space-y-2">
+                  <Disc className="w-8 h-8 text-indigo-500 mx-auto spinner-ring" />
+                  <p className="text-xs text-gray-500">
+                    Loading more tracks...
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         )}
       </div>
     </div>
