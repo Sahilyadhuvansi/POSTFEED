@@ -3,9 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation,
 } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MusicProvider } from "./context/MusicContext";
 
@@ -30,92 +28,6 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-const PageWrapper = ({ children }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-const AnimatedRoutes = () => {
-  const location = useLocation();
-
-  return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route
-          path="/"
-          element={
-            <PageWrapper>
-              <Feed />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/music"
-          element={
-            <PageWrapper>
-              <Music />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/create-post"
-          element={
-            <ProtectedRoute>
-              <PageWrapper>
-                <CreatePost />
-              </PageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/upload"
-          element={
-            <ProtectedRoute>
-              <PageWrapper>
-                <Upload />
-              </PageWrapper>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            <PageWrapper>
-              <Login />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PageWrapper>
-              <Register />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <PageWrapper>
-                <Profile />
-              </PageWrapper>
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </AnimatePresence>
-  );
-};
-
 const App = () => {
   return (
     <AuthProvider>
@@ -123,7 +35,36 @@ const App = () => {
         <Router>
           <Header />
           <main>
-            <AnimatedRoutes />
+            <Routes>
+              <Route path="/" element={<Feed />} />
+              <Route path="/music" element={<Music />} />
+              <Route
+                path="/create-post"
+                element={
+                  <ProtectedRoute>
+                    <CreatePost />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/upload"
+                element={
+                  <ProtectedRoute>
+                    <Upload />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
           </main>
           <Footer />
           <Player />
