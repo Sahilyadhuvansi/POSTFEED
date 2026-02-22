@@ -4,6 +4,7 @@ const dns = require("node:dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const express = require("express");
+const helmet = require("helmet");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
@@ -19,6 +20,26 @@ connectDB().catch((err) => {
 });
 
 app.set("trust proxy", 1);
+
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "https:"],
+      fontSrc: ["'self'", "https:"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https:"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  }),
+);
+
+app.use(helmet.xContentTypeOptions());
+app.use(helmet.xFrameOptions({ action: "SAMEORIGIN" }));
+app.use(helmet.xXssProtection());
+app.use(helmet.referrerPolicy({ policy: "strict-origin-when-cross-origin" }));
 
 const allowedOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
