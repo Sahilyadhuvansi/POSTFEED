@@ -30,12 +30,7 @@ const Register = () => {
 
     setLoading(true);
 
-    const formData = new FormData();
-    formData.append("username", username);
-    formData.append("email", email);
-    formData.append("password", password);
-
-    const result = await register(formData);
+    const result = await register({ username, email, password });
     if (result.success) {
       navigate("/");
     } else {
