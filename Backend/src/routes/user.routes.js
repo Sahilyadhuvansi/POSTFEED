@@ -1,12 +1,13 @@
 const express = require("express");
-const router = express.Router();
+const multer = require("multer");
 const userController = require("../controllers/user.controller");
 const auth = require("../middlewares/auth.middleware");
-const multer = require("multer");
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
 
-// Protected - own profile (must be before /:id to avoid conflict)
+const router = express.Router();
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 router.get("/profile", auth, userController.getProfile);
 router.put(
   "/profile",
@@ -16,7 +17,6 @@ router.put(
 );
 router.delete("/profile", auth, userController.deleteAccount);
 
-// Public - get any user by ID
 router.get("/:id", userController.getUserById);
 
 module.exports = router;
