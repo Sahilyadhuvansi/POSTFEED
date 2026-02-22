@@ -63,6 +63,7 @@ exports.register = async (req, res) => {
   } catch (err) {
     console.error("Signup error:", err);
 
+    // Duplicate key error
     if (err.code === 11000) {
       const field = Object.keys(err.keyPattern)[0];
       return res.status(409).json({
@@ -71,16 +72,20 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Mongoose validation error
+    // Detects validation errors → extracts all field messages → combines them → returns a clean 400 response to the client.
     if (err.name === "ValidationError") {
       const messages = Object.values(err.errors).map((e) => e.message);
-      return res
-        .status(400)
-        .json({ success: false, error: messages.join(". ") });
+      return res.status(400).json({
+        success: false,
+        error: messages.join(". "),
+      });
     }
 
+    // Fallback
     return res.status(500).json({
       success: false,
-      error: "Registration failed. Please try again later.",
+      error: "Internal server error",
     });
   }
 };
@@ -101,7 +106,7 @@ exports.login = async (req, res) => {
         $or: [
           email ? { email: email.toLowerCase() } : null,
           username ? { username } : null,
-        ].filter(Boolean),
+        ].filter(Boolean), // Removes all falsy values (like null) from [ { email: "test@mail.com" }, null ], resulting in [ { email: "test@mail.com" } ].
       })
       .select("+password");
 

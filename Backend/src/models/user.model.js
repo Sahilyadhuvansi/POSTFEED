@@ -44,17 +44,29 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       transform(doc, ret) {
+        // Replace old default pic
         if (ret.profilePic === OLD_DEFAULT_PIC) {
           ret.profilePic = NEW_DEFAULT_PIC;
         }
+
+        // Remove sensitive/internal fields
+        delete ret.password;
+        delete ret.__v;
+
         return ret;
       },
     },
     toObject: {
       transform(doc, ret) {
+        // Replace old default pic
         if (ret.profilePic === OLD_DEFAULT_PIC) {
           ret.profilePic = NEW_DEFAULT_PIC;
         }
+
+        // Remove sensitive/internal fields
+        delete ret.password;
+        delete ret.__v;
+
         return ret;
       },
     },
