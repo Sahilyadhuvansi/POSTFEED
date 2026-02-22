@@ -13,10 +13,24 @@ const postRoutes = require("./routes/post.routes");
 const userRoutes = require("./routes/user.routes");
 const musicRoutes = require("./routes/music.routes");
 
+// 🔴 CRITICAL: Validate environment variables at startup
+const REQUIRED_ENV_VARS = ["MONGO_URI", "JWT_SECRET"];
+const missingVars = REQUIRED_ENV_VARS.filter((v) => !process.env[v]);
+
+if (missingVars.length > 0) {
+  console.error("❌ FATAL: Missing required environment variables:");
+  missingVars.forEach((v) => console.error(`   - ${v}`));
+  process.exit(1);
+}
+
+console.log("✅ Environment variables validated");
+
 const app = express();
 
 connectDB().catch((err) => {
-  console.error("Database connection failed:", err);
+  console.error("❌ Database connection failed:", err.message);
+  console.error("Check your MONGO_URI environment variable");
+  process.exit(1);
 });
 
 app.set("trust proxy", 1);

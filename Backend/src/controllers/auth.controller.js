@@ -19,15 +19,6 @@ exports.register = async (req, res) => {
   }
 
   try {
-    // Validate environment variables
-    if (!process.env.JWT_SECRET) {
-      console.error("CRITICAL: JWT_SECRET not set in environment variables");
-      return res.status(500).json({
-        success: false,
-        error: "Server configuration error: JWT_SECRET not set",
-      });
-    }
-
     const isUserExist = await userModel.findOne({
       $or: [{ email: email.toLowerCase() }, { username }],
     });
@@ -64,11 +55,11 @@ exports.register = async (req, res) => {
       token,
     });
   } catch (err) {
-    console.error("Signup error:", err);
+    console.error("❌ Register Error:", err.message);
 
-    // Duplicate key error
+    // Duplicate key error (E11000)
     if (err.code === 11000) {
-      const field = Object.keys(err.keyPattern)[0];
+      const field = Object.keys(err.keyPattern || {})[0] || "field";
       return res.status(409).json({
         success: false,
         error: `An account with this ${field} already exists.`,
@@ -80,27 +71,30 @@ exports.register = async (req, res) => {
       const messages = Object.values(err.errors).map((e) => e.message);
       return res.status(400).json({
         success: false,
-        error: messages.join(". "),
+        error: messages.join(", "),
       });
     }
 
-    // Database connection error
+    // Database/connection errors
     if (
       err.name === "MongoNetworkError" ||
-      err.name === "MongoAuthenticationError"
+      err.name === "MongoAuthenticationError" ||
+      err.name === "MongoTimeoutError"
     ) {
-      console.error("Database connection error:", err.message);
+      console.error("❌ Database Error:", err.name, err.message);
       return res.status(503).json({
         success: false,
-        error: "Database unavailable. Please try again later.",
+        error: "Database connection error. Please try again later.",
       });
     }
 
+    // Fallback error response
+    console.error("❌ Unexpected Error:", err);
     return res.status(500).json({
       success: false,
       error:
         process.env.NODE_ENV === "development"
-          ? err.message
+          ? `Error: ${err.message}`
           : "Internal server error",
     });
   }
@@ -117,15 +111,6 @@ exports.login = async (req, res) => {
   }
 
   try {
-    // Validate environment variables
-    if (!process.env.JWT_SECRET) {
-      console.error("CRITICAL: JWT_SECRET not set in environment variables");
-      return res.status(500).json({
-        success: false,
-        error: "Server configuration error: JWT_SECRET not set",
-      });
-    }
-
     const user = await userModel
       .findOne({
         $or: [
@@ -166,14 +151,15 @@ exports.login = async (req, res) => {
       token,
     });
   } catch (err) {
-    console.error("Login error:", err);
+    console.error("❌ Login Error:", err.message);
 
-    // Database connection error
+    // Handle database connection errors
     if (
       err.name === "MongoNetworkError" ||
-      err.name === "MongoAuthenticationError"
+      err.name === "MongoAuthenticationError" ||
+      err.name === "MongoTimeoutError"
     ) {
-      console.error("Database connection error:", err.message);
+      console.error("❌ Database Connection Error:", err.message);
       return res.status(503).json({
         success: false,
         error: "Database unavailable. Please try again later.",
