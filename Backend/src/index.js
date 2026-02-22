@@ -25,12 +25,15 @@ if (missingVars.length > 0) {
 
 console.log("✅ Environment variables validated");
 
+let dbError = null;
+
 const app = express();
 
 connectDB().catch((err) => {
   console.error("❌ Database connection failed:", err.message);
-  console.error("Check your MONGO_URI environment variable");
-  process.exit(1);
+  dbError = err.message;
+  // Don't exit on Vercel - let health endpoint show the error
+  // process.exit(1);
 });
 
 app.set("trust proxy", 1);
@@ -110,6 +113,7 @@ app.get("/health", (req, res) => {
       jwtSecretSet: !!process.env.JWT_SECRET,
       mongoUriSet: !!process.env.MONGO_URI,
     },
+    dbError: dbError || "connection in progress or no error captured",
     timestamp: new Date().toISOString(),
   });
 });
