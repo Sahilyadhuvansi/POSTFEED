@@ -87,32 +87,44 @@ const Login = () => {
         <form className="space-y-5" onSubmit={handleSubmit}>
           {/* Email or Username */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="login-identifier"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Email or Username
             </label>
             <input
+              id="login-identifier"
+              name="identifier"
               type="text"
               required
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
               placeholder="your@email.com or username"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="login-password"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Password
             </label>
             <div className="relative">
               <input
+                id="login-password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 required
                 className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 pr-12 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
               />
               <button
                 type="button"

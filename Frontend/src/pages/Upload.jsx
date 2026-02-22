@@ -197,7 +197,7 @@ const Upload = () => {
 
       <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-gray-950/80 backdrop-blur-xl p-8 sm:p-10 shadow-2xl">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8" id="upload-page">
           <div className="flex justify-center mb-5">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-pink-500 shadow-lg shadow-indigo-500/25">
               <UploadIcon className="h-6 w-6 text-white" />
@@ -236,10 +236,15 @@ const Upload = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Track Title */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="upload-title"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Track Title
             </label>
             <input
+              id="upload-title"
+              name="title"
               type="text"
               placeholder="e.g., Midnight City"
               value={title}
@@ -251,10 +256,14 @@ const Upload = () => {
 
           {/* Audio File */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="upload-audio"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Audio File
             </label>
             <label
+              htmlFor="upload-audio"
               className={`flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
                 audioFile
                   ? "border-indigo-500/50 bg-indigo-500/5"
@@ -271,6 +280,8 @@ const Upload = () => {
                 MP3, WAV, OGG, M4A, FLAC — max 25MB
               </span>
               <input
+                id="upload-audio"
+                name="audio"
                 type="file"
                 accept="audio/*"
                 className="hidden"
@@ -281,11 +292,15 @@ const Upload = () => {
 
           {/* Thumbnail */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="upload-thumbnail"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Thumbnail{" "}
               <span className="text-gray-600 font-normal">(optional)</span>
             </label>
             <label
+              htmlFor="upload-thumbnail"
               className={`flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
                 thumbnail
                   ? "border-indigo-500/50 bg-indigo-500/5"
@@ -302,6 +317,8 @@ const Upload = () => {
                 JPG, PNG, WEBP — max 5MB
               </span>
               <input
+                id="upload-thumbnail"
+                name="thumbnail"
                 type="file"
                 accept="image/*"
                 className="hidden"

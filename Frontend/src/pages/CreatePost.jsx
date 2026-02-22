@@ -127,7 +127,10 @@ const CreatePost = () => {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Image Upload */}
           <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500 block">
+            <label
+              htmlFor="post-image"
+              className="text-xs font-bold uppercase tracking-widest text-gray-500 block"
+            >
               📸 Upload Image{" "}
               <span className="text-gray-600 normal-case font-normal">
                 (optional)
@@ -148,6 +151,7 @@ const CreatePost = () => {
                       setImagePreview(null);
                     }}
                     className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-white hover:text-black transition"
+                    aria-label="Remove image"
                   >
                     <svg
                       className="w-6 h-6"
@@ -163,7 +167,10 @@ const CreatePost = () => {
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-56 rounded-xl border-2 border-dashed border-white/15 hover:border-indigo-500/50 bg-white/[0.02] hover:bg-indigo-500/5 cursor-pointer transition-all">
+                <label
+                  htmlFor="post-image"
+                  className="flex flex-col items-center justify-center w-full h-56 rounded-xl border-2 border-dashed border-white/15 hover:border-indigo-500/50 bg-white/[0.02] hover:bg-indigo-500/5 cursor-pointer transition-all"
+                >
                   <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform">
                       <svg
@@ -190,6 +197,8 @@ const CreatePost = () => {
                       </p>
                     </div>
                     <input
+                      id="post-image"
+                      name="image"
                       type="file"
                       className="hidden"
                       accept="image/*"
@@ -203,10 +212,15 @@ const CreatePost = () => {
 
           {/* Caption */}
           <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500 block">
+            <label
+              htmlFor="post-caption"
+              className="text-xs font-bold uppercase tracking-widest text-gray-500 block"
+            >
               ✍️ Caption
             </label>
             <textarea
+              id="post-caption"
+              name="caption"
               placeholder="What's on your mind? Share your thoughts..."
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
@@ -235,8 +249,13 @@ const CreatePost = () => {
                   </span>
                 </div>
               </div>
-              <label className="relative inline-flex cursor-pointer items-center">
+              <label
+                htmlFor="post-secret"
+                className="relative inline-flex cursor-pointer items-center"
+              >
                 <input
+                  id="post-secret"
+                  name="isSecret"
                   type="checkbox"
                   className="peer sr-only"
                   checked={isSecret}

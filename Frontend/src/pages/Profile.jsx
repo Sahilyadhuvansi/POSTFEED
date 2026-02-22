@@ -151,6 +151,8 @@ const Profile = () => {
             </div>
             <input
               ref={fileInputRef}
+              id="profile-picture"
+              name="profilePic"
               type="file"
               className="hidden"
               accept="image/*"
@@ -257,24 +259,35 @@ const Profile = () => {
             <form onSubmit={handleUpdate} className="space-y-6">
               {/* Username */}
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+                <label
+                  htmlFor="profile-username"
+                  className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+                >
                   Username
                 </label>
                 <input
+                  id="profile-username"
+                  name="username"
                   type="text"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
                   placeholder="Enter username"
+                  autoComplete="username"
                 />
               </div>
 
               {/* Bio */}
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+                <label
+                  htmlFor="profile-bio"
+                  className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+                >
                   Bio
                 </label>
                 <textarea
+                  id="profile-bio"
+                  name="bio"
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Tell us about yourself..."

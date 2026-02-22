@@ -101,52 +101,71 @@ const Register = () => {
         <form className="space-y-5" onSubmit={handleSubmit}>
           {/* Username */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="register-username"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Username
             </label>
             <input
+              id="register-username"
+              name="username"
               type="text"
               required
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
               placeholder="Choose a username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="register-email"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Email
             </label>
             <input
+              id="register-email"
+              name="email"
               type="email"
               required
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="register-password"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Password
             </label>
             <div className="relative">
               <input
+                id="register-password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 required
                 className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 pr-12 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-300 transition"
+                aria-label="Toggle password visibility"
               >
                 <svg
                   className="w-4 h-4"
@@ -176,16 +195,22 @@ const Register = () => {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
+            <label
+              htmlFor="register-confirm"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
               Confirm Password
             </label>
             <input
+              id="register-confirm"
+              name="confirmPassword"
               type={showPassword ? "text" : "password"}
               required
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
               placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
             />
           </div>
 
@@ -193,7 +218,8 @@ const Register = () => {
           <div className="flex items-start gap-3 rounded-xl bg-white/[0.02] border border-white/[0.06] p-3.5">
             <input
               type="checkbox"
-              id="terms"
+              id="register-terms"
+              name="agreeTerms"
               checked={agreeTerms}
               onChange={(e) => setAgreeTerms(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-white/20 bg-transparent text-indigo-600 accent-indigo-500 cursor-pointer"
