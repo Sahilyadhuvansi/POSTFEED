@@ -19,6 +19,15 @@ exports.register = async (req, res) => {
   }
 
   try {
+    // Validate environment variables
+    if (!process.env.JWT_SECRET) {
+      console.error("CRITICAL: JWT_SECRET not set in environment variables");
+      return res.status(500).json({
+        success: false,
+        error: "Server configuration error: JWT_SECRET not set",
+      });
+    }
+
     const isUserExist = await userModel.findOne({
       $or: [{ email: email.toLowerCase() }, { username }],
     });
@@ -75,9 +84,24 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Database connection error
+    if (
+      err.name === "MongoNetworkError" ||
+      err.name === "MongoAuthenticationError"
+    ) {
+      console.error("Database connection error:", err.message);
+      return res.status(503).json({
+        success: false,
+        error: "Database unavailable. Please try again later.",
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error:
+        process.env.NODE_ENV === "development"
+          ? err.message
+          : "Internal server error",
     });
   }
 };
@@ -93,6 +117,15 @@ exports.login = async (req, res) => {
   }
 
   try {
+    // Validate environment variables
+    if (!process.env.JWT_SECRET) {
+      console.error("CRITICAL: JWT_SECRET not set in environment variables");
+      return res.status(500).json({
+        success: false,
+        error: "Server configuration error: JWT_SECRET not set",
+      });
+    }
+
     const user = await userModel
       .findOne({
         $or: [
@@ -134,9 +167,26 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
+
+    // Database connection error
+    if (
+      err.name === "MongoNetworkError" ||
+      err.name === "MongoAuthenticationError"
+    ) {
+      console.error("Database connection error:", err.message);
+      return res.status(503).json({
+        success: false,
+        error: "Database unavailable. Please try again later.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error:
+        process.env.NODE_ENV === "development"
+          ? err.message
+          : "Internal server error",
+    });
   }
 };
 

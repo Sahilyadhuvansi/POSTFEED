@@ -73,6 +73,33 @@ app.get("/", (req, res) => {
   res.status(200).json({ message: "PostFeed and Music Backend is running!" });
 });
 
+app.get("/health", (req, res) => {
+  const mongoose = require("mongoose");
+  const dbConnected = mongoose.connection.readyState === 1;
+  const envValid = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
+
+  if (dbConnected && envValid) {
+    return res.status(200).json({
+      status: "healthy",
+      database: "connected",
+      environment: "configured",
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  return res.status(503).json({
+    status: "unhealthy",
+    database: dbConnected ? "connected" : "disconnected",
+    environment: envValid ? "configured" : "missing_env_vars",
+    issues: {
+      dbConnected,
+      jwtSecretSet: !!process.env.JWT_SECRET,
+      mongoUriSet: !!process.env.MONGO_URI,
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
