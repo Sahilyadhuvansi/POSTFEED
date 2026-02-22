@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -7,47 +7,12 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [profilePic, setProfilePic] = useState(null);
-  const [profilePicPreview, setProfilePicPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const { register } = useAuth();
-
-  const handleProfilePicChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const allowedTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "image/gif",
-      ];
-      if (!allowedTypes.includes(file.type)) {
-        setError(
-          `Unsupported image format. Please use JPG, PNG, WEBP, or GIF.`,
-        );
-        e.target.value = "";
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        setError(`Image is too large (${sizeMB}MB). Maximum size is 5MB.`);
-        e.target.value = "";
-        return;
-      }
-      setProfilePic(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePicPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      setError("");
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,7 +34,6 @@ const Register = () => {
     formData.append("username", username);
     formData.append("email", email);
     formData.append("password", password);
-    if (profilePic) formData.append("profilePic", profilePic);
 
     const result = await register(formData);
     if (result.success) {
@@ -135,67 +99,6 @@ const Register = () => {
         )}
 
         <form className="space-y-5" onSubmit={handleSubmit}>
-          {/* Profile Picture — Circular with click-to-change */}
-          <div className="flex flex-col items-center gap-3">
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="relative h-24 w-24 cursor-pointer rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 p-[2px] transition hover:shadow-lg hover:shadow-indigo-500/30"
-            >
-              <div className="h-full w-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                {profilePicPreview ? (
-                  <img
-                    src={profilePicPreview}
-                    alt="Preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <svg
-                    className="w-8 h-8 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"
-                    />
-                  </svg>
-                )}
-              </div>
-              {/* Edit badge */}
-              <div className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-gray-950 bg-indigo-500 text-white">
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500">Tap to upload photo</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={handleProfilePicChange}
-            />
-          </div>
-
           {/* Username */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">

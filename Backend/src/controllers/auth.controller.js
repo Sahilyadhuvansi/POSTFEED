@@ -28,13 +28,10 @@ exports.register = async (req, res) => {
       });
     }
 
-    let profilePicUrl;
-
     const user = await userModel.create({
       username,
       email: email.toLowerCase(),
       password,
-      profilePic: profilePicUrl,
     });
 
     const token = jwt.sign(
@@ -92,12 +89,10 @@ exports.login = async (req, res) => {
   const { email, username, password } = req.body;
 
   if ((!email && !username) || !password) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        error: "Email/Username and password are required",
-      });
+    return res.status(400).json({
+      success: false,
+      error: "Email/Username and password are required",
+    });
   }
 
   try {

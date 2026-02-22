@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -16,7 +16,11 @@ const Login = () => {
     setLoading(true);
     setError("");
 
-    const result = await login({ email, password });
+    const result = await login({
+      email: identifier,
+      username: identifier,
+      password,
+    });
     if (result.success) {
       navigate("/");
     } else {
@@ -81,18 +85,18 @@ const Login = () => {
 
         {/* Form */}
         <form className="space-y-5" onSubmit={handleSubmit}>
-          {/* Email */}
+          {/* Email or Username */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2 ml-1">
-              Email
+              Email or Username
             </label>
             <input
-              type="email"
+              type="text"
               required
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com or username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
           </div>
 
