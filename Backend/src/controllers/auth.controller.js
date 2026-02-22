@@ -1,5 +1,6 @@
 const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
+const { serializeUser } = require("../utils/userSerializer");
 
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
@@ -50,14 +51,7 @@ exports.register = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Account created successfully",
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        profilePic: user.profilePic,
-        bio: user.bio,
-        createdAt: user.createdAt,
-      },
+      user: serializeUser(user),
       token,
     });
   } catch (err) {
@@ -73,7 +67,6 @@ exports.register = async (req, res) => {
     }
 
     // Mongoose validation error
-    // Detects validation errors → extracts all field messages → combines them → returns a clean 400 response to the client.
     if (err.name === "ValidationError") {
       const messages = Object.values(err.errors).map((e) => e.message);
       return res.status(400).json({
@@ -82,7 +75,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Fallback
     return res.status(500).json({
       success: false,
       error: "Internal server error",
@@ -106,7 +98,7 @@ exports.login = async (req, res) => {
         $or: [
           email ? { email: email.toLowerCase() } : null,
           username ? { username } : null,
-        ].filter(Boolean), // Removes all falsy values (like null) from [ { email: "test@mail.com" }, null ], resulting in [ { email: "test@mail.com" } ].
+        ].filter(Boolean),
       })
       .select("+password");
 
@@ -127,15 +119,6 @@ exports.login = async (req, res) => {
       { expiresIn: "7d" },
     );
 
-    const userData = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      profilePic: user.profilePic,
-      bio: user.bio,
-      createdAt: user.createdAt,
-    };
-
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -146,7 +129,7 @@ exports.login = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: userData,
+      user: serializeUser(user),
       token,
     });
   } catch (err) {

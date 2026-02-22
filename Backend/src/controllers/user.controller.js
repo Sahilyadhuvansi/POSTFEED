@@ -1,6 +1,7 @@
 const userModel = require("../models/user.model");
 const postModel = require("../models/post.model");
 const storageService = require("../services/storage.service");
+const { serializeUser } = require("../utils/userSerializer");
 
 const getProfile = async (req, res) => {
   try {
@@ -13,7 +14,7 @@ const getProfile = async (req, res) => {
       });
     }
 
-    return res.status(200).json({ success: true, user });
+    return res.status(200).json({ success: true, user: serializeUser(user) });
   } catch (error) {
     console.error("Get Profile Error:", error);
     return res.status(500).json({
@@ -35,7 +36,7 @@ const getUserById = async (req, res) => {
       });
     }
 
-    return res.status(200).json({ success: true, user });
+    return res.status(200).json({ success: true, user: serializeUser(user) });
   } catch (error) {
     console.error("Error fetching user:", error);
     return res.status(500).json({
@@ -99,7 +100,7 @@ const updateProfile = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      user: updatedUser,
+      user: serializeUser(updatedUser),
     });
   } catch (error) {
     console.error("Update Profile Error:", error);

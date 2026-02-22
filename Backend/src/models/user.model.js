@@ -1,9 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-const OLD_DEFAULT_PIC =
-  process.env.OLD_DEFAULT_PIC ||
-  "https://ik.imagekit.io/sanujii/default-profile.png";
 const NEW_DEFAULT_PIC =
   process.env.DEFAULT_AVATAR ||
   "https://www.gravatar.com/avatar/?d=mp&f=y&s=200";
@@ -44,11 +41,6 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       transform(doc, ret) {
-        // Replace old default pic
-        if (ret.profilePic === OLD_DEFAULT_PIC) {
-          ret.profilePic = NEW_DEFAULT_PIC;
-        }
-
         // Remove sensitive/internal fields
         delete ret.password;
         delete ret.__v;
@@ -58,11 +50,6 @@ const userSchema = new mongoose.Schema(
     },
     toObject: {
       transform(doc, ret) {
-        // Replace old default pic
-        if (ret.profilePic === OLD_DEFAULT_PIC) {
-          ret.profilePic = NEW_DEFAULT_PIC;
-        }
-
         // Remove sensitive/internal fields
         delete ret.password;
         delete ret.__v;
