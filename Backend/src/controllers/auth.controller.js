@@ -1,6 +1,5 @@
 const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
-const storageService = require("../services/storage.service");
 
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
@@ -30,12 +29,6 @@ exports.register = async (req, res) => {
     }
 
     let profilePicUrl;
-    if (req.file) {
-      const uploadResult = await storageService.uploadFromBuffer(
-        req.file.buffer,
-      );
-      profilePicUrl = uploadResult.url;
-    }
 
     const user = await userModel.create({
       username,
@@ -88,14 +81,6 @@ exports.register = async (req, res) => {
         .json({ success: false, error: messages.join(". ") });
     }
 
-    if (err.message?.includes("ImageKit") || err.message?.includes("upload")) {
-      return res.status(500).json({
-        success: false,
-        error:
-          "Failed to upload profile picture. Try a smaller image (under 5MB) or a different format (JPG, PNG).",
-      });
-    }
-
     return res.status(500).json({
       success: false,
       error: "Registration failed. Please try again later.",
@@ -104,17 +89,25 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, username, password } = req.body;
 
-  if (!email || !password) {
+  if ((!email && !username) || !password) {
     return res
       .status(400)
-      .json({ success: false, error: "Email and password are required" });
+      .json({
+        success: false,
+        error: "Email/Username and password are required",
+      });
   }
 
   try {
     const user = await userModel
-      .findOne({ email: email.toLowerCase() })
+      .findOne({
+        $or: [
+          email ? { email: email.toLowerCase() } : null,
+          username ? { username } : null,
+        ].filter(Boolean),
+      })
       .select("+password");
 
     if (!user) {
