@@ -12,6 +12,9 @@ const serializeUser = (user) => {
     obj.profilePic = NEW_DEFAULT_PIC;
   }
 
+  delete obj.password;
+  delete obj.__v;
+
   return obj;
 };
 
