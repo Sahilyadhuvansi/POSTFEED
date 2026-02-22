@@ -225,7 +225,7 @@ const Register = () => {
               className="mt-0.5 h-4 w-4 rounded border-white/20 bg-transparent text-indigo-600 accent-indigo-500 cursor-pointer"
             />
             <label
-              htmlFor="terms"
+              htmlFor="register-terms"
               className="text-xs text-gray-400 leading-relaxed cursor-pointer"
             >
               I agree to POSTFEED's{" "}
