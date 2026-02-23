@@ -222,9 +222,6 @@ const Music = () => {
                 <h3 className="text-sm font-bold text-white truncate">
                   {music.title}
                 </h3>
-                <p className="text-xs text-gray-500 truncate mt-0.5">
-                  {music.artist?.username || "Unknown artist"}
-                </p>
               </div>
             ))}
 
