@@ -29,11 +29,7 @@ export const MusicProvider = ({ children }) => {
         setProgress((audio.currentTime / audio.duration) * 100);
       }
     };
-    const handleLoadedMetadata = () => {
-      console.log("Loaded metadata for track:", audio.src);
-      console.log("Duration:", audio.duration);
-      setDuration(audio.duration);
-    };
+    const handleLoadedMetadata = () => setDuration(audio.duration);
     const handleEnded = () => playNext(); // Auto-play next song
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -45,7 +41,7 @@ export const MusicProvider = ({ children }) => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [playNext]); // Re-attach if playlist changes
+  }, [currentIndex, playlist.length]); // Re-attach if playlist changes
 
   // --- Volume Control ---
   useEffect(() => {
@@ -92,7 +88,7 @@ export const MusicProvider = ({ children }) => {
           });
       }
     },
-    [currentIndex, playlist, togglePlay],
+    [currentIndex, playlist],
   );
 
   const togglePlay = useCallback(() => {
