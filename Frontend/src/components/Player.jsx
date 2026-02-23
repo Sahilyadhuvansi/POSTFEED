@@ -7,13 +7,13 @@ import {
   SkipBack,
   SkipForward,
 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 
 const Player = () => {
   const {
     currentTrack,
     isPlaying,
     togglePlay,
-    progress,
     seek,
     volume,
     setVolume,
@@ -22,14 +22,39 @@ const Player = () => {
     playlist,
   } = useMusic();
 
-  if (!currentTrack) return null;
+  const audioRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
-  const formatTime = (seconds) => {
-    if (isNaN(seconds)) return "0:00";
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    const updateTime = () => {
+      setCurrentTime(audio.currentTime);
+      setDuration(audio.duration || 0);
+    };
+
+    if (audio) {
+      audio.addEventListener("timeupdate", updateTime);
+    }
+
+    return () => {
+      if (audio) {
+        audio.removeEventListener("timeupdate", updateTime);
+      }
+    };
+  }, []);
+
+  const formatTime = (time) => {
+    if (!time) return "0:00";
+
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
+
+  if (!currentTrack) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-20 border-t border-white/[0.06] bg-black/90 backdrop-blur-xl">
@@ -86,16 +111,16 @@ const Player = () => {
             </button>
           </div>
           <div className="w-full max-w-md flex items-center gap-2 text-xs text-gray-500">
-            <span>{formatTime((progress * currentTrack.duration) / 100)}</span>
+            <span>{formatTime(currentTime)}</span>
             <input
               type="range"
               min="0"
               max="100"
-              value={progress}
+              value={(currentTime / duration) * 100 || 0}
               onChange={(e) => seek(e.target.value)}
               className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:transition-all"
             />
-            <span>{formatTime(currentTrack.duration)}</span>
+            <span>{formatTime(duration)}</span>
           </div>
         </div>
 
