@@ -48,8 +48,13 @@ export const MusicProvider = ({ children }) => {
     if (currentTrack?._id === track._id) {
       togglePlay();
     } else {
+      const audioSource = track.audioUrl || track.uri;
+      if (!audioSource) {
+        console.error("Audio source not found for track:", track);
+        return;
+      }
       setCurrentTrack(track);
-      audioRef.current.src = track.audioUrl;
+      audioRef.current.src = audioSource;
       audioRef.current
         .play()
         .then(() => setIsPlaying(true))
