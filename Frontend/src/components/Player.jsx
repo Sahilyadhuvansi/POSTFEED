@@ -7,7 +7,6 @@ import {
   SkipBack,
   SkipForward,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
 
 const Player = () => {
   const {
@@ -20,70 +19,15 @@ const Player = () => {
     playNext,
     playPrevious,
     playlist,
+    currentTime,
+    duration,
   } = useMusic();
 
-  const audioRef = useRef(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-
-    if (!audio) return;
-
-    const updateTime = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const setAudioData = () => {
-      setDuration(audio.duration);
-    };
-
-    audio.addEventListener("timeupdate", updateTime);
-    audio.addEventListener("loadedmetadata", setAudioData);
-
-    return () => {
-      audio.removeEventListener("timeupdate", updateTime);
-      audio.removeEventListener("loadedmetadata", setAudioData);
-    };
-  }, [currentTrack]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.play().catch(() => {});
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    setCurrentTime(0);
-    setDuration(0);
-
-    if (isPlaying) {
-      audio.play().catch(() => {});
-    }
-  }, [currentTrack]);
-
-  const formatTime = (time) => {
-    if (!time || isNaN(time)) return "0:00";
-
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  const formatTime = (seconds) => {
+    if (isNaN(seconds)) return "0:00";
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
   if (!currentTrack) return null;
@@ -149,9 +93,7 @@ const Player = () => {
               min="0"
               max={duration}
               value={currentTime}
-              onChange={(e) => {
-                audioRef.current.currentTime = e.target.value;
-              }}
+              onChange={(e) => seek(e.target.value)}
               className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:transition-all"
             />
             <span>{formatTime(duration)}</span>
@@ -172,7 +114,6 @@ const Player = () => {
           />
         </div>
       </div>
-      <audio ref={audioRef} src={currentTrack?.file} preload="metadata" />
     </div>
   );
 };
