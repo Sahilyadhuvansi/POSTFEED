@@ -182,9 +182,9 @@ const Music = () => {
               >
                 {/* Artwork */}
                 <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 mb-3 shadow-lg shadow-black/30">
-                  {music.thumbnailUrl ? (
+                  {music.thumbnailUrl || music.thumbnail ? (
                     <img
-                      src={music.thumbnailUrl}
+                      src={music.thumbnailUrl || music.thumbnail}
                       alt={music.title}
                       className="h-full w-full object-cover"
                     />
@@ -207,17 +207,15 @@ const Music = () => {
                   </button>
 
                   {/* Delete button */}
-                  {user &&
-                    (user.id === music.artist?._id ||
-                      user.id === music.artist) && (
-                      <button
-                        className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 backdrop-blur-sm text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white hover:scale-110"
-                        onClick={(e) => handleDelete(e, music._id)}
-                        title="Delete track"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                  {user && user.id === music.artist?._id && (
+                    <button
+                      className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 backdrop-blur-sm text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white hover:scale-110"
+                      onClick={(e) => handleDelete(e, music._id)}
+                      title="Delete track"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Info */}
