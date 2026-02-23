@@ -6,10 +6,10 @@ const createPost = async (req, res) => {
     const { caption, isSecret } = req.body;
 
     // Validation
-    if (!caption || caption.trim() === "") {
+    if (!req.file && (!caption || caption.trim() === "")) {
       return res.status(400).json({
         success: false,
-        error: "Caption is required",
+        error: "Post must have either an image or a caption.",
       });
     }
 

@@ -47,8 +47,8 @@ const CreatePost = () => {
     e.preventDefault();
     setError("");
 
-    if (!caption.trim()) {
-      setError("Please add a caption");
+    if (!image && !caption.trim()) {
+      setError("Please add a caption or an image.");
       return;
     }
 
