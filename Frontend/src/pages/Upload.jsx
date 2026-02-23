@@ -240,26 +240,6 @@ const Upload = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Track Title */}
-          <div>
-            <label
-              htmlFor="upload-title"
-              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
-            >
-              Track Title
-            </label>
-            <input
-              id="upload-title"
-              name="title"
-              type="text"
-              placeholder="e.g., Midnight City"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
-            />
-          </div>
-
           {/* Audio File */}
           <div>
             <label
@@ -295,6 +275,28 @@ const Upload = () => {
               />
             </label>
           </div>
+
+          {/* Track Title */}
+          {audioFile && (
+            <div>
+              <label
+                htmlFor="upload-title"
+                className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+              >
+                Track Title
+              </label>
+              <input
+                id="upload-title"
+                name="title"
+                type="text"
+                placeholder="e.g., Midnight City"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+          )}
 
           {/* Thumbnail */}
           <div>

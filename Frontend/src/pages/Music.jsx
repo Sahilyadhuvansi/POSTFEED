@@ -207,7 +207,7 @@ const Music = () => {
                   </button>
 
                   {/* Delete button */}
-                  {user && user.id === music.artist?._id && (
+                  {user && String(user._id) === String(music.artist?._id) && (
                     <button
                       className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 backdrop-blur-sm text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white hover:scale-110"
                       onClick={(e) => handleDelete(e, music._id)}
