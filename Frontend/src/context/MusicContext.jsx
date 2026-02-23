@@ -41,7 +41,7 @@ export const MusicProvider = ({ children }) => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [currentIndex, playlist.length]); // Re-attach if playlist changes
+  }, [playNext]); // Re-attach if playlist changes
 
   // --- Volume Control ---
   useEffect(() => {
@@ -88,7 +88,7 @@ export const MusicProvider = ({ children }) => {
           });
       }
     },
-    [currentIndex, playlist],
+    [currentIndex, playlist, togglePlay],
   );
 
   const togglePlay = useCallback(() => {
