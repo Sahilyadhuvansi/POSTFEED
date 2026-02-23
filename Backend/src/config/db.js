@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { MONGO_URI } = require("./validateEnv");
 
 async function connectDB() {
   if (mongoose.connection.readyState >= 1) {
@@ -6,17 +7,17 @@ async function connectDB() {
     return;
   }
 
-  if (!process.env.MONGO_URI) {
+  if (!MONGO_URI) {
     throw new Error("MONGO_URI environment variable is not set");
   }
 
   console.log(`🔄 Attempting MongoDB connection...`);
   console.log(
-    `   URI Host: ${process.env.MONGO_URI.split("@")[1]?.split("/")[0] || "unknown"}`,
+    `   URI Host: ${MONGO_URI.split("@")[1]?.split("/")[0] || "unknown"}`,
   );
 
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
+    const conn = await mongoose.connect(MONGO_URI, {
       retryWrites: true,
       w: "majority",
       serverSelectionTimeoutMS: 30000, // 30 seconds

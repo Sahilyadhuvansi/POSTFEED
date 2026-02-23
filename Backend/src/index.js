@@ -13,24 +13,16 @@ const postRoutes = require("./routes/post.routes");
 const userRoutes = require("./routes/user.routes");
 const musicRoutes = require("./routes/music.routes");
 
-// 🔴 CRITICAL: Validate environment variables at startup
-const REQUIRED_ENV_VARS = ["MONGO_URI", "JWT_SECRET"];
-const missingVars = REQUIRED_ENV_VARS.filter((v) => !process.env[v]);
-
-if (missingVars.length > 0) {
-  console.error("❌ FATAL: Missing required environment variables:");
-  missingVars.forEach((v) => console.error(`   - ${v}`));
-  process.exit(1);
-}
-
-console.log("✅ Environment variables validated");
+// Validate environment variables using envalid
+const validateEnv = require("./config/validateEnv");
+console.log("Environment validated via envalid");
 
 let dbError = null;
 
 const app = express();
 
 connectDB().catch((err) => {
-  console.error("❌ Database connection failed:", err.message);
+  console.error(" Database connection failed:", err.message);
   dbError = err.message;
   // Don't exit on Vercel - let health endpoint show the error
   // process.exit(1);
