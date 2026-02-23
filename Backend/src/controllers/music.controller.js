@@ -54,7 +54,6 @@ const createMusic = async (req, res) => {
         audioUrl: music.audioUrl,
         title: music.title,
         thumbnailUrl: music.thumbnailUrl,
-        artist: music.artist,
       },
     });
   } catch (error) {
