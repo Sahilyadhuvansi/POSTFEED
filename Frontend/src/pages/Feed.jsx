@@ -4,21 +4,23 @@ import { useAuth } from "../context/AuthContext";
 import { API_URL, DEFAULT_AVATAR } from "../config";
 import { PostSkeletonLoader } from "../components/SkeletonLoader";
 import { useApiCache } from "../hooks/useApiCache";
+import { MoreVertical, Trash2 } from "lucide-react";
 
 const Feed = () => {
   const [posts, setPosts] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
+  const [activeMenu, setActiveMenu] = useState(null);
   const { user } = useAuth();
   const { getFromCache, setCache } = useApiCache();
   const observerTarget = useRef(null);
+  const postMenuRef = useRef(null);
 
   const POSTS_PER_PAGE = 10;
 
-  // Load initial posts with caching and pagination
+  // --- DATA FETCHING & CACHING ---
   useEffect(() => {
     const cacheKey = "feed_posts_page_1";
     const cached = getFromCache(cacheKey);
@@ -38,8 +40,6 @@ const Feed = () => {
         setLoading(false);
         setPage(1);
         setHasMore(newPosts.length === POSTS_PER_PAGE);
-
-        // Cache the first page
         setCache(cacheKey, { posts: newPosts, page: 1 });
       })
       .catch((err) => {
@@ -48,7 +48,6 @@ const Feed = () => {
       });
   }, [getFromCache, setCache]);
 
-  // Infinite scroll handler
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -85,8 +84,6 @@ const Feed = () => {
         setPosts((prev) => [...prev, ...newPosts]);
         setPage(nextPage);
         setHasMore(newPosts.length === POSTS_PER_PAGE);
-
-        // Cache this page
         setCache(cacheKey, { posts: newPosts });
       })
       .catch((err) => {
@@ -94,16 +91,15 @@ const Feed = () => {
       });
   };
 
-  // Escape key to close modal
+  // --- MODAL & MENU HANDLERS ---
   const handleKeyDown = useCallback((e) => {
     if (e.key === "Escape") {
-      setSelectedImage(null);
       setSelectedPost(null);
     }
   }, []);
 
   useEffect(() => {
-    if (selectedImage) {
+    if (selectedPost) {
       document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
     }
@@ -111,12 +107,19 @@ const Feed = () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [selectedImage, handleKeyDown]);
+  }, [selectedPost, handleKeyDown]);
 
-  const openPost = (post) => {
-    setSelectedImage(post.image || "");
-    setSelectedPost(post);
-  };
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (postMenuRef.current && !postMenuRef.current.contains(event.target)) {
+        setActiveMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleDeletePost = async (e, postId) => {
     e.stopPropagation();
@@ -125,21 +128,24 @@ const Feed = () => {
     try {
       await axios.delete(`${API_URL}/api/posts/${postId}`);
       setPosts(posts.filter((p) => p._id !== postId));
-      // Close modal if the deleted post was open
       if (selectedPost?._id === postId) {
-        setSelectedImage(null);
         setSelectedPost(null);
       }
     } catch (error) {
       const message =
         error.response?.status === 403
           ? "You don't have permission to delete this post."
-          : error.response?.data?.error ||
-            "Failed to delete post. Please try again.";
+          : error.response?.data?.error || "Failed to delete post.";
       alert(message);
     }
   };
 
+  const toggleMenu = (e) => {
+    e.stopPropagation();
+    setActiveMenu(activeMenu ? null : selectedPost._id);
+  };
+
+  // --- RENDER ---
   return (
     <div className="min-h-screen bg-black">
       {/* Top Bar */}
@@ -148,9 +154,11 @@ const Feed = () => {
           <div className="mb-6 flex items-center gap-4">
             <div className="h-11 w-11 flex-shrink-0 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 p-[2px]">
               <div className="h-full w-full rounded-full bg-black flex items-center justify-center">
-                <span className="text-sm font-bold text-white">
-                  {user.username?.charAt(0).toUpperCase()}
-                </span>
+                <img
+                  src={user.profilePic || DEFAULT_AVATAR}
+                  alt=""
+                  className="h-full w-full object-cover rounded-full"
+                />
               </div>
             </div>
             <div>
@@ -165,7 +173,6 @@ const Feed = () => {
           </div>
         )}
 
-        {/* Loading */}
         {loading ? (
           <PostSkeletonLoader />
         ) : posts.length === 0 ? (
@@ -185,9 +192,8 @@ const Feed = () => {
               <div
                 key={post._id}
                 className="group relative cursor-pointer overflow-hidden rounded-xl bg-gray-900 aspect-square"
-                onClick={() => openPost(post)}
+                onClick={() => setSelectedPost(post)}
               >
-                {/* Image or Text Placeholder */}
                 {post.image ? (
                   <img
                     src={post.image}
@@ -202,116 +208,24 @@ const Feed = () => {
                     </p>
                   </div>
                 )}
-
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3 sm:p-4">
-                  {/* Username */}
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <img
-                      src={post.user?.profilePic || DEFAULT_AVATAR}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = DEFAULT_AVATAR;
-                      }}
-                      alt=""
-                      className="h-6 w-6 rounded-full object-cover ring-1 ring-white/30"
-                    />
-                    <span className="text-xs font-semibold text-white truncate">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute bottom-0 left-0 p-3 sm:p-4 w-full flex items-center gap-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                  <img
+                    src={post.user?.profilePic || DEFAULT_AVATAR}
+                    alt={post.user?.username}
+                    className="h-8 w-8 rounded-full object-cover bg-gray-800"
+                  />
+                  <div>
+                    <p className="text-xs font-bold text-white truncate">
                       {post.user?.username || "Anonymous"}
-                    </span>
-                    {post.isSecret && (
-                      <span className="ml-auto flex items-center gap-0.5 text-[10px] text-amber-400 font-medium bg-amber-400/10 px-1.5 py-0.5 rounded-full">
-                        <svg
-                          className="w-2.5 h-2.5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" />
-                        </svg>
-                        Secret
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Caption Preview */}
-                  <p className="text-[11px] leading-snug text-gray-300 line-clamp-2">
-                    {post.caption}
-                  </p>
-
-                  {/* Action Icons */}
-                  <div className="flex items-center gap-3 mt-2 text-white/70">
-                    <svg
-                      className="w-4 h-4 hover:text-red-400 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      strokeWidth="2"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                    <svg
-                      className="w-4 h-4 hover:text-blue-400 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      strokeWidth="2"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                    <svg
-                      className="w-4 h-4 hover:text-green-400 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      strokeWidth="2"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                      />
-                    </svg>
-
-                    {/* Delete button - only for post owner */}
-                    {user &&
-                      (post.user?._id === user.id || post.user === user.id) && (
-                        <button
-                          onClick={(e) => handleDeletePost(e, post._id)}
-                          className="ml-auto"
-                          title="Delete post"
-                        >
-                          <svg
-                            className="w-4 h-4 text-white/50 hover:text-red-500 transition-colors"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            strokeWidth="2"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
-                      )}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {post.caption}
+                    </p>
                   </div>
                 </div>
-
-                {/* Always-visible subtle gradient at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none group-hover:opacity-0 transition-opacity" />
               </div>
             ))}
-
-            {/* Infinite Scroll Loader */}
             {hasMore && (
               <div
                 ref={observerTarget}
@@ -328,13 +242,10 @@ const Feed = () => {
       </div>
 
       {/* ========== FULLSCREEN MODAL ========== */}
-      {selectedImage && (
+      {selectedPost && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
-          onClick={() => {
-            setSelectedImage(null);
-            setSelectedPost(null);
-          }}
+          onClick={() => setSelectedPost(null)}
           role="dialog"
           aria-modal="true"
         >
@@ -342,13 +253,9 @@ const Feed = () => {
             className="relative max-w-4xl w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
               className="absolute -top-12 right-0 text-white/60 hover:text-white transition-colors"
-              onClick={() => {
-                setSelectedImage(null);
-                setSelectedPost(null);
-              }}
+              onClick={() => setSelectedPost(null)}
               aria-label="Close"
             >
               <svg
@@ -366,68 +273,61 @@ const Feed = () => {
               </svg>
             </button>
 
-            {/* Image or Text */}
-            {selectedImage ? (
+            {selectedPost.image ? (
               <img
-                src={selectedImage}
+                src={selectedPost.image}
                 alt="Preview"
                 className="w-full max-h-[80vh] object-contain rounded-xl"
               />
             ) : (
               <div className="w-full rounded-xl bg-gray-900 border border-white/10 p-8 flex items-center justify-center min-h-[200px]">
                 <p className="text-lg text-gray-200 text-center leading-relaxed">
-                  {selectedPost?.caption}
+                  {selectedPost.caption}
                 </p>
               </div>
             )}
 
             {/* Post Info Below Image */}
-            {selectedPost && (
-              <div className="mt-4 flex items-center gap-3">
-                <img
-                  src={selectedPost.user?.profilePic || DEFAULT_AVATAR}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = DEFAULT_AVATAR;
-                  }}
-                  alt=""
-                  className="h-8 w-8 rounded-full object-cover ring-2 ring-white/20"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white truncate">
-                    {selectedPost.user?.username || "Anonymous"}
-                  </p>
-                  <p className="text-xs text-gray-400 line-clamp-1">
-                    {selectedPost.caption}
-                  </p>
-                </div>
-
-                {/* Delete button in modal */}
-                {user &&
-                  (selectedPost.user?._id === user.id ||
-                    selectedPost.user === user.id) && (
-                    <button
-                      onClick={(e) => handleDeletePost(e, selectedPost._id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors"
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        strokeWidth="2"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                      Delete
-                    </button>
-                  )}
+            <div className="mt-4 flex items-start gap-3">
+              <img
+                src={selectedPost.user?.profilePic || DEFAULT_AVATAR}
+                alt=""
+                className="h-10 w-10 rounded-full object-cover bg-gray-800"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white">
+                  {selectedPost.user?.username || "Anonymous"}
+                </p>
+                <p className="text-sm text-gray-300 mt-1">
+                  {selectedPost.caption}
+                </p>
               </div>
-            )}
+
+              {/* 3-dot menu in modal */}
+              {user && String(user._id) === String(selectedPost.user?._id) && (
+                <div className="relative flex-shrink-0" ref={postMenuRef}>
+                  <button
+                    onClick={toggleMenu}
+                    className="p-2 text-gray-400 hover:text-white"
+                    aria-label="Post options"
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+
+                  {activeMenu === selectedPost._id && (
+                    <div className="absolute right-0 top-full mt-2 w-40 rounded-lg bg-gray-800 border border-white/10 shadow-xl z-10">
+                      <button
+                        onClick={(e) => handleDeletePost(e, selectedPost._id)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Delete Post</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -2,7 +2,14 @@ import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useMusic } from "../context/MusicContext";
 import { useAuth } from "../context/AuthContext";
-import { Play, Pause, Music as MusicIcon, Disc, Trash2 } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Music as MusicIcon,
+  Disc,
+  Trash2,
+  MoreVertical,
+} from "lucide-react";
 import { API_URL } from "../config";
 import { MusicSkeleton } from "../components/SkeletonLoader";
 import { useApiCache } from "../hooks/useApiCache";
@@ -12,14 +19,17 @@ const Music = () => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
+  const [activeMenu, setActiveMenu] = useState(null); // For the 3-dot menu
   const { currentTrack, playTrack, isPlaying } = useMusic();
   const { user } = useAuth();
 
   const MUSIC_PER_PAGE = 15;
   const { getFromCache, setCache } = useApiCache();
   const observerTarget = useRef(null);
+  const menuRef = useRef(null);
 
-  // Load initial music with caching and pagination
+  // --- DATA FETCHING ---
+  // Initial load
   useEffect(() => {
     const cacheKey = "music_tracks_page_1";
     const cached = getFromCache(cacheKey);
@@ -40,8 +50,6 @@ const Music = () => {
         setMusics(newMusics);
         setPage(1);
         setHasMore(newMusics.length === MUSIC_PER_PAGE);
-
-        // Cache first page
         setCache(cacheKey, { musics: newMusics, page: 1 });
       } catch (error) {
         console.error(
@@ -55,7 +63,7 @@ const Music = () => {
     fetchMusics();
   }, [API_URL, getFromCache, setCache]);
 
-  // Infinite scroll handler
+  // Infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -92,13 +100,17 @@ const Music = () => {
         setMusics((prev) => [...prev, ...newMusics]);
         setPage(nextPage);
         setHasMore(newMusics.length === MUSIC_PER_PAGE);
-
-        // Cache this page
         setCache(cacheKey, { musics: newMusics });
       })
       .catch((err) => {
         console.error("Load more error:", err.message);
       });
+  };
+
+  // --- UI HANDLERS ---
+  const handlePlay = (music) => {
+    // When a track is played, the entire current list of musics becomes the playlist
+    playTrack(music, musics);
   };
 
   const handleDelete = async (e, musicId) => {
@@ -108,18 +120,37 @@ const Music = () => {
     try {
       await axios.delete(`${API_URL}/api/music/${musicId}`);
       setMusics(musics.filter((m) => m._id !== musicId));
+      setActiveMenu(null); // Close menu after delete
     } catch (error) {
       const message =
         error.response?.status === 401
-          ? "You are not logged in. Please log in and try again."
+          ? "You are not logged in."
           : error.response?.status === 403
             ? "You don't have permission to delete this track."
-            : error.response?.data?.error ||
-              "Failed to delete track. Please try again.";
+            : error.response?.data?.error || "Failed to delete track.";
       alert(message);
     }
   };
 
+  const toggleMenu = (e, musicId) => {
+    e.stopPropagation(); // Prevent card's onClick from firing
+    setActiveMenu(activeMenu === musicId ? null : musicId);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // --- RENDER ---
   if (loading) {
     return (
       <div className="min-h-screen bg-black pb-28">
@@ -173,15 +204,17 @@ const Music = () => {
             {musics.map((music) => (
               <div
                 key={music._id}
-                className={`group relative cursor-pointer rounded-xl border p-3 sm:p-4 transition-all duration-300 hover:-translate-y-1 ${
+                className={`group relative rounded-xl border p-3 sm:p-4 transition-all duration-300 hover:-translate-y-1 ${
                   currentTrack?._id === music._id
                     ? "border-indigo-500/50 bg-white/[0.06]"
                     : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06]"
                 }`}
-                onClick={() => playTrack(music)}
               >
                 {/* Artwork */}
-                <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 mb-3 shadow-lg shadow-black/30">
+                <div
+                  className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 mb-3 shadow-lg shadow-black/30 cursor-pointer"
+                  onClick={() => handlePlay(music)}
+                >
                   {music.thumbnailUrl || music.thumbnail ? (
                     <img
                       src={music.thumbnailUrl || music.thumbnail}
@@ -195,33 +228,50 @@ const Music = () => {
                   )}
 
                   {/* Play overlay */}
-                  <button className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 shadow-lg shadow-indigo-500/30 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
                     {currentTrack?._id === music._id && isPlaying ? (
-                      <Pause className="w-4 h-4 text-white" fill="white" />
+                      <Pause className="w-8 h-8 text-white" fill="white" />
                     ) : (
-                      <Play
-                        className="w-4 h-4 text-white ml-0.5"
-                        fill="white"
-                      />
+                      <Play className="w-8 h-8 text-white" fill="white" />
                     )}
-                  </button>
-
-                  {/* Delete button */}
-                  {user && String(user._id) === String(music.artist?._id) && (
-                    <button
-                      className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 backdrop-blur-sm text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white hover:scale-110"
-                      onClick={(e) => handleDelete(e, music._id)}
-                      title="Delete track"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  </div>
                 </div>
 
-                {/* Info */}
-                <h3 className="text-sm font-bold text-white truncate">
-                  {music.title}
-                </h3>
+                {/* Info & Menu */}
+                <div className="flex items-start justify-between gap-2">
+                  <h3
+                    className="text-sm font-bold text-white truncate cursor-pointer flex-1"
+                    onClick={() => handlePlay(music)}
+                  >
+                    {music.title}
+                  </h3>
+
+                  {/* 3-dot menu */}
+                  {user && String(user._id) === String(music.artist?._id) && (
+                    <div className="relative flex-shrink-0" ref={menuRef}>
+                      <button
+                        onClick={(e) => toggleMenu(e, music._id)}
+                        className="p-1 text-gray-500 hover:text-white"
+                        aria-label="Track options"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+
+                      {/* Dropdown */}
+                      {activeMenu === music._id && (
+                        <div className="absolute right-0 top-full mt-2 w-36 rounded-lg bg-gray-800 border border-white/10 shadow-xl z-10">
+                          <button
+                            onClick={(e) => handleDelete(e, music._id)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
 

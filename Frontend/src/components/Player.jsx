@@ -1,5 +1,12 @@
 import { useMusic } from "../context/MusicContext";
-import { Play, Pause, Volume2, Music as MusicIcon } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Volume2,
+  Music as MusicIcon,
+  SkipBack,
+  SkipForward,
+} from "lucide-react";
 
 const Player = () => {
   const {
@@ -10,9 +17,19 @@ const Player = () => {
     seek,
     volume,
     setVolume,
+    playNext,
+    playPrevious,
+    playlist,
   } = useMusic();
 
   if (!currentTrack) return null;
+
+  const formatTime = (seconds) => {
+    if (isNaN(seconds)) return "0:00";
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-20 border-t border-white/[0.06] bg-black/90 backdrop-blur-xl">
@@ -20,9 +37,9 @@ const Player = () => {
         {/* Track Info */}
         <div className="flex items-center gap-3 w-[30%] min-w-0">
           <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-gray-800 overflow-hidden flex items-center justify-center">
-            {currentTrack.thumbnailUrl ? (
+            {currentTrack.thumbnailUrl || currentTrack.thumbnail ? (
               <img
-                src={currentTrack.thumbnailUrl}
+                src={currentTrack.thumbnailUrl || currentTrack.thumbnail}
                 alt={currentTrack.title}
                 className="h-full w-full object-cover"
               />
@@ -34,9 +51,6 @@ const Player = () => {
             <p className="text-sm font-semibold text-white truncate">
               {currentTrack.title}
             </p>
-            <p className="text-xs text-gray-500 truncate">
-              {currentTrack.artist?.username || "Artist"}
-            </p>
           </div>
         </div>
 
@@ -44,17 +58,35 @@ const Player = () => {
         <div className="flex flex-col items-center gap-1.5 w-[40%]">
           <div className="flex items-center gap-5">
             <button
+              onClick={playPrevious}
+              disabled={playlist.length <= 1}
+              className="text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Previous track"
+            >
+              <SkipBack className="w-5 h-5" fill="currentColor" />
+            </button>
+            <button
               onClick={togglePlay}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white hover:scale-110 transition-transform"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white hover:scale-110 transition-transform"
+              aria-label={isPlaying ? "Pause" : "Play"}
             >
               {isPlaying ? (
-                <Pause className="w-4 h-4 text-black" fill="black" />
+                <Pause className="w-5 h-5 text-black" fill="black" />
               ) : (
-                <Play className="w-4 h-4 text-black ml-0.5" fill="black" />
+                <Play className="w-5 h-5 text-black ml-0.5" fill="black" />
               )}
             </button>
+            <button
+              onClick={playNext}
+              disabled={playlist.length <= 1}
+              className="text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Next track"
+            >
+              <SkipForward className="w-5 h-5" fill="currentColor" />
+            </button>
           </div>
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md flex items-center gap-2 text-xs text-gray-500">
+            <span>{formatTime((progress * currentTrack.duration) / 100)}</span>
             <input
               type="range"
               min="0"
@@ -63,6 +95,7 @@ const Player = () => {
               onChange={(e) => seek(e.target.value)}
               className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:transition-all"
             />
+            <span>{formatTime(currentTrack.duration)}</span>
           </div>
         </div>
 
