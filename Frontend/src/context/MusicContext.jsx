@@ -49,7 +49,7 @@ export const MusicProvider = ({ children }) => {
       togglePlay();
     } else {
       setCurrentTrack(track);
-      audioRef.current.src = track.uri;
+      audioRef.current.src = track.audioUrl;
       audioRef.current
         .play()
         .then(() => setIsPlaying(true))

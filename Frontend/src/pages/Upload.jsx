@@ -61,6 +61,12 @@ const Upload = () => {
     }
 
     setAudioFile(file);
+    if (file) {
+      const fileName = file.name;
+      const fileTitle =
+        fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
+      setTitle(fileTitle);
+    }
     setStatus({ type: "", message: "" });
   };
 
@@ -133,7 +139,7 @@ const Upload = () => {
       // 1. Get auth params from backend
       setStatus({ type: "", message: "Preparing upload..." });
       const { data: authParams } = await axios.get(
-        `${apiUrl}/api/music/imagekit-auth`,
+        `${API_URL}/api/music/imagekit-auth`,
       );
 
       // 2. Upload audio directly to ImageKit
@@ -145,14 +151,14 @@ const Upload = () => {
       if (thumbnail) {
         setStatus({ type: "", message: "Uploading thumbnail..." });
         const { data: thumbAuth } = await axios.get(
-          `${apiUrl}/api/music/imagekit-auth`,
+          `${API_URL}/api/music/imagekit-auth`,
         );
         thumbnailResult = await uploadToImageKit(thumbnail, thumbAuth);
       }
 
       // 4. Save metadata in our backend
       setStatus({ type: "", message: "Saving track info..." });
-      await axios.post(`${apiUrl}/api/music`, {
+      await axios.post(`${API_URL}/api/music`, {
         title,
         audioUrl: audioResult.url,
         audioFileId: audioResult.fileId,

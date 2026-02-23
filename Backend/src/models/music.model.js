@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const musicSchema = new mongoose.Schema({
-  uri: {
+  audioUrl: {
     type: String,
     required: true,
   },
@@ -14,7 +14,7 @@ const musicSchema = new mongoose.Schema({
     ref: "user",
     required: true,
   },
-  thumbnail: {
+  thumbnailUrl: {
     type: String,
     default: null,
   },

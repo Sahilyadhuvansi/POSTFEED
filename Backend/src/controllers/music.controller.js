@@ -38,9 +38,9 @@ const createMusic = async (req, res) => {
     }
 
     const music = await musicModel.create({
-      uri: audioUrl,
+      audioUrl: audioUrl,
       title: title.trim(),
-      thumbnail: thumbnailUrl || null,
+      thumbnailUrl: thumbnailUrl || null,
       audioFileId,
       thumbnailFileId: thumbnailFileId || null,
       artist: req.user.id,
@@ -51,9 +51,9 @@ const createMusic = async (req, res) => {
       message: "Music uploaded successfully",
       music: {
         id: music._id,
-        uri: music.uri,
+        audioUrl: music.audioUrl,
         title: music.title,
-        thumbnail: music.thumbnail,
+        thumbnailUrl: music.thumbnailUrl,
         artist: music.artist,
       },
     });

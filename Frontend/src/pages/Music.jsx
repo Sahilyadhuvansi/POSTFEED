@@ -15,7 +15,6 @@ const Music = () => {
   const { currentTrack, playTrack, isPlaying } = useMusic();
   const { user } = useAuth();
 
-  const apiUrl = API_URL;
   const MUSIC_PER_PAGE = 15;
   const { getFromCache, setCache } = useApiCache();
   const observerTarget = useRef(null);
@@ -35,7 +34,7 @@ const Music = () => {
     const fetchMusics = async () => {
       try {
         const response = await axios.get(
-          `${apiUrl}/api/music?page=1&limit=${MUSIC_PER_PAGE}`,
+          `${API_URL}/api/music?page=1&limit=${MUSIC_PER_PAGE}`,
         );
         const newMusics = response.data.musics || [];
         setMusics(newMusics);
@@ -54,7 +53,7 @@ const Music = () => {
       }
     };
     fetchMusics();
-  }, [apiUrl, getFromCache, setCache]);
+  }, [API_URL, getFromCache, setCache]);
 
   // Infinite scroll handler
   useEffect(() => {
@@ -87,7 +86,7 @@ const Music = () => {
     }
 
     axios
-      .get(`${apiUrl}/api/music?page=${nextPage}&limit=${MUSIC_PER_PAGE}`)
+      .get(`${API_URL}/api/music?page=${nextPage}&limit=${MUSIC_PER_PAGE}`)
       .then((res) => {
         const newMusics = res.data.musics || [];
         setMusics((prev) => [...prev, ...newMusics]);
@@ -107,7 +106,7 @@ const Music = () => {
     if (!window.confirm("Are you sure you want to delete this track?")) return;
 
     try {
-      await axios.delete(`${apiUrl}/api/music/${musicId}`);
+      await axios.delete(`${API_URL}/api/music/${musicId}`);
       setMusics(musics.filter((m) => m._id !== musicId));
     } catch (error) {
       const message =
@@ -183,9 +182,9 @@ const Music = () => {
               >
                 {/* Artwork */}
                 <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 mb-3 shadow-lg shadow-black/30">
-                  {music.thumbnail ? (
+                  {music.thumbnailUrl ? (
                     <img
-                      src={music.thumbnail}
+                      src={music.thumbnailUrl}
                       alt={music.title}
                       className="h-full w-full object-cover"
                     />

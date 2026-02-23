@@ -20,9 +20,9 @@ const Player = () => {
         {/* Track Info */}
         <div className="flex items-center gap-3 w-[30%] min-w-0">
           <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-gray-800 overflow-hidden flex items-center justify-center">
-            {currentTrack.thumbnail ? (
+            {currentTrack.thumbnailUrl ? (
               <img
-                src={currentTrack.thumbnail}
+                src={currentTrack.thumbnailUrl}
                 alt={currentTrack.title}
                 className="h-full w-full object-cover"
               />
