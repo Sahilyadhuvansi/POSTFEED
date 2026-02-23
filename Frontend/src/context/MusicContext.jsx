@@ -29,7 +29,11 @@ export const MusicProvider = ({ children }) => {
         setProgress((audio.currentTime / audio.duration) * 100);
       }
     };
-    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleLoadedMetadata = () => {
+      console.log("Loaded metadata for track:", audio.src);
+      console.log("Duration:", audio.duration);
+      setDuration(audio.duration);
+    };
     const handleEnded = () => playNext(); // Auto-play next song
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
