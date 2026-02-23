@@ -224,7 +224,6 @@ const CreatePost = () => {
               placeholder="What's on your mind? Share your thoughts..."
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              required
               maxLength={500}
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 h-32 resize-none"
             />
