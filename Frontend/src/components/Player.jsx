@@ -29,24 +29,56 @@ const Player = () => {
   useEffect(() => {
     const audio = audioRef.current;
 
+    if (!audio) return;
+
     const updateTime = () => {
       setCurrentTime(audio.currentTime);
-      setDuration(audio.duration || 0);
     };
 
-    if (audio) {
-      audio.addEventListener("timeupdate", updateTime);
-    }
+    const setAudioData = () => {
+      setDuration(audio.duration);
+    };
+
+    audio.addEventListener("timeupdate", updateTime);
+    audio.addEventListener("loadedmetadata", setAudioData);
 
     return () => {
-      if (audio) {
-        audio.removeEventListener("timeupdate", updateTime);
-      }
+      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener("loadedmetadata", setAudioData);
     };
-  }, []);
+  }, [currentTrack]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    setCurrentTime(0);
+    setDuration(0);
+
+    if (isPlaying) {
+      audio.play().catch(() => {});
+    }
+  }, [currentTrack]);
 
   const formatTime = (time) => {
-    if (!time) return "0:00";
+    if (!time || isNaN(time)) return "0:00";
 
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
@@ -115,9 +147,11 @@ const Player = () => {
             <input
               type="range"
               min="0"
-              max="100"
-              value={(currentTime / duration) * 100 || 0}
-              onChange={(e) => seek(e.target.value)}
+              max={duration}
+              value={currentTime}
+              onChange={(e) => {
+                audioRef.current.currentTime = e.target.value;
+              }}
               className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:transition-all"
             />
             <span>{formatTime(duration)}</span>
@@ -138,6 +172,7 @@ const Player = () => {
           />
         </div>
       </div>
+      <audio ref={audioRef} src={currentTrack?.file} preload="metadata" />
     </div>
   );
 };
