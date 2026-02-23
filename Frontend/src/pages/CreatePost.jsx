@@ -268,7 +268,7 @@ const CreatePost = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading || !caption.trim()}
+            disabled={loading || (!image && !caption.trim())}
             className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed mt-4"
           >
             {loading ? (
