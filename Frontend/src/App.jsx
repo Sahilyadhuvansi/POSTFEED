@@ -19,6 +19,31 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Player from "./components/Player";
 
+import { Component } from "react";
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <h1>Something went wrong. Please try again later.</h1>;
+    }
+
+    return this.props.children;
+  }
+}
+
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
@@ -72,12 +97,14 @@ const App = () => {
     <AuthProvider>
       <MusicProvider>
         <Router>
-          <Header />
-          <main>
-            <AppRouter />
-          </main>
-          <Footer />
-          <Player />
+          <ErrorBoundary>
+            <Header />
+            <main>
+              <AppRouter />
+            </main>
+            <Footer />
+            <Player />
+          </ErrorBoundary>
         </Router>
       </MusicProvider>
     </AuthProvider>
