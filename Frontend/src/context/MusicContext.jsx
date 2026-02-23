@@ -15,7 +15,6 @@ export const MusicProvider = ({ children }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [progress, setProgress] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
   const audioRef = useRef(new Audio());
@@ -26,16 +25,11 @@ export const MusicProvider = ({ children }) => {
     const audio = audioRef.current;
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
       if (audio.duration) {
         setProgress((audio.currentTime / audio.duration) * 100);
       }
     };
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration || 0);
-    };
-
+    const handleLoadedMetadata = () => setDuration(audio.duration);
     const handleEnded = () => playNext(); // Auto-play next song
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -124,26 +118,30 @@ export const MusicProvider = ({ children }) => {
   }, [currentIndex, playlist, playTrack]);
 
   // --- Seek Functionality ---
-  const seek = useCallback((value) => {
-    audioRef.current.currentTime = value;
-    setCurrentTime(value);
-  }, []);
+  const seek = (value) => {
+    if (audioRef.current.duration) {
+      const time = (value / 100) * audioRef.current.duration;
+      audioRef.current.currentTime = time;
+      setProgress(value);
+    }
+  };
 
   return (
     <MusicContext.Provider
       value={{
-        playlist,
         currentTrack,
         isPlaying,
+        playTrack,
         togglePlay,
-        playNext,
-        playPrevious,
         volume,
         setVolume,
         progress,
         seek,
-        currentTime,
         duration,
+        playlist,
+        currentIndex,
+        playNext,
+        playPrevious,
       }}
     >
       {children}

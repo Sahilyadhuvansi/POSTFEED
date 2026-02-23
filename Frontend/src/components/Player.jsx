@@ -13,15 +13,16 @@ const Player = () => {
     currentTrack,
     isPlaying,
     togglePlay,
+    progress,
     seek,
     volume,
     setVolume,
     playNext,
     playPrevious,
     playlist,
-    currentTime,
-    duration,
   } = useMusic();
+
+  if (!currentTrack) return null;
 
   const formatTime = (seconds) => {
     if (isNaN(seconds)) return "0:00";
@@ -29,8 +30,6 @@ const Player = () => {
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
   };
-
-  if (!currentTrack) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-20 border-t border-white/[0.06] bg-black/90 backdrop-blur-xl">
@@ -87,16 +86,16 @@ const Player = () => {
             </button>
           </div>
           <div className="w-full max-w-md flex items-center gap-2 text-xs text-gray-500">
-            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime((progress * currentTrack.duration) / 100)}</span>
             <input
               type="range"
               min="0"
-              max={duration}
-              value={currentTime}
+              max="100"
+              value={progress}
               onChange={(e) => seek(e.target.value)}
               className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:transition-all"
             />
-            <span>{formatTime(duration)}</span>
+            <span>{formatTime(currentTrack.duration)}</span>
           </div>
         </div>
 
