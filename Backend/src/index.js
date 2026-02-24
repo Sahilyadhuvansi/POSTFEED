@@ -5,6 +5,7 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const express = require("express");
 const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
@@ -12,14 +13,17 @@ const authRoutes = require("./routes/auth.routes");
 const postRoutes = require("./routes/post.routes");
 const userRoutes = require("./routes/user.routes");
 const musicRoutes = require("./routes/music.routes");
-
-// Validate environment variables using envalid
 const validateEnv = require("./config/validateEnv");
+const compression = require("compression");
+
 console.log("Environment validated via envalid");
 
 let dbError = null;
 
 const app = express();
+
+// Compression for responses (small, effective improvement)
+app.use(compression());
 
 connectDB().catch((err) => {
   console.error(" Database connection failed:", err.message);
@@ -45,9 +49,18 @@ app.use(
   }),
 );
 
+// HSTS (only in production)
+if (process.env.NODE_ENV === "production") {
+  app.use(
+    helmet.hsts({
+      maxAge: 31536000, // 1 year in seconds
+      includeSubDomains: true,
+    }),
+  );
+}
+
 app.use(helmet.xContentTypeOptions());
 app.use(helmet.xFrameOptions({ action: "SAMEORIGIN" }));
-app.use(helmet.xXssProtection());
 app.use(helmet.referrerPolicy({ policy: "strict-origin-when-cross-origin" }));
 
 const allowedOrigins = (process.env.CORS_ORIGINS || "")
@@ -75,8 +88,19 @@ app.use(
 );
 
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Limit request body size to prevent large payload abuse
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Basic rate limiting for API routes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+app.use("/api", apiLimiter);
 
 app.get("/", (req, res) => {
   res.status(200).json({ message: "PostFeed and Music Backend is running!" });

@@ -20,9 +20,10 @@ async function connectDB() {
     const conn = await mongoose.connect(MONGO_URI, {
       retryWrites: true,
       w: "majority",
-      serverSelectionTimeoutMS: 30000, // 30 seconds
-      connectTimeoutMS: 30000, // 30 seconds
-      socketTimeoutMS: 60000, // 60 seconds
+      // Use lower timeouts for serverless environments to fail fast
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 20000,
     });
 
     console.log(

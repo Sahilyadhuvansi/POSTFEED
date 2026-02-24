@@ -76,15 +76,20 @@ const createMusic = async (req, res) => {
 const getAllMusics = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 15;
+    const limit = Math.min(parseInt(req.query.limit) || 15, 50);
     const skip = (page - 1) * limit;
+
+    // Short CDN cache to reduce repeated DB load
+    res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate");
 
     const musics = await musicModel
       .find()
+      .select("audioUrl title thumbnailUrl artist createdAt")
       .populate("artist", "username profilePic")
       .sort({ _id: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     return res.status(200).json({ success: true, musics });
   } catch (error) {

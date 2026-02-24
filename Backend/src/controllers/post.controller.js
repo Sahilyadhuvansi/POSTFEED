@@ -72,15 +72,20 @@ const createPost = async (req, res) => {
 const getFeed = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const skip = (page - 1) * limit;
+
+    // Cache at CDN/edge for short period to reduce repeated DB load
+    res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate");
 
     const posts = await postModel
       .find()
+      .select("image caption user createdAt")
       .populate("user", "username profilePic")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     return res.status(200).json({ success: true, posts });
   } catch (error) {

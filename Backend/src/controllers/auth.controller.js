@@ -2,7 +2,7 @@ const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 const { serializeUser } = require("../utils/userSerializer");
 
-exports.register = async (req, res) => {
+const register = async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -22,6 +22,7 @@ exports.register = async (req, res) => {
     const isUserExist = await userModel.findOne({
       $or: [{ email: email.toLowerCase() }, { username }],
     });
+
     if (isUserExist) {
       return res.status(409).json({
         success: false,
@@ -57,7 +58,6 @@ exports.register = async (req, res) => {
   } catch (err) {
     console.error("❌ Register Error:", err.message);
 
-    // Duplicate key error (E11000)
     if (err.code === 11000) {
       const field = Object.keys(err.keyPattern || {})[0] || "field";
       return res.status(409).json({
@@ -66,7 +66,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Mongoose validation error
     if (err.name === "ValidationError") {
       const messages = Object.values(err.errors).map((e) => e.message);
       return res.status(400).json({
@@ -75,32 +74,28 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Database/connection errors
     if (
       err.name === "MongoNetworkError" ||
       err.name === "MongoAuthenticationError" ||
       err.name === "MongoTimeoutError"
     ) {
-      console.error("❌ Database Error:", err.name, err.message);
       return res.status(503).json({
         success: false,
         error: "Database connection error. Please try again later.",
       });
     }
 
-    // Fallback error response
-    console.error("❌ Unexpected Error:", err);
     return res.status(500).json({
       success: false,
       error:
         process.env.NODE_ENV === "development"
-          ? `Error: ${err.message}`
+          ? err.message
           : "Internal server error",
     });
   }
 };
 
-exports.login = async (req, res) => {
+const login = async (req, res) => {
   const { email, username, password } = req.body;
 
   if ((!email && !username) || !password) {
@@ -153,13 +148,11 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error("❌ Login Error:", err.message);
 
-    // Handle database connection errors
     if (
       err.name === "MongoNetworkError" ||
       err.name === "MongoAuthenticationError" ||
       err.name === "MongoTimeoutError"
     ) {
-      console.error("❌ Database Connection Error:", err.message);
       return res.status(503).json({
         success: false,
         error: "Database unavailable. Please try again later.",
@@ -176,7 +169,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.logout = (req, res) => {
+const logout = (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -188,4 +181,10 @@ exports.logout = (req, res) => {
     success: true,
     message: "Logged out successfully",
   });
+};
+
+module.exports = {
+  register,
+  login,
+  logout,
 };
