@@ -25,6 +25,10 @@ const createMusic = async (req, res) => {
     const { title, audioUrl, audioFileId, thumbnailUrl, thumbnailFileId } =
       req.body;
 
+    // TEMP LOG: debug incoming thumbnail values from client
+    console.log("[DEBUG createMusic] thumbnailUrl:", thumbnailUrl);
+    console.log("[DEBUG createMusic] thumbnailFileId:", thumbnailFileId);
+
     if (!title || !title.trim()) {
       return res
         .status(400)
