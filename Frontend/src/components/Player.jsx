@@ -20,6 +20,7 @@ const Player = () => {
     playNext,
     playPrevious,
     playlist,
+    duration,
   } = useMusic();
 
   if (!currentTrack) return null;
@@ -86,7 +87,7 @@ const Player = () => {
             </button>
           </div>
           <div className="w-full max-w-md flex items-center gap-2 text-xs text-gray-500">
-            <span>{formatTime((progress * currentTrack.duration) / 100)}</span>
+            <span>{formatTime((progress * duration) / 100)}</span>
             <input
               type="range"
               min="0"
@@ -95,7 +96,7 @@ const Player = () => {
               onChange={(e) => seek(e.target.value)}
               className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:transition-all"
             />
-            <span>{formatTime(currentTrack.duration)}</span>
+            <span>{formatTime(duration)}</span>
           </div>
         </div>
 
