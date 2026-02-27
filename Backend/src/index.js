@@ -75,10 +75,23 @@ if (process.env.FRONTEND_URL) {
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow non-browser requests (e.g., server-to-server) and same-origin
       if (!origin) return callback(null, true);
+
+      // Allow configured origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+
+      // During local development, allow any localhost origin (different dev ports)
+      if (
+        process.env.NODE_ENV !== "production" &&
+        origin.startsWith("http://localhost")
+      ) {
+        console.log(`CORS: allowing localhost origin ${origin} in development`);
+        return callback(null, true);
+      }
+
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,

@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { API_URL, IMAGEKIT_UPLOAD_URL } from "../config";
+import { useApiCache } from "../hooks/useApiCache";
 import { parseBlob } from "music-metadata-browser";
 
 const Upload = () => {
@@ -19,6 +20,7 @@ const Upload = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
   const navigate = useNavigate();
+  const { setCache } = useApiCache();
 
   const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -124,7 +126,7 @@ const Upload = () => {
     return () => {
       try {
         reader.abort();
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
@@ -237,6 +239,9 @@ const Upload = () => {
             thumbnailUrl: thumbnailResult?.url || null,
             thumbnailFileId: thumbnailResult?.fileId || null,
           });
+          // After upload, clear cache and refetch music list
+          setCache("music_tracks_page_1", null);
+          setCache("music_tracks_page_2", null);
         } catch (fileErr) {
           console.error(`Upload failed for ${file.name}:`, fileErr);
           throw new Error(

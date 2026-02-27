@@ -1,3 +1,4 @@
+import React, { Component } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -18,8 +19,6 @@ import Upload from "./pages/Upload";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Player from "./components/Player";
-
-import { Component } from "react";
 
 class ErrorBoundary extends Component {
   constructor(props) {

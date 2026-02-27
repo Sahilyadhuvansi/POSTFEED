@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
 import { useMusic } from "../context/MusicContext";
 import { useAuth } from "../context/AuthContext";
@@ -26,7 +26,6 @@ const Music = () => {
   const MUSIC_PER_PAGE = 15;
   const { getFromCache, setCache } = useApiCache();
   const observerTarget = useRef(null);
-  const menuRef = useRef(null);
 
   // --- DATA FETCHING ---
   // Initial load
@@ -61,27 +60,9 @@ const Music = () => {
       }
     };
     fetchMusics();
-  }, [API_URL, getFromCache, setCache]);
+  }, [getFromCache, setCache]);
 
-  // Infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          loadMoreMusic();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMore, loading]);
-
-  const loadMoreMusic = () => {
+  const loadMoreMusic = useCallback(() => {
     const nextPage = page + 1;
     const cacheKey = `music_tracks_page_${nextPage}`;
     const cached = getFromCache(cacheKey);
@@ -105,7 +86,25 @@ const Music = () => {
       .catch((err) => {
         console.error("Load more error:", err.message);
       });
-  };
+  }, [page, getFromCache, setCache]);
+
+  // Infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMoreMusic();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadMoreMusic]);
 
   // --- UI HANDLERS ---
   const handlePlay = (music) => {
@@ -117,11 +116,17 @@ const Music = () => {
     e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this track?")) return;
 
+    console.log("handleDelete invoked for musicId:", musicId);
     try {
       await axios.delete(`${API_URL}/api/music/${musicId}`);
-      setMusics(musics.filter((m) => m._id !== musicId));
+      console.log("delete request sent for:", musicId);
+      setMusics((prev) => prev.filter((m) => m._id !== musicId));
       setActiveMenu(null); // Close menu after delete
+      // Clear cache for all pages
+      setCache("music_tracks_page_1", null);
+      setCache("music_tracks_page_2", null);
     } catch (error) {
+      console.error("Delete music error (frontend):", error);
       const message =
         error.response?.status === 401
           ? "You are not logged in."
@@ -137,12 +142,12 @@ const Music = () => {
     setActiveMenu(activeMenu === musicId ? null : musicId);
   };
 
-  // Close menu when clicking outside
+  // Close menu when clicking outside any music menu container
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setActiveMenu(null);
-      }
+      // If the click happened inside a menu container, do nothing
+      if (event.target.closest(".music-menu-container")) return;
+      setActiveMenu(null);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
@@ -248,10 +253,10 @@ const Music = () => {
 
                   {/* 3-dot menu */}
                   {user && String(user._id) === String(music.artist?._id) && (
-                    <div className="relative flex-shrink-0" ref={menuRef}>
+                    <div className="relative flex-shrink-0 music-menu-container">
                       <button
                         onClick={(e) => toggleMenu(e, music._id)}
-                        className="p-1 text-gray-500 hover:text-white"
+                        className="p-1 text-gray-500 hover:text-white music-menu-btn"
                         aria-label="Track options"
                       >
                         <MoreVertical className="w-4 h-4" />
@@ -259,7 +264,7 @@ const Music = () => {
 
                       {/* Dropdown */}
                       {activeMenu === music._id && (
-                        <div className="absolute right-0 top-full mt-2 w-36 rounded-lg bg-gray-800 border border-white/10 shadow-xl z-10">
+                        <div className="absolute right-0 top-full mt-2 w-36 rounded-lg bg-gray-800 border border-white/10 shadow-xl z-10 music-menu-dropdown">
                           <button
                             onClick={(e) => handleDelete(e, music._id)}
                             className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10"

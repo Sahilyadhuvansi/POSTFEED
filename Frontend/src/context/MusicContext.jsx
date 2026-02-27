@@ -20,33 +20,18 @@ export const MusicProvider = ({ children }) => {
   const audioRef = useRef(new Audio());
   const currentTrack = playlist[currentIndex] || null;
 
-  // --- Audio Event Listeners ---
-  useEffect(() => {
-    const audio = audioRef.current;
-
-    const handleTimeUpdate = () => {
-      if (audio.duration) {
-        setProgress((audio.currentTime / audio.duration) * 100);
-      }
-    };
-    const handleLoadedMetadata = () => setDuration(audio.duration);
-    const handleEnded = () => playNext(); // Auto-play next song
-
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("ended", handleEnded);
-
-    return () => {
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("ended", handleEnded);
-    };
-  }, [currentIndex, playlist.length]); // Re-attach if playlist changes
-
-  // --- Volume Control ---
-  useEffect(() => {
-    audioRef.current.volume = volume;
-  }, [volume]);
+  const togglePlay = useCallback(() => {
+    if (!currentTrack) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => console.error("Toggle play failed:", err));
+    }
+  }, [isPlaying, currentTrack]);
 
   // --- Core Playback Logic ---
   const playTrack = useCallback(
@@ -88,21 +73,8 @@ export const MusicProvider = ({ children }) => {
           });
       }
     },
-    [currentIndex, playlist],
+    [currentIndex, playlist, togglePlay],
   );
-
-  const togglePlay = useCallback(() => {
-    if (!currentTrack) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => console.error("Toggle play failed:", err));
-    }
-  }, [isPlaying, currentTrack]);
 
   // --- Playlist Navigation ---
   const playNext = useCallback(() => {
@@ -125,6 +97,34 @@ export const MusicProvider = ({ children }) => {
       setProgress(value);
     }
   };
+
+  // --- Audio Event Listeners ---
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    const handleTimeUpdate = () => {
+      if (audio.duration) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+      }
+    };
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleEnded = () => playNext(); // Auto-play next song
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [currentIndex, playlist.length, playNext]); // Re-attach if playlist changes
+
+  // --- Volume Control ---
+  useEffect(() => {
+    audioRef.current.volume = volume;
+  }, [volume]);
 
   return (
     <MusicContext.Provider
@@ -149,4 +149,5 @@ export const MusicProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useMusic = () => useContext(MusicContext);

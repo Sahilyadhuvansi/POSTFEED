@@ -79,8 +79,7 @@ const getAllMusics = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 15, 50);
     const skip = (page - 1) * limit;
 
-    // Short CDN cache to reduce repeated DB load
-    res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate");
+    // Short CDN cache removed due to immediate update requirements
 
     const musics = await musicModel
       .find()
@@ -103,6 +102,12 @@ const getAllMusics = async (req, res) => {
 
 const deleteMusic = async (req, res) => {
   try {
+    console.log(
+      "DeleteMusic called by user:",
+      req.user?.id,
+      "musicId:",
+      req.params.musicId,
+    );
     const music = await musicModel.findById(req.params.musicId);
 
     if (!music) {
@@ -116,12 +121,26 @@ const deleteMusic = async (req, res) => {
       });
     }
 
-    // Delete files from ImageKit
+    // Delete files from ImageKit (best-effort, don't abort deletion on file errors)
     if (music.audioFileId) {
-      await storageService.deleteFile(music.audioFileId);
+      try {
+        await storageService.deleteFile(music.audioFileId);
+      } catch (err) {
+        console.error(
+          "Failed to delete audio file from storage:",
+          err?.message || err,
+        );
+      }
     }
     if (music.thumbnailFileId) {
-      await storageService.deleteFile(music.thumbnailFileId);
+      try {
+        await storageService.deleteFile(music.thumbnailFileId);
+      } catch (err) {
+        console.error(
+          "Failed to delete thumbnail file from storage:",
+          err?.message || err,
+        );
+      }
     }
 
     await musicModel.findByIdAndDelete(req.params.musicId);

@@ -26,6 +26,7 @@ const Feed = () => {
     const cached = getFromCache(cacheKey);
 
     if (cached) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPosts(cached.posts);
       setPage(cached.page);
       setLoading(false);
@@ -48,24 +49,7 @@ const Feed = () => {
       });
   }, [getFromCache, setCache]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          loadMorePosts();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMore, loading]);
-
-  const loadMorePosts = () => {
+  const loadMorePosts = useCallback(() => {
     const nextPage = page + 1;
     const cacheKey = `feed_posts_page_${nextPage}`;
     const cached = getFromCache(cacheKey);
@@ -89,7 +73,24 @@ const Feed = () => {
       .catch((err) => {
         console.error("Load more error:", err.message);
       });
-  };
+  }, [page, getFromCache, setCache]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadMorePosts]);
 
   // --- MODAL & MENU HANDLERS ---
   const handleKeyDown = useCallback((e) => {
