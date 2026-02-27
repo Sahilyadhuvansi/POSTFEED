@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,6 +15,7 @@ const Upload = () => {
   const [audioFiles, setAudioFiles] = useState([]);
   const [isAutoExtractedMap, setIsAutoExtractedMap] = useState({});
   const [thumbnail, setThumbnail] = useState(null);
+  const [thumbnailURL, setThumbnailURL] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
   const navigate = useNavigate();
@@ -103,6 +104,17 @@ const Upload = () => {
 
     setStatus({ type: "", message: "" });
   };
+
+  useEffect(() => {
+    if (!thumbnail) {
+      setThumbnailURL(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(thumbnail);
+    setThumbnailURL(url);
+    return () => URL.revokeObjectURL(url);
+  }, [thumbnail]);
 
   const handleThumbnailChange = (e) => {
     const file = e.target.files[0];
@@ -359,11 +371,28 @@ const Upload = () => {
               }`}
             >
               <Music className="w-8 h-8 text-gray-500 mb-2" />
-              <span className="text-sm font-medium text-gray-300">
-                {thumbnail
-                  ? `${thumbnail.name} (${formatSize(thumbnail.size)})`
-                  : "Click to select thumbnail"}
-              </span>
+              {thumbnailURL ? (
+                <div className="flex items-center gap-4">
+                  <img
+                    src={thumbnailURL}
+                    alt="thumbnail preview"
+                    className="w-20 h-20 object-cover rounded-md"
+                  />
+                  <div className="text-sm text-gray-300">
+                    <div>
+                      {thumbnail.name} ({formatSize(thumbnail.size)})
+                      {audioFiles.length === 1 &&
+                      isAutoExtractedMap[audioFiles[0].name]
+                        ? " • Auto-extracted"
+                        : ""}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <span className="text-sm font-medium text-gray-300">
+                  Click to select thumbnail
+                </span>
+              )}
               <span className="text-xs text-gray-600 mt-1">
                 JPG, PNG, WEBP — max 5MB
               </span>
