@@ -75,6 +75,15 @@ const Upload = () => {
 
     setAudioFiles(validFiles);
     setIsAutoExtractedMap(autoMap);
+
+    // Auto-fill title when exactly one file is selected
+    if (validFiles.length === 1) {
+      const fileTitle = validFiles[0].name.replace(/\.[^/.]+$/, "");
+      setTitle(fileTitle);
+    } else if (validFiles.length > 1) {
+      setTitle("");
+    }
+
     setStatus({ type: "", message: "" });
   };
 
