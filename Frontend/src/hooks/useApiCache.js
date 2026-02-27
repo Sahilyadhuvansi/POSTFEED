@@ -1,6 +1,4 @@
-import { useCallback } from "react";
-
-const globalCache = new Map();
+import { useRef, useCallback } from "react";
 
 /**
  * Hook to cache API responses with TTL (time-to-live)
@@ -8,15 +6,16 @@ const globalCache = new Map();
  */
 export function useApiCache(ttl = 5 * 60 * 1000) {
   // ttl = 5 minutes default
+  const cacheRef = useRef(new Map());
 
   const getFromCache = useCallback(
     (key) => {
-      const cached = globalCache.get(key);
+      const cached = cacheRef.current.get(key);
       if (!cached) return null;
 
       // Check if cache is expired
       if (Date.now() - cached.timestamp > ttl) {
-        globalCache.delete(key);
+        cacheRef.current.delete(key);
         return null;
       }
 
@@ -26,7 +25,7 @@ export function useApiCache(ttl = 5 * 60 * 1000) {
   );
 
   const setCache = useCallback((key, data) => {
-    globalCache.set(key, {
+    cacheRef.current.set(key, {
       data,
       timestamp: Date.now(),
     });
@@ -34,9 +33,9 @@ export function useApiCache(ttl = 5 * 60 * 1000) {
 
   const clearCache = useCallback((key) => {
     if (key) {
-      globalCache.delete(key);
+      cacheRef.current.delete(key);
     } else {
-      globalCache.clear();
+      cacheRef.current.clear();
     }
   }, []);
 

@@ -257,9 +257,6 @@ const Upload = () => {
             thumbnailUrl: thumbnailResult?.url || null,
             thumbnailFileId: thumbnailResult?.fileId || null,
           });
-          // After upload, clear cache and refetch music list
-          setCache("music_tracks_page_1", null);
-          setCache("music_tracks_page_2", null);
         } catch (fileErr) {
           console.error(`Upload failed for ${file.name}:`, fileErr);
           throw new Error(

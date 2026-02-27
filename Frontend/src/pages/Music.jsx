@@ -122,9 +122,6 @@ const Music = () => {
       console.log("delete request sent for:", musicId);
       setMusics((prev) => prev.filter((m) => m._id !== musicId));
       setActiveMenu(null); // Close menu after delete
-      // Clear cache for all pages
-      setCache("music_tracks_page_1", null);
-      setCache("music_tracks_page_2", null);
     } catch (error) {
       console.error("Delete music error (frontend):", error);
       const message =
