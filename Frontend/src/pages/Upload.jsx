@@ -150,50 +150,69 @@ const Upload = () => {
 
     try {
       for (const file of audioFiles) {
-        const title = file.name.replace(/\.[^/.]+$/, "");
-
-        // Get auth
-        const { data: authParams } = await axios.get(
-          `${API_URL}/api/music/imagekit-auth`,
-        );
-
-        // Upload audio
-        const audioResult = await uploadToImageKit(file, authParams);
-
-        // Extract cover and upload if present
-        let thumbnailResult = null;
         try {
-          const metadata = await parseBlob(file);
-          if (metadata.common.picture?.length) {
-            const picture = metadata.common.picture[0];
-            const blob = new Blob([picture.data], { type: picture.format });
-            const ext = picture.format?.split("/")[1] || "jpg";
-            const coverFile = new File([blob], `cover_${Date.now()}.${ext}`, {
-              type: picture.format,
-            });
+          const title = file.name.replace(/\.[^/.]+$/, "");
 
-            const { data: thumbAuth } = await axios.get(
-              `${API_URL}/api/music/imagekit-auth`,
+          // Get auth
+          const { data: authParams } = await axios.get(
+            `${API_URL}/api/music/imagekit-auth`,
+          );
+
+          // Upload audio
+          const audioResult = await uploadToImageKit(file, authParams);
+
+          // Extract cover and upload if present
+          let thumbnailResult = null;
+          try {
+            const metadata = await parseBlob(file);
+            if (metadata.common.picture?.length) {
+              const picture = metadata.common.picture[0];
+              const blob = new Blob([picture.data], { type: picture.format });
+              const ext = picture.format?.split("/")[1] || "jpg";
+              const coverFile = new File([blob], `cover_${Date.now()}.${ext}`, {
+                type: picture.format,
+              });
+
+              const { data: thumbAuth } = await axios.get(
+                `${API_URL}/api/music/imagekit-auth`,
+              );
+
+              thumbnailResult = await uploadToImageKit(coverFile, thumbAuth);
+            }
+          } catch (thumbErr) {
+            console.warn(
+              `Thumbnail extraction/upload failed for ${file.name}:`,
+              thumbErr,
             );
-
-            thumbnailResult = await uploadToImageKit(coverFile, thumbAuth);
           }
-        } catch {}
 
-        // Save in DB
-        await axios.post(`${API_URL}/api/music`, {
-          title,
-          audioUrl: audioResult.url,
-          audioFileId: audioResult.fileId,
-          thumbnailUrl: thumbnailResult?.url || null,
-          thumbnailFileId: thumbnailResult?.fileId || null,
-        });
+          // Save in DB
+          await axios.post(`${API_URL}/api/music`, {
+            title,
+            audioUrl: audioResult.url,
+            audioFileId: audioResult.fileId,
+            thumbnailUrl: thumbnailResult?.url || null,
+            thumbnailFileId: thumbnailResult?.fileId || null,
+          });
+        } catch (fileErr) {
+          console.error(`Upload failed for ${file.name}:`, fileErr);
+          throw new Error(
+            fileErr?.response?.data?.error ||
+              fileErr.message ||
+              `Upload failed for ${file.name}`,
+          );
+        }
       }
 
       setStatus({ type: "success", message: "All songs uploaded!" });
       setTimeout(() => navigate("/music"), 2000);
     } catch (error) {
-      setStatus({ type: "error", message: "Upload failed. Please try again." });
+      console.error("Upload flow error:", error);
+      const message =
+        error?.response?.data?.error ||
+        error?.message ||
+        "Upload failed. Please try again.";
+      setStatus({ type: "error", message });
     } finally {
       setLoading(false);
     }
