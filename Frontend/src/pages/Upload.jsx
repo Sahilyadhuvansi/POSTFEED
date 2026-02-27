@@ -209,19 +209,34 @@ const Upload = () => {
           // Extract cover and upload if present
           let thumbnailResult = null;
           try {
-            const metadata = await parseBlob(file);
-            if (metadata.common.picture?.length) {
-              const picture = metadata.common.picture[0];
-              const blob = new Blob([picture.data], { type: picture.format });
-              const ext = picture.format?.split("/")[1] || "jpg";
-              const coverFile = new File([blob], `cover_${Date.now()}.${ext}`, {
-                type: picture.format,
-              });
+            let coverFile = null;
 
+            // If the user manually selected a thumbnail, use it for all uploads natively, or if it's single file just use it
+            if (thumbnail) {
+              // Creating a new file object from the thumbnail to avoid name collisions if multiple
+              const ext = thumbnail.name.split(".").pop();
+              coverFile = new File(
+                [thumbnail],
+                `cover_${Date.now()}_${title}.${ext}`,
+                { type: thumbnail.type },
+              );
+            } else {
+              // Try to auto-extract from the audio file
+              const metadata = await parseBlob(file);
+              if (metadata.common.picture?.length) {
+                const picture = metadata.common.picture[0];
+                const blob = new Blob([picture.data], { type: picture.format });
+                const ext = picture.format?.split("/")[1] || "jpg";
+                coverFile = new File([blob], `cover_${Date.now()}.${ext}`, {
+                  type: picture.format,
+                });
+              }
+            }
+
+            if (coverFile) {
               const { data: thumbAuth } = await axios.get(
                 `${API_URL}/api/music/imagekit-auth`,
               );
-
               thumbnailResult = await uploadToImageKit(coverFile, thumbAuth);
             }
           } catch (thumbErr) {
@@ -233,7 +248,10 @@ const Upload = () => {
 
           // Save in DB
           await axios.post(`${API_URL}/api/music`, {
-            title,
+            title:
+              audioFiles.length === 1
+                ? title
+                : file.name.replace(/\.[^/.]+$/, ""),
             audioUrl: audioResult.url,
             audioFileId: audioResult.fileId,
             thumbnailUrl: thumbnailResult?.url || null,
