@@ -108,7 +108,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Basic rate limiting for API routes
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // Increased to 1000 to support bulk uploads
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
