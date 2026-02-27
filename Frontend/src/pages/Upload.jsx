@@ -76,10 +76,27 @@ const Upload = () => {
     setAudioFiles(validFiles);
     setIsAutoExtractedMap(autoMap);
 
-    // Auto-fill title when exactly one file is selected
+    // If exactly one file selected and it has embedded art, extract and set thumbnail
     if (validFiles.length === 1) {
       const fileTitle = validFiles[0].name.replace(/\.[^/.]+$/, "");
       setTitle(fileTitle);
+
+      if (autoMap[validFiles[0].name]) {
+        try {
+          const meta = await parseBlob(validFiles[0]);
+          const picture = meta.common.picture[0];
+          const blob = new Blob([picture.data], { type: picture.format });
+          const ext = picture.format?.split("/")[1] || "jpg";
+          const coverFile = new File([blob], `cover_${Date.now()}.${ext}`, {
+            type: picture.format,
+          });
+          if (coverFile.size <= MAX_IMAGE_SIZE) {
+            setThumbnail(coverFile);
+          }
+        } catch (err) {
+          console.warn("Auto-extract thumbnail failed:", err);
+        }
+      }
     } else if (validFiles.length > 1) {
       setTitle("");
     }
