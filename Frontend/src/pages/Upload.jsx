@@ -111,9 +111,23 @@ const Upload = () => {
       return;
     }
 
-    const url = URL.createObjectURL(thumbnail);
-    setThumbnailURL(url);
-    return () => URL.revokeObjectURL(url);
+    // Create a data URL (base64) for the image preview to avoid CSP blob: restrictions
+    const reader = new FileReader();
+    reader.onload = () => {
+      setThumbnailURL(reader.result);
+    };
+    reader.onerror = () => {
+      setThumbnailURL(null);
+    };
+    reader.readAsDataURL(thumbnail);
+
+    return () => {
+      try {
+        reader.abort();
+      } catch (e) {
+        // ignore
+      }
+    };
   }, [thumbnail]);
 
   const handleThumbnailChange = (e) => {
