@@ -8,10 +8,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { API_URL, IMAGEKIT_UPLOAD_URL } from "../config";
+import { parseBlob } from "music-metadata-browser";
 
 const Upload = () => {
   const [title, setTitle] = useState("");
-  const [audioFile, setAudioFile] = useState(null);
+  const [audioFiles, setAudioFiles] = useState([]);
+  const [isAutoExtractedMap, setIsAutoExtractedMap] = useState({});
   const [thumbnail, setThumbnail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
@@ -35,38 +37,44 @@ const Upload = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   };
 
-  const handleAudioChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleAudioChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-    if (
-      !ALLOWED_AUDIO.includes(file.type) &&
-      !file.name.match(/\.(mp3|wav|ogg|m4a|webm|flac|aac)$/i)
-    ) {
-      setStatus({
-        type: "error",
-        message: `Unsupported audio format. Please use MP3, WAV, OGG, M4A, FLAC, or AAC.`,
-      });
+    const validFiles = [];
+    const autoMap = {};
+
+    for (const file of files) {
+      if (
+        !ALLOWED_AUDIO.includes(file.type) &&
+        !file.name.match(/\.(mp3|wav|ogg|m4a|webm|flac|aac)$/i)
+      ) {
+        continue;
+      }
+
+      if (file.size > MAX_AUDIO_SIZE) {
+        continue;
+      }
+
+      validFiles.push(file);
+
+      // Try extracting cover (only to note whether it exists)
+      try {
+        const metadata = await parseBlob(file);
+        autoMap[file.name] = !!metadata?.common?.picture?.length;
+      } catch {
+        autoMap[file.name] = false;
+      }
+    }
+
+    if (!validFiles.length) {
+      setStatus({ type: "error", message: "No valid audio files selected." });
       e.target.value = "";
       return;
     }
 
-    if (file.size > MAX_AUDIO_SIZE) {
-      setStatus({
-        type: "error",
-        message: `Audio file is too large (${formatSize(file.size)}). Maximum size is 25MB.`,
-      });
-      e.target.value = "";
-      return;
-    }
-
-    setAudioFile(file);
-    if (file) {
-      const fileName = file.name;
-      const fileTitle =
-        fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
-      setTitle(fileTitle);
-    }
+    setAudioFiles(validFiles);
+    setIsAutoExtractedMap(autoMap);
     setStatus({ type: "", message: "" });
   };
 
@@ -122,13 +130,9 @@ const Upload = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!audioFile) {
-      setStatus({ type: "error", message: "Please select an audio file" });
-      return;
-    }
 
-    if (!title.trim()) {
-      setStatus({ type: "error", message: "Please enter a track title" });
+    if (!audioFiles.length) {
+      setStatus({ type: "error", message: "Please select audio files" });
       return;
     }
 
@@ -136,58 +140,51 @@ const Upload = () => {
     setStatus({ type: "", message: "" });
 
     try {
-      // 1. Get auth params from backend
-      setStatus({ type: "", message: "Preparing upload..." });
-      const { data: authParams } = await axios.get(
-        `${API_URL}/api/music/imagekit-auth`,
-      );
+      for (const file of audioFiles) {
+        const title = file.name.replace(/\.[^/.]+$/, "");
 
-      // 2. Upload audio directly to ImageKit
-      setStatus({ type: "", message: "Uploading audio file..." });
-      const audioResult = await uploadToImageKit(audioFile, authParams);
-
-      // 3. Upload thumbnail if provided (get fresh auth params)
-      let thumbnailResult = null;
-      if (thumbnail) {
-        setStatus({ type: "", message: "Uploading thumbnail..." });
-        const { data: thumbAuth } = await axios.get(
+        // Get auth
+        const { data: authParams } = await axios.get(
           `${API_URL}/api/music/imagekit-auth`,
         );
-        thumbnailResult = await uploadToImageKit(thumbnail, thumbAuth);
+
+        // Upload audio
+        const audioResult = await uploadToImageKit(file, authParams);
+
+        // Extract cover and upload if present
+        let thumbnailResult = null;
+        try {
+          const metadata = await parseBlob(file);
+          if (metadata.common.picture?.length) {
+            const picture = metadata.common.picture[0];
+            const blob = new Blob([picture.data], { type: picture.format });
+            const ext = picture.format?.split("/")[1] || "jpg";
+            const coverFile = new File([blob], `cover_${Date.now()}.${ext}`, {
+              type: picture.format,
+            });
+
+            const { data: thumbAuth } = await axios.get(
+              `${API_URL}/api/music/imagekit-auth`,
+            );
+
+            thumbnailResult = await uploadToImageKit(coverFile, thumbAuth);
+          }
+        } catch {}
+
+        // Save in DB
+        await axios.post(`${API_URL}/api/music`, {
+          title,
+          audioUrl: audioResult.url,
+          audioFileId: audioResult.fileId,
+          thumbnailUrl: thumbnailResult?.url || null,
+          thumbnailFileId: thumbnailResult?.fileId || null,
+        });
       }
 
-      // 4. Save metadata in our backend
-      setStatus({ type: "", message: "Saving track info..." });
-      await axios.post(`${API_URL}/api/music`, {
-        title,
-        audioUrl: audioResult.url,
-        audioFileId: audioResult.fileId,
-        thumbnailUrl: thumbnailResult?.url || null,
-        thumbnailFileId: thumbnailResult?.fileId || null,
-      });
-
-      setStatus({ type: "success", message: "Music uploaded successfully!" });
+      setStatus({ type: "success", message: "All songs uploaded!" });
       setTimeout(() => navigate("/music"), 2000);
     } catch (error) {
-      let message = "Upload failed. Please try again.";
-
-      if (error.response?.status === 401) {
-        message = "You are not logged in. Please log in and try again.";
-      } else if (error.response?.status === 413) {
-        message = "File is too large. Please use a smaller file.";
-      } else if (error.response?.data?.error) {
-        message = error.response.data.error;
-      } else if (error.message?.includes("Network Error")) {
-        message =
-          "Network error. Check your internet connection and try again.";
-      } else if (error.message?.includes("ImageKit")) {
-        message =
-          "File upload service error. The file may be corrupted or in an unsupported format.";
-      } else if (error.message) {
-        message = error.message;
-      }
-
-      setStatus({ type: "error", message });
+      setStatus({ type: "error", message: "Upload failed. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -258,8 +255,8 @@ const Upload = () => {
             >
               <Music className="w-8 h-8 text-gray-500 mb-2" />
               <span className="text-sm font-medium text-gray-300">
-                {audioFile
-                  ? `${audioFile.name} (${formatSize(audioFile.size)})`
+                {audioFiles.length
+                  ? `${audioFiles.length} file(s) selected`
                   : "Click to select audio file"}
               </span>
               <span className="text-xs text-gray-600 mt-1">
@@ -270,6 +267,7 @@ const Upload = () => {
                 name="audio"
                 type="file"
                 accept="audio/*"
+                multiple
                 className="hidden"
                 onChange={handleAudioChange}
               />
@@ -277,7 +275,7 @@ const Upload = () => {
           </div>
 
           {/* Track Title */}
-          {audioFile && (
+          {audioFiles.length > 0 && (
             <div>
               <label
                 htmlFor="upload-title"
@@ -292,7 +290,7 @@ const Upload = () => {
                 placeholder="e.g., Midnight City"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                required
+                required={audioFiles.length === 1}
                 className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
