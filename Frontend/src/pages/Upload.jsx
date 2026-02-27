@@ -248,7 +248,7 @@ const Upload = () => {
             <label
               htmlFor="upload-audio"
               className={`flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
-                audioFile
+                audioFiles.length > 0
                   ? "border-indigo-500/50 bg-indigo-500/5"
                   : "border-white/15 hover:border-indigo-500/50 bg-white/[0.02] hover:bg-indigo-500/5"
               }`}
