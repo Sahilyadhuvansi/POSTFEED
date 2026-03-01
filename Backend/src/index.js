@@ -13,8 +13,8 @@ const authRoutes = require("./routes/auth.routes");
 const postRoutes = require("./routes/post.routes");
 const userRoutes = require("./routes/user.routes");
 const musicRoutes = require("./routes/music.routes");
-const validateEnv = require("./config/validateEnv");
 const compression = require("compression");
+require("./config/validateEnv");
 
 console.log("Environment validated via envalid");
 
@@ -108,7 +108,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Basic rate limiting for API routes
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased to 1000 to support bulk uploads
+  max: 500, // Increased to 500 to support bulk uploads
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
