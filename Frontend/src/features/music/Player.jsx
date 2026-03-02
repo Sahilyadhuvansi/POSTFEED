@@ -1,4 +1,4 @@
-import { useMusic } from "../context/MusicContext";
+import { useMusic } from "./MusicContext";
 import {
   Play,
   Pause,

@@ -1,7 +1,7 @@
-const userModel = require("../models/user.model");
-const postModel = require("../models/post.model");
-const storageService = require("../services/storage.service");
-const { serializeUser } = require("../utils/userSerializer");
+const userModel = require("./user.model");
+const postModel = require("../post/post.model");
+const storageService = require("../../services/storage.service");
+const { serializeUser } = require("../../utils/userSerializer");
 
 const getProfile = async (req, res) => {
   try {

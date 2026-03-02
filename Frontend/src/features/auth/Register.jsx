@@ -1,26 +1,36 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "./AuthContext";
 
-const Login = () => {
-  const [identifier, setIdentifier] = useState("");
+const Register = () => {
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
 
-    const result = await login({
-      email: identifier,
-      username: identifier,
-      password,
-    });
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (!agreeTerms) {
+      setError("You must agree to the terms and conditions");
+      return;
+    }
+
+    setLoading(true);
+
+    const result = await register({ username, email, password });
     if (result.success) {
       navigate("/");
     } else {
@@ -58,14 +68,14 @@ const Login = () => {
             </div>
           </div>
           <h2 className="text-2xl font-black text-white tracking-tight">
-            Welcome Back
+            Create Your Account
           </h2>
           <p className="mt-2 text-sm text-gray-500">
-            Sign in to share your story and discover new whispers
+            Join thousands sharing their world and secrets
           </p>
         </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
           <div className="mb-6 p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm font-medium flex items-center gap-2.5">
             <svg
@@ -83,40 +93,60 @@ const Login = () => {
           </div>
         )}
 
-        {/* Form */}
         <form className="space-y-5" onSubmit={handleSubmit}>
-          {/* Email or Username */}
+          {/* Username */}
           <div>
             <label
-              htmlFor="login-identifier"
+              htmlFor="register-username"
               className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
             >
-              Email or Username
+              Username
             </label>
             <input
-              id="login-identifier"
-              name="identifier"
+              id="register-username"
+              name="username"
               type="text"
               required
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
-              placeholder="your@email.com or username"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="Choose a username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label
+              htmlFor="register-email"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
+              Email
+            </label>
+            <input
+              id="register-email"
+              name="email"
+              type="email"
+              required
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
             />
           </div>
 
           {/* Password */}
           <div>
             <label
-              htmlFor="login-password"
+              htmlFor="register-password"
               className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
             >
               Password
             </label>
             <div className="relative">
               <input
-                id="login-password"
+                id="register-password"
                 name="password"
                 type={showPassword ? "text" : "password"}
                 required
@@ -124,12 +154,13 @@ const Login = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="new-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-300 transition"
+                aria-label="Toggle password visibility"
               >
                 <svg
                   className="w-4 h-4"
@@ -157,19 +188,71 @@ const Login = () => {
             </div>
           </div>
 
+          {/* Confirm Password */}
+          <div>
+            <label
+              htmlFor="register-confirm"
+              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+            >
+              Confirm Password
+            </label>
+            <input
+              id="register-confirm"
+              name="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              required
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+
+          {/* Terms */}
+          <div className="flex items-start gap-3 rounded-xl bg-white/[0.02] border border-white/[0.06] p-3.5">
+            <input
+              type="checkbox"
+              id="register-terms"
+              name="agreeTerms"
+              checked={agreeTerms}
+              onChange={(e) => setAgreeTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-white/20 bg-transparent text-indigo-600 accent-indigo-500 cursor-pointer"
+            />
+            <label
+              htmlFor="register-terms"
+              className="text-xs text-gray-400 leading-relaxed cursor-pointer"
+            >
+              I agree to POSTFEED's{" "}
+              <Link
+                to="#"
+                className="text-indigo-400 hover:text-pink-400 transition-colors"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                to="#"
+                className="text-indigo-400 hover:text-pink-400 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+            </label>
+          </div>
+
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || !agreeTerms}
+            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
-                <span>Signing in...</span>
+                <span>Creating account...</span>
               </div>
             ) : (
-              "Sign in"
+              "Create Account"
             )}
           </button>
         </form>
@@ -181,19 +264,19 @@ const Login = () => {
           </div>
           <div className="relative flex justify-center">
             <span className="bg-gray-950 px-4 text-xs text-gray-600">
-              New to POSTFEED?
+              Already have an account?
             </span>
           </div>
         </div>
 
-        {/* Register Link */}
+        {/* Login Link */}
         <p className="text-center text-sm text-gray-500">
-          Don't have an account?{" "}
+          Already a member?{" "}
           <Link
-            to="/register"
+            to="/login"
             className="font-bold text-indigo-400 hover:text-pink-400 transition-colors"
           >
-            Create one free
+            Sign in here
           </Link>
         </p>
       </div>
@@ -201,4 +284,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

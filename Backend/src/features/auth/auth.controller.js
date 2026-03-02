@@ -1,6 +1,6 @@
-const userModel = require("../models/user.model");
+const userModel = require("../user/user.model");
 const jwt = require("jsonwebtoken");
-const { serializeUser } = require("../utils/userSerializer");
+const { serializeUser } = require("../../utils/userSerializer");
 
 const register = async (req, res) => {
   const { username, email, password } = req.body;

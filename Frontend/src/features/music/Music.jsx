@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
-import { useMusic } from "../context/MusicContext";
-import { useAuth } from "../context/AuthContext";
+import { useMusic } from "./MusicContext";
+import { useAuth } from "../auth/AuthContext";
 import {
   Play,
   Pause,
@@ -10,9 +10,9 @@ import {
   Trash2,
   MoreVertical,
 } from "lucide-react";
-import { API_URL } from "../config";
-import { MusicSkeleton } from "../components/SkeletonLoader";
-import { useApiCache } from "../hooks/useApiCache";
+import { API_URL } from "../../config";
+import { MusicSkeleton } from "../../components/SkeletonLoader";
+import { useApiCache } from "../../hooks/useApiCache";
 
 const Music = () => {
   const [musics, setMusics] = useState([]);

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { API_URL, DEFAULT_AVATAR } from "../config";
+import { useAuth } from "../auth/AuthContext";
+import { API_URL, DEFAULT_AVATAR } from "../../config";
 
 const Profile = () => {
   const { user, logout, updateUser } = useAuth();

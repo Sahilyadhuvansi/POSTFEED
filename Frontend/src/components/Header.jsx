@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../features/auth/AuthContext";
 import { Music, Upload } from "lucide-react";
 import { DEFAULT_AVATAR } from "../config";
 

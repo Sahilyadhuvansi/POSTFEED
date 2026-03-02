@@ -7,8 +7,8 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { API_URL, IMAGEKIT_UPLOAD_URL } from "../config";
-import { useApiCache } from "../hooks/useApiCache";
+import { API_URL, IMAGEKIT_UPLOAD_URL } from "../../config";
+
 import { parseBlob } from "music-metadata-browser";
 
 const Upload = () => {
@@ -20,7 +20,6 @@ const Upload = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
   const navigate = useNavigate();
-  const { setCache } = useApiCache();
 
   const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB

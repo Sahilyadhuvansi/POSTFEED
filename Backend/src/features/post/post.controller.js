@@ -1,5 +1,5 @@
-const postModel = require("../models/post.model");
-const storageService = require("../services/storage.service");
+const postModel = require("./post.model");
+const storageService = require("../../services/storage.service");
 
 const createPost = async (req, res) => {
   try {

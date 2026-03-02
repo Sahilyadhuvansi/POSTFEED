@@ -1,5 +1,5 @@
-const musicModel = require("../models/music.model");
-const storageService = require("../services/storage.service");
+const musicModel = require("./music.model");
+const storageService = require("../../services/storage.service");
 
 // Return ImageKit auth params for client-side upload
 const getImageKitAuth = async (req, res) => {

@@ -9,14 +9,13 @@ const rateLimit = require("express-rate-limit");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
-const authRoutes = require("./routes/auth.routes");
-const postRoutes = require("./routes/post.routes");
-const userRoutes = require("./routes/user.routes");
-const musicRoutes = require("./routes/music.routes");
+const authRoutes = require("./features/auth/auth.routes");
+const postRoutes = require("./features/post/post.routes");
+const userRoutes = require("./features/user/user.routes");
+const musicRoutes = require("./features/music/music.routes");
 const compression = require("compression");
+const mongoose = require("mongoose");
 require("./config/validateEnv");
-
-console.log("Environment validated via envalid");
 
 let dbError = null;
 
@@ -120,7 +119,6 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  const mongoose = require("mongoose");
   const dbConnected = mongoose.connection.readyState === 1;
   const envValid = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
 

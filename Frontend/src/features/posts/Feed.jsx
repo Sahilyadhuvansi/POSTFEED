@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import { useAuth } from "../context/AuthContext";
-import { API_URL, DEFAULT_AVATAR } from "../config";
-import { PostSkeletonLoader } from "../components/SkeletonLoader";
-import { useApiCache } from "../hooks/useApiCache";
+import { useAuth } from "../auth/AuthContext";
+import { API_URL, DEFAULT_AVATAR } from "../../config";
+import { PostSkeletonLoader } from "../../components/SkeletonLoader";
+import { useApiCache } from "../../hooks/useApiCache";
 import { MoreVertical, Trash2 } from "lucide-react";
 
 const Feed = () => {

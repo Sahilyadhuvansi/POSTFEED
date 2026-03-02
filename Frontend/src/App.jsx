@@ -1,61 +1,23 @@
-import React, { Component } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import { MusicProvider } from "./context/MusicContext";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./features/auth/AuthContext";
+import { MusicProvider } from "./features/music/MusicContext";
 
-import CreatePost from "./pages/CreatePost";
-import Feed from "./pages/Feed";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import Music from "./pages/Music";
-import Upload from "./pages/Upload";
+// Pages
+import CreatePost from "./features/posts/CreatePost";
+import Feed from "./features/posts/Feed";
+import Login from "./features/auth/Login";
+import Register from "./features/auth/Register";
+import Profile from "./features/users/Profile";
+import Music from "./features/music/Music";
+import Upload from "./features/music/Upload";
 
+// Components
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-import Player from "./components/Player";
+import Player from "./features/music/Player";
+import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 
-class ErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <h1>Something went wrong. Please try again later.</h1>;
-    }
-
-    return this.props.children;
-  }
-}
-
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) return null;
-  if (!user) return <Navigate to="/login" />;
-
-  return children;
-};
-
-/**
- * Simple routing - pages show skeleton loaders during data loading
- * Smooth content fill-in as data arrives
- */
 const AppRouter = () => {
   return (
     <Routes>
@@ -93,20 +55,20 @@ const AppRouter = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <MusicProvider>
-        <Router>
-          <ErrorBoundary>
+    <ErrorBoundary>
+      <AuthProvider>
+        <MusicProvider>
+          <Router>
             <Header />
             <main>
               <AppRouter />
             </main>
             <Footer />
             <Player />
-          </ErrorBoundary>
-        </Router>
-      </MusicProvider>
-    </AuthProvider>
+          </Router>
+        </MusicProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

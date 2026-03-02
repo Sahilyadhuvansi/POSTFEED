@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import { API_URL as BASE_URL } from "../config";
+import { API_URL as BASE_URL } from "../../config";
 
 const AuthContext = createContext();
 
@@ -11,12 +11,7 @@ export const AuthProvider = ({ children }) => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(false);
-  }, []);
+  const [loading] = useState(false);
 
   const login = async (credentials) => {
     try {
