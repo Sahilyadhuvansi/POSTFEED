@@ -9,36 +9,33 @@ import {
   Disc,
   Trash2,
   MoreVertical,
+  Volume2,
 } from "lucide-react";
 import { API_URL } from "../../config";
 import { MusicSkeleton } from "../../components/SkeletonLoader";
 import { useApiCache } from "../../hooks/useApiCache";
 
+const MUSIC_PER_PAGE = 15;
+
 const Music = () => {
-  const [musics, setMusics] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [activeMenu, setActiveMenu] = useState(null); // For the 3-dot menu
   const { currentTrack, playTrack, isPlaying } = useMusic();
   const { user } = useAuth();
-
-  const MUSIC_PER_PAGE = 15;
   const { getFromCache, setCache } = useApiCache();
   const observerTarget = useRef(null);
 
-  // --- DATA FETCHING ---
-  // Initial load
-  useEffect(() => {
-    const cacheKey = "music_tracks_page_1";
-    const cached = getFromCache(cacheKey);
+  // --- COLD START / CACHE INIT ---
+  const initialCached = getFromCache("music_tracks_page_1");
 
-    if (cached) {
-      setMusics(cached.musics);
-      setPage(cached.page);
-      setLoading(false);
-      return;
-    }
+  const [musics, setMusics] = useState(initialCached?.musics || []);
+  const [loading, setLoading] = useState(!initialCached);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(initialCached?.page || 1);
+  const [activeMenu, setActiveMenu] = useState(null);
+
+  // --- DATA FETCHING ---
+  useEffect(() => {
+    // If we have cached data, don't trigger initial fetch
+    if (initialCached) return;
 
     const fetchMusics = async () => {
       try {
@@ -49,18 +46,15 @@ const Music = () => {
         setMusics(newMusics);
         setPage(1);
         setHasMore(newMusics.length === MUSIC_PER_PAGE);
-        setCache(cacheKey, { musics: newMusics, page: 1 });
+        setCache("music_tracks_page_1", { musics: newMusics, page: 1 });
       } catch (error) {
-        console.error(
-          "Failed to fetch musics:",
-          error.response?.data?.error || error.message,
-        );
+        console.error("Fetch Error:", error.message);
       } finally {
         setLoading(false);
       }
     };
     fetchMusics();
-  }, [getFromCache, setCache]);
+  }, [getFromCache, setCache, initialCached]);
 
   const loadMoreMusic = useCallback(() => {
     const nextPage = page + 1;
@@ -88,7 +82,6 @@ const Music = () => {
       });
   }, [page, getFromCache, setCache]);
 
-  // Infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -106,9 +99,7 @@ const Music = () => {
     return () => observer.disconnect();
   }, [hasMore, loading, loadMoreMusic]);
 
-  // --- UI HANDLERS ---
   const handlePlay = (music) => {
-    // When a track is played, the entire current list of musics becomes the playlist
     playTrack(music, musics);
   };
 
@@ -116,58 +107,33 @@ const Music = () => {
     e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this track?")) return;
 
-    console.log("handleDelete invoked for musicId:", musicId);
     try {
       await axios.delete(`${API_URL}/api/music/${musicId}`);
-      console.log("delete request sent for:", musicId);
       setMusics((prev) => prev.filter((m) => m._id !== musicId));
-      setActiveMenu(null); // Close menu after delete
+      setActiveMenu(null);
     } catch (error) {
-      console.error("Delete music error (frontend):", error);
-      const message =
-        error.response?.status === 401
-          ? "You are not logged in."
-          : error.response?.status === 403
-            ? "You don't have permission to delete this track."
-            : error.response?.data?.error || "Failed to delete track.";
-      alert(message);
+      alert(error.response?.data?.error || "Failed to delete track.");
     }
   };
 
   const toggleMenu = (e, musicId) => {
-    e.stopPropagation(); // Prevent card's onClick from firing
+    e.stopPropagation();
     setActiveMenu(activeMenu === musicId ? null : musicId);
   };
 
-  // Close menu when clicking outside any music menu container
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // If the click happened inside a menu container, do nothing
       if (event.target.closest(".music-menu-container")) return;
       setActiveMenu(null);
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- RENDER ---
   if (loading) {
     return (
       <div className="min-h-screen bg-black pb-28">
-        <div className="mx-auto max-w-[1400px] px-3 sm:px-5 lg:px-6 pt-6 pb-4">
-          <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Explore{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
-                Music
-              </span>
-            </h1>
-            <p className="text-sm text-gray-500 mt-2">
-              Discover new tracks from trending artists
-            </p>
-          </div>
+        <div className="mx-auto max-w-[1400px] px-6 pt-12">
           <MusicSkeleton />
         </div>
       </div>
@@ -175,120 +141,132 @@ const Music = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-28">
-      <div className="mx-auto max-w-[1400px] px-3 sm:px-5 lg:px-6 pt-6 pb-4">
+    <div className="min-h-screen bg-black pb-32">
+      <div className="mx-auto max-w-[1400px] px-6 pt-12">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-            Explore{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
-              Music
-            </span>
-          </h1>
-          <p className="text-sm text-gray-500 mt-2">
-            Discover new tracks from trending artists
-          </p>
+        <div className="mb-12 border-b border-white/5 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black text-white italic tracking-tight">
+              Sonic
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
+                Universe
+              </span>
+            </h1>
+            <p className="text-sm font-medium text-neutral-500 uppercase tracking-widest">Discover pure audio expressions</p>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest">Library Size</p>
+              <p className="text-xl font-black text-white">{musics.length}+ <span className="text-xs text-neutral-700">Tracks</span></p>
+            </div>
+          </div>
         </div>
 
         {musics.length === 0 ? (
           <div className="flex min-h-[40vh] items-center justify-center">
-            <div className="text-center space-y-3">
-              <MusicIcon className="w-12 h-12 mx-auto text-gray-600" />
-              <p className="text-gray-400 font-semibold">No tracks yet</p>
-              <p className="text-xs text-gray-600">
-                Be the first to upload music
-              </p>
+            <div className="text-center space-y-4">
+               <div className="w-20 h-20 bg-neutral-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MusicIcon className="w-8 h-8 text-neutral-700" />
+              </div>
+              <p className="text-xl font-bold text-neutral-400">The floor is silent</p>
+              <p className="text-sm text-neutral-600 font-medium">Be the one to start the noise</p>
             </div>
           </div>
         ) : (
           /* Music Grid */
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xxl:grid-cols-5 gap-6">
             {musics.map((music) => (
               <div
                 key={music._id}
-                className={`group relative rounded-xl border p-3 sm:p-4 transition-all duration-300 hover:-translate-y-1 ${
+                className={`group relative rounded-[24px] border transition-all duration-500 overflow-hidden ${
                   currentTrack?._id === music._id
-                    ? "border-indigo-500/50 bg-white/[0.06]"
-                    : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06]"
+                    ? "border-indigo-500/30 bg-indigo-500/5"
+                    : "border-white/5 bg-neutral-900/40 hover:bg-neutral-900 hover:border-white/10"
                 }`}
               >
-                {/* Artwork */}
-                <div
-                  className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 mb-3 shadow-lg shadow-black/30 cursor-pointer"
+                {/* Artwork Area */}
+                <div 
+                  className="relative aspect-square m-3 rounded-[18px] overflow-hidden bg-neutral-800 cursor-pointer"
                   onClick={() => handlePlay(music)}
                 >
                   {music.thumbnailUrl || music.thumbnail ? (
                     <img
                       src={music.thumbnailUrl || music.thumbnail}
                       alt={music.title}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center">
-                      <MusicIcon className="w-10 h-10 text-gray-600" />
+                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
+                      <MusicIcon className="w-10 h-10 text-neutral-700" />
                     </div>
                   )}
 
-                  {/* Play overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {currentTrack?._id === music._id && isPlaying ? (
-                      <Pause className="w-8 h-8 text-white" fill="white" />
-                    ) : (
-                      <Play className="w-8 h-8 text-white" fill="white" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Info & Menu */}
-                <div className="flex items-start justify-between gap-2">
-                  <h3
-                    className="text-sm font-bold text-white truncate cursor-pointer flex-1"
-                    onClick={() => handlePlay(music)}
-                  >
-                    {music.title}
-                  </h3>
-
-                  {/* 3-dot menu */}
-                  {user && String(user._id) === String(music.artist?._id) && (
-                    <div className="relative flex-shrink-0 music-menu-container">
-                      <button
-                        onClick={(e) => toggleMenu(e, music._id)}
-                        className="p-1 text-gray-500 hover:text-white music-menu-btn"
-                        aria-label="Track options"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-
-                      {/* Dropdown */}
-                      {activeMenu === music._id && (
-                        <div className="absolute right-0 top-full mt-2 w-36 rounded-lg bg-gray-800 border border-white/10 shadow-xl z-10 music-menu-dropdown">
-                          <button
-                            onClick={(e) => handleDelete(e, music._id)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete</span>
-                          </button>
-                        </div>
+                  {/* Dynamic Play Overlay */}
+                  <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${currentTrack?._id === music._id ? "bg-indigo-500/20 backdrop-blur-[2px] opacity-100" : "bg-black/40 opacity-0 group-hover:opacity-100"}`}>
+                    <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 transform group-hover:scale-110 transition-transform shadow-xl">
+                      {currentTrack?._id === music._id && isPlaying ? (
+                        <Pause className="w-6 h-6 text-white fill-white" />
+                      ) : (
+                        <Play className="w-6 h-6 text-white fill-white ml-1" />
                       )}
                     </div>
+                  </div>
+                  
+                  {/* Now Playing Visualizer Indicator */}
+                  {currentTrack?._id === music._id && isPlaying && (
+                    <div className="absolute bottom-4 left-4 flex items-end gap-[2px] h-4">
+                      <div className="w-1 bg-white animate-[bounce_0.6s_infinite]" />
+                      <div className="w-1 bg-white animate-[bounce_0.8s_infinite]" />
+                      <div className="w-1 bg-white animate-[bounce_0.5s_infinite]" />
+                    </div>
                   )}
+                </div>
+
+                {/* Info Bar */}
+                <div className="px-5 pb-5 pt-2 space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-black text-white truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight">
+                        {music.title}
+                      </h3>
+                      <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5 truncate flex items-center gap-1">
+                        <Volume2 className="w-3 h-3" /> {music.artist?.username || "Electronic Mind"}
+                      </p>
+                    </div>
+
+                    {user && String(user._id) === String(music.artist?._id) && (
+                      <div className="relative music-menu-container">
+                        <button
+                          onClick={(e) => toggleMenu(e, music._id)}
+                          className="p-1 text-neutral-600 hover:text-white transition-colors"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        {activeMenu === music._id && (
+                          <div className="absolute right-0 bottom-full mb-2 w-36 rounded-xl bg-neutral-800 border border-white/10 shadow-2xl p-1.5 z-10">
+                            <button
+                              onClick={(e) => handleDelete(e, music._id)}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
 
-            {/* Infinite Scroll Loader */}
             {hasMore && (
               <div
                 ref={observerTarget}
-                className="py-8 flex justify-center col-span-full"
+                className="py-24 flex flex-col items-center gap-4 col-span-full"
               >
-                <div className="text-center space-y-2">
-                  <Disc className="w-8 h-8 text-indigo-500 mx-auto spinner-ring" />
-                  <p className="text-xs text-gray-500">
-                    Loading more tracks...
-                  </p>
-                </div>
+                <Disc className="w-12 h-12 text-neutral-800 animate-spin" />
+                <p className="text-[10px] text-neutral-600 font-black uppercase tracking-[0.4em]">Expanding Soundscape</p>
               </div>
             )}
           </div>

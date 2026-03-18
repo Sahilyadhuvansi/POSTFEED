@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../config";
+import { Image, Type, Lock, Unlock, ArrowRight, X, Sparkles } from "lucide-react";
 
 const CreatePost = () => {
   const [image, setImage] = useState(null);
@@ -13,28 +14,17 @@ const CreatePost = () => {
   const navigate = useNavigate();
 
   const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-
-  const formatSize = (bytes) => {
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-  };
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       if (!ALLOWED_IMAGE.includes(file.type)) {
-        setError(
-          `Unsupported image format (${file.type || "unknown"}). Please use JPG, PNG, WEBP, or GIF.`,
-        );
-        e.target.value = "";
+        setError("Unsupported format. Use JPG, PNG, WEBP, or GIF.");
         return;
       }
       if (file.size > MAX_IMAGE_SIZE) {
-        setError(
-          `Image is too large (${formatSize(file.size)}). Maximum size is 5MB.`,
-        );
-        e.target.value = "";
+        setError("Image too large. Max 5MB.");
         return;
       }
       setImage(file);
@@ -45,19 +35,14 @@ const CreatePost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
     if (!image && !caption.trim()) {
-      setError("Please add a caption or an image.");
+      setError("Add a caption or an image.");
       return;
     }
-
     setLoading(true);
 
     const formData = new FormData();
-    if (image) {
-      formData.append("image", image);
-    }
+    if (image) formData.append("image", image);
     formData.append("caption", caption);
     formData.append("isSecret", isSecret);
 
@@ -65,230 +50,115 @@ const CreatePost = () => {
       await axios.post(`${API_URL}/api/posts/create`, formData);
       navigate("/");
     } catch (err) {
-      let message = "Error creating post. Please try again.";
-
-      if (err.response?.status === 401) {
-        message = "You are not logged in. Please log in and try again.";
-      } else if (err.response?.status === 413) {
-        message =
-          "Image is too large for the server. Please use an image under 4.5MB.";
-      } else if (err.response?.data?.error) {
-        message = err.response.data.error;
-      } else if (err.response?.data?.message) {
-        message = err.response.data.message;
-      } else if (err.message?.includes("Network Error")) {
-        message =
-          "Network error. Check your internet connection and try again.";
-      }
-
-      setError(message);
+      setError(err.response?.data?.error || "Sharing failed.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-black px-4 py-12 sm:px-6">
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-600/20 rounded-full blur-3xl animate-pulse"></div>
+    <div className="relative flex min-h-screen items-center justify-center bg-black px-6 py-20">
+      {/* Background Ambience */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-pink-600/10 rounded-full blur-[120px] animate-pulse delay-1000" />
       </div>
 
-      <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-gray-950/80 backdrop-blur-xl p-8 sm:p-10 shadow-2xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            Share Your Story
+      <div className="relative w-full max-w-2xl bg-neutral-900/40 backdrop-blur-3xl border border-white/5 rounded-[40px] p-8 md:p-12 shadow-2xl">
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-2">
+            <Sparkles className="w-5 h-5 text-indigo-400" />
+            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-neutral-500">New Expression</h2>
+          </div>
+          <h1 className="text-4xl font-black text-white italic tracking-tight">
+            Share Your 
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400"> Universe</span>
           </h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Create a post and share it with the world
-          </p>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="p-4 rounded-lg border border-red-500/50 bg-red-500/10 text-red-400 text-sm font-medium flex items-start gap-3">
-            <svg
-              className="w-5 h-5 flex-shrink-0 mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              ></path>
-            </svg>
-            {error}
+          <div className="mb-8 p-4 rounded-2xl bg-red-400/10 border border-red-400/20 text-red-400 text-sm font-bold flex items-center gap-3">
+             <X className="w-4 h-4" /> {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Image Upload */}
-          <div className="space-y-3">
-            <label
-              htmlFor="post-image"
-              className="text-xs font-bold uppercase tracking-widest text-gray-500 block"
-            >
-              📸 Upload Image{" "}
-              <span className="text-gray-600 normal-case font-normal">
-                (optional)
-              </span>
-            </label>
-            <div className="group relative">
+        <form onSubmit={handleSubmit} className="space-y-10">
+          {/* Media Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 flex items-center gap-2">
+                <Image className="w-3 h-3" /> Captured Media
+              </label>
+              <span className="text-[10px] font-bold text-neutral-700 uppercase">Optional</span>
+            </div>
+            
+            <div className="relative group">
               {imagePreview ? (
-                <div className="relative w-full rounded-xl overflow-hidden border border-white/15 bg-black">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-auto max-h-96 object-contain"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImage(null);
-                      setImagePreview(null);
-                    }}
-                    className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-white hover:text-black transition"
-                    aria-label="Remove image"
+                <div className="relative rounded-[32px] overflow-hidden border border-white/10 bg-black aspect-video flex items-center justify-center">
+                  <img src={imagePreview} alt="" className="max-h-full max-w-full object-contain" />
+                  <button 
+                    type="button" 
+                    onClick={() => { setImage(null); setImagePreview(null); }}
+                    className="absolute top-6 right-6 p-3 bg-white text-black rounded-full hover:bg-neutral-200 transition-colors shadow-2xl"
                   >
-                    <svg
-                      className="w-6 h-6"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      ></path>
-                    </svg>
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               ) : (
-                <label
-                  htmlFor="post-image"
-                  className="flex flex-col items-center justify-center w-full h-56 rounded-xl border-2 border-dashed border-white/15 hover:border-indigo-500/50 bg-white/[0.02] hover:bg-indigo-500/5 cursor-pointer transition-all"
-                >
-                  <div className="flex flex-col items-center justify-center space-y-4">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-10 w-10"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
-                    <div className="text-center">
-                      <span className="text-sm font-bold text-gray-300">
-                        Click to upload or drag and drop
-                      </span>
-                      <p className="text-xs text-gray-500 mt-1">
-                        PNG, JPG, GIF up to 5MB
-                      </p>
-                    </div>
-                    <input
-                      id="post-image"
-                      name="image"
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
+                <label className="flex flex-col items-center justify-center w-full aspect-video rounded-[32px] border-2 border-dashed border-white/5 bg-neutral-900/40 hover:bg-neutral-900/60 hover:border-indigo-500/30 cursor-pointer transition-all group">
+                  <div className="w-16 h-16 rounded-3xl bg-neutral-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Image className="w-6 h-6 text-neutral-500 group-hover:text-indigo-400 transition-colors" />
                   </div>
+                  <p className="text-sm font-black text-neutral-400 uppercase tracking-widest">Select Visual</p>
+                  <p className="text-[10px] text-neutral-600 font-bold mt-1 uppercase">PNG, JPG — MAX 5MB</p>
+                  <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                 </label>
               )}
             </div>
           </div>
 
-          {/* Caption */}
-          <div className="space-y-3">
-            <label
-              htmlFor="post-caption"
-              className="text-xs font-bold uppercase tracking-widest text-gray-500 block"
-            >
-              ✍️ Caption
+          {/* Context Section */}
+          <div className="space-y-4">
+             <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 flex items-center gap-2 px-2">
+              <Type className="w-3 h-3" /> Narrative context
             </label>
             <textarea
-              id="post-caption"
-              name="caption"
-              placeholder="What's on your mind? Share your thoughts..."
+              placeholder="Deep thoughts, simple moments, or silent whispers..."
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              maxLength={500}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 h-32 resize-none"
+              className="w-full h-32 bg-neutral-900/60 border border-white/5 rounded-[24px] px-6 py-5 text-sm font-medium text-white placeholder-neutral-700 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none"
             />
-            <div className="flex justify-end">
-              <span className="text-xs text-gray-500">
-                {caption.length}/500
-              </span>
-            </div>
           </div>
 
-          {/* Secret Post Toggle */}
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-            <div className="flex items-center justify-between">
+          {/* Security & Action */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-6 border-t border-white/5">
+            <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🤫</span>
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-200">
-                    Post as Secret
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Your identity stays anonymous
-                  </span>
+                <div className={`p-3 rounded-2xl transition-colors ${isSecret ? "bg-pink-500/20 text-pink-500" : "bg-neutral-800 text-neutral-500"}`}>
+                  {isSecret ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white">Ghost Mode</p>
+                  <p className="text-[10px] font-bold text-neutral-600 uppercase">Hide Identity</p>
                 </div>
               </div>
-              <label
-                htmlFor="post-secret"
-                className="relative inline-flex cursor-pointer items-center"
+              <button 
+                type="button"
+                onClick={() => setIsSecret(!isSecret)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${isSecret ? "bg-pink-500" : "bg-neutral-800"}`}
               >
-                <input
-                  id="post-secret"
-                  name="isSecret"
-                  type="checkbox"
-                  className="peer sr-only"
-                  checked={isSecret}
-                  onChange={(e) => setIsSecret(e.target.checked)}
-                />
-                <div className="peer relative h-7 w-14 rounded-full bg-gray-700 after:absolute after:top-[3px] after:left-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-gradient-to-r peer-checked:from-indigo-600 peer-checked:to-pink-600 peer-checked:after:translate-x-7 peer-focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-black"></div>
-              </label>
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${isSecret ? "translate-x-7" : "translate-x-1"}`} />
+              </button>
             </div>
-          </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading || (!image && !caption.trim())}
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed mt-4"
-          >
-            {loading ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
-                <span>Sharing your post...</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"></path>
-                </svg>
-                Share Post
-              </div>
-            )}
-          </button>
+            <button
+              type="submit"
+              disabled={loading || (!image && !caption.trim())}
+              className="w-full md:w-auto px-10 py-5 bg-white text-black rounded-full text-sm font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shadow-xl shadow-white/5"
+            >
+              {loading ? "Transmitting..." : "Broadcast"} <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
-import { Music, Upload } from "lucide-react";
+import { Music, Upload, Plus, User, LogOut, LayoutGrid, Menu, X } from "lucide-react";
 import { DEFAULT_AVATAR } from "../config";
 
 const Header = () => {
@@ -9,6 +9,15 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -17,22 +26,23 @@ const Header = () => {
 
   const isActive = (path) =>
     location.pathname === path
-      ? "text-white"
-      : "text-gray-400 hover:text-white";
-
-  const activeDot = (path) =>
-    location.pathname === path
-      ? "absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-gradient-to-r from-indigo-400 to-pink-400"
-      : "hidden";
+      ? "text-white bg-white/5"
+      : "text-neutral-400 hover:text-white hover:bg-white/5";
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between px-4 sm:px-6">
-        {/* ── Logo ── */}
-        <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-pink-500">
+    <nav 
+      className={`sticky top-0 z-50 transition-all duration-300 border-b ${
+        scrolled 
+          ? "bg-black/80 backdrop-blur-xl border-neutral-800 py-2" 
+          : "bg-transparent border-transparent py-4"
+      }`}
+    >
+      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3 transition-transform hover:scale-[1.02]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-indigo-500/20">
             <svg
-              className="h-4 w-4 text-white"
+              className="h-5 w-5 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -45,331 +55,115 @@ const Header = () => {
               />
             </svg>
           </div>
-          <span className="text-base font-extrabold tracking-tight text-white">
-            POST
+          <span className="text-xl font-black tracking-tight text-white uppercase italic">
+            Post
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
-              FEED
+              Feed
             </span>
           </span>
         </Link>
 
-        {/* ── Center Nav (desktop) ── */}
-        <div className="hidden sm:flex items-center gap-1">
-          <Link
-            to="/"
-            className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/")}`}
-          >
-            <svg
-              className="w-[18px] h-[18px]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"
-              />
-            </svg>
-            Feed
-            <span className={activeDot("/")} />
-          </Link>
-
-          <Link
-            to="/music"
-            className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/music")}`}
-          >
-            <Music className="w-[18px] h-[18px]" />
-            Music
-            <span className={activeDot("/music")} />
-          </Link>
-
-          {user && (
-            <>
-              <Link
-                to="/create-post"
-                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/create-post")}`}
-              >
-                <svg
-                  className="w-[18px] h-[18px]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Create
-                <span className={activeDot("/create-post")} />
-              </Link>
-
-              <Link
-                to="/upload"
-                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/upload")}`}
-              >
-                <Upload className="w-[18px] h-[18px]" />
-                Upload
-                <span className={activeDot("/upload")} />
-              </Link>
-
-              <Link
-                to="/profile"
-                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/profile")}`}
-              >
-                <svg
-                  className="w-[18px] h-[18px]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                Profile
-                <span className={activeDot("/profile")} />
-              </Link>
-            </>
-          )}
-        </div>
-
-        {/* ── Right Section (desktop) ── */}
-        <div className="hidden sm:flex items-center gap-3">
-          {user ? (
-            <>
-              {/* Avatar */}
-              <Link to="/profile" className="group flex items-center gap-2">
-                <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 p-[1.5px]">
-                  <img
-                    src={user.profilePic || DEFAULT_AVATAR}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = DEFAULT_AVATAR;
-                    }}
-                    alt={user.username}
-                    className="h-full w-full rounded-full object-cover bg-black"
-                  />
-                </div>
-                <span className="text-xs font-semibold text-gray-300 group-hover:text-white transition-colors hidden lg:block">
-                  {user.username}
-                </span>
-              </Link>
-
-              {/* Logout */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:border-white/20 hover:bg-white/[0.06] transition-all"
-              >
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
-                  />
-                </svg>
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-300 hover:text-white transition-colors"
-              >
-                Log in
-              </Link>
-              <Link
-                to="/register"
-                className="rounded-lg bg-gradient-to-r from-indigo-500 to-pink-500 px-4 py-1.5 text-sm font-bold text-white hover:opacity-90 transition-opacity"
-              >
-                Sign up
-              </Link>
-            </>
-          )}
-        </div>
-
-        {/* ── Mobile hamburger ── */}
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="sm:hidden flex items-center justify-center h-9 w-9 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition"
-          aria-label="Menu"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth="2"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d={
-                mobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"
-              }
-            />
-          </svg>
-        </button>
-      </div>
-
-      {/* ── Mobile Dropdown ── */}
-      <div
-        className={`sm:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          mobileOpen ? "max-h-80 border-t border-white/[0.06]" : "max-h-0"
-        }`}
-      >
-        <div className="px-4 py-3 space-y-1 bg-black/95 backdrop-blur-xl">
-          <Link
-            to="/"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"
-              />
-            </svg>
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-1">
+          <Link to="/" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${isActive("/")}`}>
+            <LayoutGrid className="w-4 h-4" />
             Feed
           </Link>
-
-          <Link
-            to="/music"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
-          >
+          <Link to="/music" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${isActive("/music")}`}>
             <Music className="w-4 h-4" />
             Music
           </Link>
-
-          {user ? (
+          {user && (
             <>
-              <Link
-                to="/create-post"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Create Post
+              <Link to="/create-post" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${isActive("/create-post")}`}>
+                <Plus className="w-4 h-4" />
+                Create
               </Link>
-
-              <Link
-                to="/upload"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
-              >
+              <Link to="/upload" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${isActive("/upload")}`}>
                 <Upload className="w-4 h-4" />
-                Upload Music
+                Upload
               </Link>
-
-              <Link
-                to="/profile"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                Profile
-              </Link>
-              <div className="pt-1 border-t border-white/[0.06]">
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileOpen(false);
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
-                    />
-                  </svg>
-                  Logout
-                </button>
-              </div>
             </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.06] transition"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
+          )}
+        </div>
+
+        {/* Right Actions */}
+        <div className="flex items-center gap-4">
+          {user ? (
+            <div className="flex items-center gap-6">
+              <Link to="/profile" className="flex items-center gap-3 p-1 pl-3 rounded-full border border-neutral-800 bg-neutral-900/50 hover:bg-neutral-800 transition-colors">
+                <span className="hidden lg:block text-xs font-bold text-neutral-300">
+                  {user.username}
+                </span>
+                <div className="h-8 w-8 rounded-full border-2 border-indigo-500/50 p-0.5 shadow-md">
+                  <img
+                    src={user.profilePic || DEFAULT_AVATAR}
+                    alt={user.username}
+                    className="h-full w-full rounded-full object-cover bg-neutral-900"
                   />
-                </svg>
+                </div>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="p-2.5 rounded-full text-neutral-400 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-3">
+              <Link to="/login" className="px-5 py-2 text-sm font-bold text-neutral-400 hover:text-white transition-colors">
                 Log in
               </Link>
-              <Link
-                to="/register"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center rounded-lg bg-gradient-to-r from-indigo-500 to-pink-500 px-3 py-2.5 text-sm font-bold text-white hover:opacity-90 transition"
-              >
+              <Link to="/register" className="px-6 py-2.5 rounded-full bg-white text-black text-sm font-black hover:bg-neutral-200 transition-colors">
                 Sign up free
               </Link>
+            </div>
+          )}
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+          >
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      <div className={`md:hidden absolute top-full left-0 right-0 bg-black/95 backdrop-blur-2xl border-b border-neutral-800 transition-all duration-300 ${mobileOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"}`}>
+        <div className="p-6 space-y-4">
+          <Link to="/" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-4 rounded-2xl text-lg font-bold ${isActive("/")}`}>
+            <LayoutGrid className="w-5 h-5" /> Feed
+          </Link>
+          <Link to="/music" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-4 rounded-2xl text-lg font-bold ${isActive("/music")}`}>
+            <Music className="w-5 h-5" /> Music
+          </Link>
+          {user ? (
+            <>
+              <Link to="/create-post" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-4 rounded-2xl text-lg font-bold ${isActive("/create-post")}`}>
+                <Plus className="w-5 h-5" /> Create Post
+              </Link>
+              <Link to="/upload" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-4 rounded-2xl text-lg font-bold ${isActive("/upload")}`}>
+                <Upload className="w-5 h-5" /> Upload Music
+              </Link>
+              <Link to="/profile" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-4 rounded-2xl text-lg font-bold ${isActive("/profile")}`}>
+                <User className="w-5 h-5" /> Profile
+              </Link>
+              <button 
+                onClick={() => { logout(); navigate("/login"); }}
+                className="flex items-center gap-4 p-4 w-full rounded-2xl text-lg font-bold text-red-400 bg-red-400/10"
+              >
+                <LogOut className="w-5 h-5" /> Logout
+              </button>
             </>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 pt-4">
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="py-4 text-center text-lg font-bold text-neutral-400">Log in</Link>
+              <Link to="/register" onClick={() => setMobileOpen(false)} className="py-4 text-center text-lg font-bold bg-white text-black rounded-2xl">Sign up</Link>
+            </div>
           )}
         </div>
       </div>

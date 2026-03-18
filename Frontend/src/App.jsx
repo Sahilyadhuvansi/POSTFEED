@@ -60,7 +60,7 @@ const App = () => {
         <MusicProvider>
           <Router>
             <Header />
-            <main>
+            <main className="min-h-[80vh] selection:bg-indigo-500/30">
               <AppRouter />
             </main>
             <Footer />
