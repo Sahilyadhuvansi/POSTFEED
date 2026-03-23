@@ -115,59 +115,6 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// ─── Temporary Cleanup Endpoint ───────────────────────────────────────────────
-app.get("/api/cleanup-tests", async (req, res) => {
-  try {
-    const db = mongoose.connection.db;
-    const usersCollection = db.collection("users");
-    const postsCollection = db.collection("posts");
-    
-    // Determine the exact name of the music collection
-    const collections = await db.listCollections().toArray();
-    let musicsCollection = db.collection("musics");
-    if (collections.some(c => c.name === "music") && !collections.some(c => c.name === "musics")) {
-      musicsCollection = db.collection("music");
-    }
-
-    // 1. Delete users with "test" in username
-    const testUsersCursor = await usersCollection.find({ username: /test/i });
-    const testUsers = await testUsersCursor.toArray();
-    const userIds = testUsers.map(u => u._id);
-
-    let deletedPosts = 0;
-    let deletedMusic = 0;
-    let deletedUsers = 0;
-
-    if (userIds.length > 0) {
-      const pRes = await postsCollection.deleteMany({ author: { $in: userIds } });
-      deletedPosts += pRes.deletedCount;
-      const mRes = await musicsCollection.deleteMany({ uploader: { $in: userIds } });
-      deletedMusic += mRes.deletedCount;
-      const uRes = await usersCollection.deleteMany({ _id: { $in: userIds } });
-      deletedUsers += uRes.deletedCount;
-    }
-
-    // 2. Fallbacks
-    const fallbackPRes = await postsCollection.deleteMany({ caption: /Testing post upload/i });
-    deletedPosts += fallbackPRes.deletedCount;
-    
-    const fallbackMRes = await musicsCollection.deleteMany({ title: /test/i });
-    deletedMusic += fallbackMRes.deletedCount;
-
-    res.json({
-      success: true,
-      message: "Cleanup complete.",
-      deleted: {
-        users: deletedUsers,
-        posts: deletedPosts,
-        music: deletedMusic
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/posts", apiLimiter, postRoutes);
 app.use("/api/users", apiLimiter, userRoutes);
