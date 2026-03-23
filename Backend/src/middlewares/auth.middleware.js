@@ -1,12 +1,16 @@
 const jwt = require("jsonwebtoken");
 
-const authMiddleware = async (req, res, next) => {
-  const token = req.cookies.token;
+/**
+ * authMiddleware — verifies JWT from httpOnly cookie OR Authorization header.
+ * Attaches decoded user payload to req.user.
+ */
+const authMiddleware = (req, res, next) => {
+  const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({
       success: false,
-      error: "You are not logged in. Please log in and try again.",
+      error: "Authentication required. Please log in.",
     });
   }
 
@@ -15,10 +19,11 @@ const authMiddleware = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({
-      success: false,
-      error: "Your session has expired. Please log in again.",
-    });
+    const message =
+      err.name === "TokenExpiredError"
+        ? "Your session has expired. Please log in again."
+        : "Invalid token. Please log in again.";
+    return res.status(401).json({ success: false, error: message });
   }
 };
 

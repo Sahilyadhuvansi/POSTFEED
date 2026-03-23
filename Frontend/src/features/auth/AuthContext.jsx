@@ -1,98 +1,110 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 import axios from "axios";
 import { API_URL as BASE_URL } from "../../config";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-const API_URL = `${BASE_URL}/api/auth`;
+const API = axios.create({
+  baseURL: `${BASE_URL}/api/auth`,
+  withCredentials: true,
+  timeout: 15000,
+});
+
+// Attach stored token to every request
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+const parseStoredUser = () => {
+  try {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    localStorage.removeItem("user");
+    return null;
+  }
+};
+
+const persistUser = (userData, token) => {
+  localStorage.setItem("user", JSON.stringify(userData));
+  if (token) localStorage.setItem("token", token);
+};
+
+const clearStorage = () => {
+  localStorage.removeItem("user");
+  localStorage.removeItem("token");
+};
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-  const [loading] = useState(false);
+  const [user, setUser] = useState(parseStoredUser);
+  const [loading, setLoading] = useState(false);
 
-  const login = async (credentials) => {
+  const login = useCallback(async (credentials) => {
+    setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/login`, credentials);
-      const userData = response.data.user;
+      const res = await API.post("/login", credentials);
+      const userData = res.data.user;
       setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
+      persistUser(userData, res.data.token);
       return { success: true, user: userData };
-    } catch (error) {
-      let message = "Login failed. Please try again.";
-
-      if (error.response?.status === 401) {
-        message = error.response.data?.error || "Invalid email or password.";
-      } else if (error.response?.status === 400) {
-        message = error.response.data?.error || "Please fill in all fields.";
-      } else if (error.response?.data?.error) {
-        message = error.response.data.error;
-      } else if (error.message?.includes("Network Error")) {
-        message =
-          "Cannot reach the server. Please check your internet connection.";
-      }
-
-      return { success: false, message };
+    } catch (err) {
+      return { success: false, message: extractErrorMessage(err, "Login failed. Please try again.") };
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const register = async (formData) => {
+  const register = useCallback(async (formData) => {
+    setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/register`, formData);
-      const userData = response.data.user;
+      const res = await API.post("/register", formData);
+      const userData = res.data.user;
       setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
+      persistUser(userData, res.data.token);
       return { success: true, user: userData };
-    } catch (error) {
-      let message = "Registration failed. Please try again.";
-
-      if (error.response?.status === 409) {
-        message =
-          error.response.data?.error ||
-          "An account with this email or username already exists.";
-      } else if (error.response?.status === 400) {
-        message =
-          error.response.data?.error ||
-          "Please check your input and try again.";
-      } else if (error.response?.status === 413) {
-        message =
-          "Profile picture is too large. Please use an image under 4.5MB.";
-      } else if (error.response?.data?.error) {
-        message = error.response.data.error;
-      } else if (error.message?.includes("Network Error")) {
-        message =
-          "Cannot reach the server. Please check your internet connection.";
-      }
-
-      return { success: false, message };
+    } catch (err) {
+      return { success: false, message: extractErrorMessage(err, "Registration failed. Please try again.") };
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
-      await axios.post(`${API_URL}/logout`);
-    } catch (error) {
-      console.error("Logout API failed", error);
+      await API.post("/logout");
+    } catch (err) {
+      console.error("Logout error:", err.message);
+    } finally {
+      setUser(null);
+      clearStorage();
     }
-    setUser(null);
-    localStorage.removeItem("user");
-  };
+  }, []);
 
-  const updateUser = (userData) => {
+  const updateUser = useCallback((userData) => {
     setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
-  };
+    persistUser(userData, localStorage.getItem("token"));
+  }, []);
 
   return (
-    <AuthContext.Provider
-      value={{ user, login, register, logout, updateUser, loading }}
-    >
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
+};
+
+// ─── Error Message Extractor ──────────────────────────────────────────────────
+function extractErrorMessage(err, fallback) {
+  if (err.response?.data?.error) return err.response.data.error;
+  if (err.message?.includes("Network Error")) return "Cannot reach server. Check your internet connection.";
+  if (err.code === "ECONNABORTED") return "Request timed out. Please try again.";
+  return fallback;
+}
