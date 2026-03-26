@@ -10,6 +10,7 @@ import Register from "./features/auth/Register";
 import Profile from "./features/users/Profile";
 import Music from "./features/music/Music";
 import Upload from "./features/music/Upload";
+import Recommendations from "./features/ai/Recommendations";
 
 // Components
 import Header from "./components/Header";
@@ -23,6 +24,7 @@ const AppRouter = () => {
     <Routes>
       <Route path="/" element={<Feed />} />
       <Route path="/music" element={<Music />} />
+      <Route path="/ai-picks" element={<Recommendations />} />
       <Route
         path="/create-post"
         element={

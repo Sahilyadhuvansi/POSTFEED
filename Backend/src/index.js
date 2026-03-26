@@ -13,6 +13,7 @@ const authRoutes = require("./features/auth/auth.routes");
 const postRoutes = require("./features/post/post.routes");
 const userRoutes = require("./features/user/user.routes");
 const musicRoutes = require("./features/music/music.routes");
+const aiRoutes = require("./features/ai/ai.routes");
 
 // ─── Env Validation ───────────────────────────────────────────────────────────
 const REQUIRED_ENV = ["JWT_SECRET", "MONGO_URI"];
@@ -119,6 +120,7 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/posts", apiLimiter, postRoutes);
 app.use("/api/users", apiLimiter, userRoutes);
 app.use("/api/music", apiLimiter, musicRoutes);
+app.use("/api/ai", apiLimiter, aiRoutes);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {

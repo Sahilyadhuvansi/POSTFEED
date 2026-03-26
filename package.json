@@ -1,6 +1,17 @@
 {
-  "dependencies": {
-    "puppeteer": "^24.37.5",
-    "puppeteer-core": "^24.37.5"
+  "name": "postmusic-ai-enhanced",
+  "version": "1.0.0",
+  "description": "Professional Full-Stack AI Social Music Platform",
+  "engines": {
+    "node": ">=18.x"
+  },
+  "private": true,
+  "scripts": {
+    "backend": "cd Backend && npm run dev",
+    "frontend": "cd Frontend && npm run dev",
+    "install-all": "cd Backend && npm install && cd ../Frontend && npm install",
+    "build": "cd Frontend && npm run build",
+    "lint": "cd Frontend && npm run lint",
+    "health-check": "curl http://localhost:3001/health"
   }
 }

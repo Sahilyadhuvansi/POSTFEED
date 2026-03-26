@@ -15,7 +15,7 @@ const createPost = async (req, res) => {
 
     let imageUrl;
     if (req.file) {
-      const result = await storageService.uploadFromBuffer(req.file.buffer);
+      const result = await storageService.uploadFromBuffer(req.file.buffer, req.file.originalname, "postfeed/images");
       imageUrl = result.url;
     }
 
@@ -29,11 +29,17 @@ const createPost = async (req, res) => {
     return res.status(201).json({ success: true, message: "Post created successfully.", post });
   } catch (err) {
     console.error("Create Post Error:", err.message);
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ success: false, error: "File too large. Maximum allowed size is 10MB." });
+    }
     if (err.name === "ValidationError") {
       return res.status(400).json({ success: false, error: Object.values(err.errors).map((e) => e.message).join(". ") });
     }
     if (err.message?.includes("upload") || err.message?.includes("ImageKit")) {
       return res.status(500).json({ success: false, error: "Image upload failed. Try a smaller file or different format." });
+    }
+    if (err.message?.includes("Only JPG") || err.message?.includes("allowed")) {
+      return res.status(400).json({ success: false, error: err.message });
     }
     return res.status(500).json({ success: false, error: "Failed to create post. Please try again." });
   }

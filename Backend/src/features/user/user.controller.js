@@ -50,7 +50,7 @@ const updateProfile = async (req, res) => {
     if (bio !== undefined) updateData.bio = bio;
 
     if (req.file) {
-      const result = await storageService.uploadFromBuffer(req.file.buffer);
+      const result = await storageService.uploadFromBuffer(req.file.buffer, req.file.originalname, "postfeed/avatars");
       updateData.profilePic = result.url;
     }
 
@@ -74,7 +74,23 @@ const updateProfile = async (req, res) => {
 // ─── Delete Account ───────────────────────────────────────────────────────────
 const deleteAccount = async (req, res) => {
   try {
-    // Clean up all user data concurrently
+    // Fetch all user content to collect storage file IDs
+    const [posts, tracks, userRecord] = await Promise.all([
+      postModel.find({ user: req.user.id }).select("imageFileId"),
+      musicModel.find({ artist: req.user.id }).select("audioFileId thumbnailFileId"),
+      userModel.findById(req.user.id).select("profilePicFileId"),
+    ]);
+
+    // Delete all storage files concurrently (best-effort — don't fail if missing)
+    const fileIds = [
+      ...posts.map((p) => p.imageFileId).filter(Boolean),
+      ...tracks.flatMap((t) => [t.audioFileId, t.thumbnailFileId]).filter(Boolean),
+      userRecord?.profilePicFileId,
+    ].filter(Boolean);
+
+    await Promise.allSettled(fileIds.map((id) => storageService.deleteFile(id)));
+
+    // Clean up all DB records concurrently
     await Promise.all([
       postModel.deleteMany({ user: req.user.id }),
       musicModel.deleteMany({ artist: req.user.id }),

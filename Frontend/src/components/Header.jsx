@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
-import { Music, Upload, Plus, User, LogOut, LayoutGrid, Menu, X } from "lucide-react";
+import { Music, Upload, Plus, User, LogOut, LayoutGrid, Menu, X, Sparkles } from "lucide-react";
 import { DEFAULT_AVATAR } from "../config";
 
 const Header = () => {
@@ -73,6 +73,10 @@ const Header = () => {
             <Music className="w-4 h-4" />
             Music
           </Link>
+          <Link to="/ai-picks" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${isActive("/ai-picks")}`}>
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            AI Picks
+          </Link>
           {user && (
             <>
               <Link to="/create-post" className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${isActive("/create-post")}`}>
@@ -140,6 +144,9 @@ const Header = () => {
           </Link>
           <Link to="/music" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-4 rounded-2xl text-lg font-bold ${isActive("/music")}`}>
             <Music className="w-5 h-5" /> Music
+          </Link>
+          <Link to="/ai-picks" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-4 rounded-2xl text-lg font-bold ${isActive("/ai-picks")}`}>
+            <Sparkles className="w-5 h-5 text-purple-400" /> AI Picks
           </Link>
           {user ? (
             <>

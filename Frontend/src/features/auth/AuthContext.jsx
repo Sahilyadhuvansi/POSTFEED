@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import { API_URL as BASE_URL } from "../../config";
 
@@ -39,7 +39,28 @@ const clearStorage = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(parseStoredUser);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // start true — block routes until rehydration
+
+  // ── Rehydrate from server on app load ──────────────────────────────────────
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    API.get("/me")
+      .then((res) => {
+        const userData = res.data.user;
+        setUser(userData);
+        persistUser(userData, token); // refresh stale localStorage
+      })
+      .catch(() => {
+        // Token invalid or expired — clear everything
+        setUser(null);
+        clearStorage();
+      })
+      .finally(() => setLoading(false));
+  }, []); // run once on mount
 
   const login = useCallback(async (credentials) => {
     setLoading(true);

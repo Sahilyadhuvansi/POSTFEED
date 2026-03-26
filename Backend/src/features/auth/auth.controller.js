@@ -2,6 +2,7 @@ const userModel = require("../user/user.model");
 const jwt = require("jsonwebtoken");
 const { serializeUser } = require("../../utils/userSerializer");
 
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -118,4 +119,16 @@ const logout = (_req, res) => {
   return res.status(200).json({ success: true, message: "Logged out successfully." });
 };
 
-module.exports = { register, login, logout };
+// ─── Get Authenticated User (for session rehydration) ────────────────────────
+const getMe = async (req, res) => {
+  try {
+    const user = await userModel.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, error: "User not found." });
+    return res.status(200).json({ success: true, user: serializeUser(user) });
+  } catch (err) {
+    console.error("GetMe Error:", err.message);
+    return res.status(500).json({ success: false, error: "Failed to load user." });
+  }
+};
+
+module.exports = { register, login, logout, getMe };

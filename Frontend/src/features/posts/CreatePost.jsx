@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../config";
 import { Image, Type, Lock, Unlock, ArrowRight, X, Sparkles } from "lucide-react";
+import CaptionGenerator from "../ai/CaptionGenerator";
 
 const CreatePost = () => {
   const [image, setImage] = useState(null);
@@ -11,6 +12,7 @@ const CreatePost = () => {
   const [isSecret, setIsSecret] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
   const navigate = useNavigate();
 
   const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -119,9 +121,30 @@ const CreatePost = () => {
 
           {/* Context Section */}
           <div className="space-y-4">
-             <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 flex items-center gap-2 px-2">
-              <Type className="w-3 h-3" /> Narrative context
-            </label>
+             <div className="flex items-center justify-between px-2">
+               <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 flex items-center gap-2">
+                 <Type className="w-3 h-3" /> Narrative context
+               </label>
+               <button 
+                 type="button" 
+                 onClick={() => setShowAIGenerator(!showAIGenerator)}
+                 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 flex items-center gap-1"
+               >
+                 <Sparkles className="w-3 h-3" /> AI Generate
+               </button>
+             </div>
+             
+             {showAIGenerator && (
+               <div className="mb-4">
+                 <CaptionGenerator 
+                   onCaptionGenerated={(cap, tags) => {
+                     setCaption(cap + "\n\n" + tags.map(t => `#${t}`).join(" "));
+                     setShowAIGenerator(false);
+                   }} 
+                 />
+               </div>
+             )}
+
             <textarea
               placeholder="Deep thoughts, simple moments, or silent whispers..."
               value={caption}
