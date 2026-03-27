@@ -8,10 +8,6 @@ const aiConfig = require("../common/config/ai.config");
  * Provides personalized music recommendations using collaborative and content-based filtering
  */
 class MusicRecommendationService {
-  // ─── Commit: Cache and In-Memory Storage ───
-  // What this does: Reduces API calls by keeping the latest recommendations in memory.
-  // Why it exists: Groq/OpenAI calls take time and resources. 
-  // Interview insight: Caching improves "Scalability" by reducing the load on external services.
   constructor() {
     this.cache = new Map();
     this.cacheTTL = aiConfig.cache.ttl.recommendations * 1000;
@@ -20,11 +16,6 @@ class MusicRecommendationService {
   /**
    * Get personalized recommendations for a user
    */
-  // ─── Commit: Core Recommendation Logic ───
-  // How it works: 
-  // 1. Scans user history for genre/mood preferences.
-  // 2. Scores every track based on popularity (plays/likes) and preference match.
-  // 3. Passes top results to AI for a "personalized explanation".
   async getRecommendations(userId, options = {}) {
     // ─── Step 1: Cache Check ───
     const { limit = 10, mood = null, similarTo = null } = options;
@@ -80,7 +71,6 @@ class MusicRecommendationService {
   /**
    * Add AI-generated explanations using chat completion
    */
-  // ─── Commit: AI-Personalized Reasons ───
   async _addAIExplanations(recommendations, userHistory) {
     if (recommendations.length === 0) return recommendations;
 
@@ -226,5 +216,4 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
   }
 }
 
-// ─── Commit: Singleton Export ───
 module.exports = new MusicRecommendationService();

@@ -25,7 +25,10 @@ if (missing.length) {
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
-  ...(process.env.CORS_ORIGINS || "").split(",").map((o) => o.trim()).filter(Boolean),
+  ...(process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
 ];
 if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
 
@@ -33,7 +36,10 @@ const corsOptions = {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
-    if (process.env.NODE_ENV !== "production" && origin.startsWith("http://localhost")) {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      origin.startsWith("http://localhost")
+    ) {
       return cb(null, true);
     }
     return cb(new Error(`CORS: origin '${origin}' not allowed`));
@@ -72,8 +78,11 @@ app.use(
         upgradeInsecureRequests: [],
       },
     },
-    hsts: process.env.NODE_ENV === "production" ? { maxAge: 31536000, includeSubDomains: true } : false,
-  })
+    hsts:
+      process.env.NODE_ENV === "production"
+        ? { maxAge: 31536000, includeSubDomains: true }
+        : false,
+  }),
 );
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -86,7 +95,10 @@ const apiLimiter = rateLimit({
   max: 500,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, error: "Too many requests. Please try again later." },
+  message: {
+    success: false,
+    error: "Too many requests. Please try again later.",
+  },
 });
 
 const authLimiter = rateLimit({
@@ -94,12 +106,17 @@ const authLimiter = rateLimit({
   max: 20, // Stricter for login/register
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, error: "Too many auth attempts. Please try again later." },
+  message: {
+    success: false,
+    error: "Too many auth attempts. Please try again later.",
+  },
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.get("/", (_req, res) => {
-  res.status(200).json({ message: "PostFeed & Music API is running", version: "1.0.0" });
+  res
+    .status(200)
+    .json({ message: "PostFeed & Music API is running", version: "1.0.0" });
 });
 
 app.get("/health", (_req, res) => {
@@ -143,7 +160,9 @@ app.use((err, _req, res, _next) => {
 // ─── Start (dev only — Vercel handles its own serving) ───────────────────────
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+  app.listen(PORT, () =>
+    console.log(`🚀 Server running on http://localhost:${PORT}`),
+  );
 }
 
 module.exports = app;

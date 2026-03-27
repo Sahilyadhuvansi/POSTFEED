@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: ./Backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./Backend/.env
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://cache:6379
+    depends_on:
+      - cache
+    restart: always
+
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: always
+
+volumes:
+  redis_data:

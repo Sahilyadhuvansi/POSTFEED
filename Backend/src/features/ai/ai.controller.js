@@ -57,6 +57,37 @@ exports.findSimilar = async (req, res) => {
 };
 
 /**
+ * @route   POST /api/ai/mood-playlist
+ * @desc    Generate mood-based playlist (In-Memory Search)
+ * @access  Public
+ */
+exports.generateMoodPlaylist = async (req, res) => {
+  try {
+    const { mood = "happy", limit = 20 } = req.body;
+    const playlist = await musicRecommendation.generateMoodPlaylist(mood, parseInt(limit));
+    res.status(200).json({ success: true, data: playlist });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Mood engine is resting. Try again soon." });
+  }
+};
+
+/**
+ * @route   GET /api/ai/trending
+ * @desc    Trending music with AI Insights
+ * @access  Public
+ */
+exports.getTrending = async (req, res) => {
+  try {
+    const { period = "week", genre = null, limit = 15 } = req.query;
+    const trending = await musicRecommendation.discoverTrending({ period, genre, limit: parseInt(limit) });
+    res.status(200).json({ success: true, data: trending });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Trends analysis failed." });
+  }
+};
+
+
+/**
  * @route   POST /api/ai/generate-caption
  * @desc    Creative AI caption generation (Groq Priority)
  * @access  Private
