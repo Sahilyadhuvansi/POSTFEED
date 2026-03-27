@@ -18,6 +18,7 @@ import Footer from "./components/Footer";
 import Player from "./features/music/Player";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import FloatingAIButton from "./components/FloatingAIButton";
 
 const AppRouter = () => {
   return (
@@ -67,6 +68,7 @@ const App = () => {
             </main>
             <Footer />
             <Player />
+            <FloatingAIButton />
           </Router>
         </MusicProvider>
       </AuthProvider>

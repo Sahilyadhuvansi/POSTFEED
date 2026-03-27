@@ -2,6 +2,7 @@ const musicRecommendation = require("../../services/music-recommendation.service
 const contentModeration = require("../../services/content-moderation.service");
 const aiService = require("../../common/services/ai.service");
 const aiConfig = require("../../common/config/ai.config");
+const logger = require("../../common/utils/logger");
 
 /**
  * AI Controller for POST_MUSIC (Professional AI Suite)
@@ -122,6 +123,38 @@ exports.suggestHashtags = async (req, res) => {
 };
 
 /**
+ * @route   POST /api/ai/mood-playlist
+ * @desc    Generate mood-based playlist
+ * @access  Public
+ */
+exports.generateMoodPlaylist = async (req, res) => {
+  try {
+    const { mood = "" } = req.body;
+    if (!mood) return res.status(400).json({ success: false, error: "Mood is required." });
+
+    const playlist = await musicRecommendation.generateMoodPlaylist(mood);
+    res.status(200).json({ success: true, data: playlist });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Playlist engine failed." });
+  }
+};
+
+/**
+ * @route   GET /api/ai/trending
+ * @desc    Get trending tracks with AI insights
+ * @access  Public
+ */
+exports.getTrending = async (req, res) => {
+  try {
+    const { period = "week", genre = null } = req.query;
+    const trends = await musicRecommendation.discoverTrending({ period, genre });
+    res.status(200).json({ success: true, data: trends });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Trends analysis failed." });
+  }
+};
+
+/**
  * @route   POST /api/ai/moderate-content
  * @desc    Real-time content moderation (Safety Check)
  * @access  Private
@@ -138,6 +171,52 @@ exports.moderateContent = async (req, res) => {
     res.status(200).json({ success: true, data: moderation });
   } catch (error) {
     res.status(500).json({ success: false, error: "Safety filter failed." });
+  }
+};
+
+/**
+ * @route   POST /api/ai/chat
+ * @desc    General-purpose chat interface (Groq-powered, Floating Button)
+ * @access  Public
+ */
+exports.chat = async (req, res) => {
+  try {
+    const { messages = [], options = {} } = req.body;
+
+    // Validate input
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Messages array is required and must not be empty.",
+      });
+    }
+
+    // Extract options with defaults
+    const temperature = options.temperature || 0.7;
+    const maxTokens = options.maxTokens || 1024;
+
+    // System prompt for general-purpose assistant
+    const systemPrompt = "You are a helpful and friendly AI assistant. You provide clear, concise, and helpful responses. Keep your answers brief and engaging.";
+
+    // Call Groq service (will fallback to OpenAI if Groq is unavailable)
+    const aiResponse = await aiService.chat(messages, {
+      systemPrompt,
+      temperature,
+      maxTokens,
+    });
+
+    res.status(200).json({
+      success: true,
+      content: aiResponse.content,
+      model: aiResponse.model,
+      usage: aiResponse.usage,
+    });
+  } catch (error) {
+    console.error("AI Chat Error:", error);
+    res.status(500).json({
+      success: false,
+      error: "AI assistant is temporarily unavailable. Please try again soon.",
+    });
   }
 };
 

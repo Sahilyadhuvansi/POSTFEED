@@ -2,6 +2,8 @@ const Music = require("../features/music/music.model");
 const User = require("../features/user/user.model");
 const aiService = require("../common/services/ai.service");
 const aiConfig = require("../common/config/ai.config");
+const cacheService = require("../common/services/cache.service");
+const logger = require("../common/utils/logger");
 
 /**
  * AI Music Recommendation Engine (Groq/OpenAI Hybrid)
@@ -13,8 +15,7 @@ class MusicRecommendationService {
   // Why it exists: Groq/OpenAI calls take time and resources. 
   // Interview insight: Caching improves "Scalability" by reducing the load on external services.
   constructor() {
-    this.cache = new Map();
-    this.cacheTTL = aiConfig.cache.ttl.recommendations * 1000;
+    this.cacheTTL = aiConfig.cache.ttl.recommendations;
   }
 
   /**
@@ -26,11 +27,14 @@ class MusicRecommendationService {
   // 2. Scores every track based on popularity (plays/likes) and preference match.
   // 3. Passes top results to AI for a "personalized explanation".
   async getRecommendations(userId, options = {}) {
-    // ─── Step 1: Cache Check ───
+    // ─── Step 1: Cache Check (Shared Across Workers) ───
     const { limit = 10, mood = null, similarTo = null } = options;
     const cacheKey = `rec_${userId}_${limit}_${mood}_${similarTo}`;
-    const cached = this._getFromCache(cacheKey);
-    if (cached) return cached;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) {
+      logger.info({ userId, cacheKey }, "💡 [CACHE_HIT] Recommendations retrieved from Shared Cache");
+      return cached;
+    }
 
     // ─── Step 2: History Analysis ───
     const userMusic = await Music.find({ userId }).limit(20);
@@ -73,7 +77,8 @@ class MusicRecommendationService {
       recommendations = await this._addAIExplanations(recommendations, userMusic);
     }
 
-    this._setCache(cacheKey, recommendations);
+    await cacheService.set(cacheKey, recommendations, this.cacheTTL);
+    logger.info({ userId, cacheKey }, "💾 [CACHE_SET] New recommendations stored in Shared Cache");
     return recommendations;
   }
 
@@ -211,18 +216,9 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
       const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
       return JSON.parse(cleaned);
     } catch (e) {
+      logger.error({ error: e.message, raw: text }, "JSON Parsing Failed");
       return [];
     }
-  }
-
-  _getFromCache(key) {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.cacheTTL) return cached.data;
-    return null;
-  }
-
-  _setCache(key, data) {
-    this.cache.set(key, { data, timestamp: Date.now() });
   }
 }
 

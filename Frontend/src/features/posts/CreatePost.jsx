@@ -5,6 +5,17 @@ import { API_URL } from "../../config";
 import { Image, Type, Lock, Unlock, ArrowRight, X, Sparkles } from "lucide-react";
 import CaptionGenerator from "../ai/CaptionGenerator";
 
+// ─── Commit: Content Creation Suite ───
+// What this does: Provides a rich UI for drafting and broadcasting social posts.
+// Why it exists: Primary entry point for user-generated content (UGC).
+// How it works: 
+//   - Handles binary file selection with real-time UI previews.
+//   - Integrates with 'CaptionGenerator' (AI Service) for automated copywriting.
+//   - Uses 'FormData' API to transmit mixed text/image payloads to the backend.
+// Performance impact: Lightweight local state; URL.createObjectURL for instant previews without network hit.
+// Security considerations: Local MIME-type and file-size validation BEFORE the network request.
+// Beginner note: 'isSecret' toggles the visibility flag, making the post 'private' or 'unsearchable'.
+// Interview insight: FormData is essential for 'multipart/form-data' which is required for file uploads over HTTP.
 const CreatePost = () => {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);

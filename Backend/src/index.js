@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 const compression = require("compression");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
+const mongoSanitize = require("express-mongo-sanitize");
 const connectDB = require("./config/db");
 const authRoutes = require("./features/auth/auth.routes");
 const postRoutes = require("./features/post/post.routes");
@@ -15,25 +16,33 @@ const userRoutes = require("./features/user/user.routes");
 const musicRoutes = require("./features/music/music.routes");
 const aiRoutes = require("./features/ai/ai.routes");
 
-// ─── Env Validation ───────────────────────────────────────────────────────────
-const REQUIRED_ENV = ["JWT_SECRET", "MONGO_URI"];
-const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
-if (missing.length) {
-  console.error(`❌ Missing required env vars: ${missing.join(", ")}`);
-  process.exit(1);
-}
+// ─── Commit: Environment Hardening (Security Layer) ──────────────────────────
+// What this does: Uses 'envalid' to strictly validate required environment vars.
+// Why it exists: If the server starts with a missing JWT_SECRET or MONGO_URI, it's a security hole.
+// Implementation: 'envalid' prevents the app from booting if types are incorrect.
+const { cleanEnv, str, port, url } = require("envalid");
+const env = cleanEnv(process.env, {
+  JWT_SECRET: str(),
+  MONGO_URI: str(),
+  PORT: port({ default: 3001 }),
+  FRONTEND_URL: url({ default: "http://localhost:5173" }),
+  GROQ_API_KEY: str({ default: "" }),
+  NODE_ENV: str({ choices: ["development", "test", "production"], default: "development" }),
+});
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
+// ─── App Initialization ───────────────────────────────────────────────────────
+const app = express();
+
 const allowedOrigins = [
+  env.FRONTEND_URL,
   ...(process.env.CORS_ORIGINS || "").split(",").map((o) => o.trim()).filter(Boolean),
 ];
-if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
 
 const corsOptions = {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
-    if (process.env.NODE_ENV !== "production" && origin.startsWith("http://localhost")) {
+    if (!env.isProduction && origin.startsWith("http://localhost")) {
       return cb(null, true);
     }
     return cb(new Error(`CORS: origin '${origin}' not allowed`));
@@ -42,9 +51,6 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
-
-// ─── App ──────────────────────────────────────────────────────────────────────
-const app = express();
 
 app.set("trust proxy", 1);
 
@@ -79,6 +85,24 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// ─── HTTP Caching Middleware ──────────────────────────────────────────────────
+// What this does: Sets Cache-Control headers for specific GET requests.
+// Why it exists: To instruct the browser to store data, making navigations "Instant".
+app.use((req, res, next) => {
+  // Only cache GET requests that are likely to have stable content
+  if (req.method === "GET" && 
+      (req.url.includes("/api/posts/feed") || 
+       req.url.includes("/api/music") || 
+       req.url.includes("/api/ai/stats"))) {
+    
+    // Cache for 60 seconds (1 minute), allowing stale revalidation
+    res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=30");
+  }
+  next();
+});
+
+app.use(mongoSanitize());
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const apiLimiter = rateLimit({

@@ -1,7 +1,18 @@
 const postModel = require("./post.model");
 const storageService = require("../../services/storage.service");
 
-// ─── Create Post ──────────────────────────────────────────────────────────────
+// ─── Commit: Post Creation Logic ───
+// What this does: Processes new post requests containing text and optional image buffers.
+// Why it exists: Core user feature for sharing content in the PostFeed ecosystem.
+// How it works: 
+//   1. Validates presence of at least one content type (text/image).
+//   2. If a file exists, it streams the buffer to ImageKit via storageService.
+//   3. Saves the structured post metadata to MongoDB.
+// Data flow: Client Multipart Data -> Multer Buffer -> Storage API -> MongoDB.
+// Performance impact: Non-blocking I/O during upload; lean document creation.
+// Security considerations: Strict ownership check; input truncation/trimming.
+// Beginner note: 'isSecret' allows private content that won't show in global feed.
+// Interview insight: Multiplexing text/file uploads requires handling multipart/form-data.
 const createPost = async (req, res) => {
   try {
     const { caption, isSecret } = req.body;
@@ -45,7 +56,15 @@ const createPost = async (req, res) => {
   }
 };
 
-// ─── Get Feed ─────────────────────────────────────────────────────────────────
+// ─── Commit: Scalable Feed Fetching ───
+// What this does: Retrieves a paginated list of public posts for the global feed.
+// Why it exists: Primary consumption point for the social experience.
+// How it works: Uses .skip() and .limit() for windowed retrieval; .populate() for user details.
+// Data flow: Request Query Params -> MongoDB Query -> Lean JSON Response.
+// Performance impact: High. .lean() skips Mongoose hydration; uses indexing on createdAt.
+// Security considerations: Filters for 'isSecret: false' to prevent data leaks.
+// Beginner note: 'setHeader' informs the browser it can cache this data for 30s.
+// Interview insight: skip/limit is great for early scale, but cursor-based pagination is better for huge lists.
 const getFeed = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
@@ -79,7 +98,13 @@ const getFeed = async (req, res) => {
   }
 };
 
-// ─── Delete Post ──────────────────────────────────────────────────────────────
+// ─── Commit: Secure Deletion ───
+// What this does: Permanently removes a post from the database.
+// Why it exists: User control and data privacy compliance.
+// How it works: Verifies post existence and validates requester ownership.
+// Security considerations: Essential 'req.user.id' comparison to prevent cross-user deletion.
+// Performance impact: Low; single document O(1) indexed deletion.
+// Interview insight: Real-world apps often use "Soft Deletes" to allow data recovery.
 const deletePost = async (req, res) => {
   try {
     const post = await postModel.findById(req.params.postId);

@@ -64,6 +64,13 @@ router.post("/generate-caption", authMiddleware, aiController.generateCaption);
  */
 router.post("/suggest-hashtags", authMiddleware, aiController.suggestHashtags);
 
+/**
+ * @route   POST /api/ai/chat
+ * @desc    General-purpose chat (Groq-powered, Floating Button)
+ * @access  Public
+ */
+router.post("/chat", aiController.chat);
+
 // ═══════════════════════════════════════════════════════════════
 // Statistics
 // ═══════════════════════════════════════════════════════════════

@@ -1,15 +1,28 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Sparkles, Music, TrendingUp } from 'lucide-react'
+import { useApiCache } from '../../hooks/useApiCache'
 import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export default function Recommendations() {
-  const [recommendations, setRecommendations] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { getFromCache, setCache } = useApiCache()
+  const cacheKey = `recommendations_${mood}`
+  const initialCached = getFromCache(cacheKey)
+
+  const [recommendations, setRecommendations] = useState(initialCached || [])
+  const [loading, setLoading] = useState(!initialCached)
   const [mood, setMood] = useState('')
 
   const fetchRecommendations = useCallback(async () => {
+    // Skip fetch if we have cached data
+    const cached = getFromCache(cacheKey)
+    if (cached) {
+      setRecommendations(cached)
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
@@ -21,6 +34,7 @@ export default function Recommendations() {
 
       if (response.data.success) {
         setRecommendations(response.data.data)
+        setCache(cacheKey, response.data.data)
       }
     } catch (error) {
       console.error('Failed to fetch recommendations:', error)
