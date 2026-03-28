@@ -290,6 +290,8 @@
   border-radius: 20px;
   padding: 0.5rem 1rem;
   font-size: 0.95rem;
+  color: #1a1a1a; /* Ensure text is visible on white background */
+  background: white;
   outline: none;
   transition: all 0.2s ease;
 }
