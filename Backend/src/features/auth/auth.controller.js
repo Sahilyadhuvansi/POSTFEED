@@ -1,4 +1,4 @@
-const userModel = require("../user/user.model");
+const usersModel = require("../users/users.model");
 const jwt = require("jsonwebtoken");
 const { serializeUser } = require("../../utils/userSerializer");
 
@@ -49,7 +49,7 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, error: "Password must be at least 6 characters." });
     }
 
-    const existing = await userModel.findOne({
+    const existing = await usersModel.findOne({
       $or: [{ email: email.toLowerCase() }, { username }],
     });
     if (existing) {
@@ -57,7 +57,7 @@ const register = async (req, res) => {
       return res.status(409).json({ success: false, error: `An account with this ${field} already exists.` });
     }
 
-    const user = await userModel.create({ username, email: email.toLowerCase(), password });
+    const user = await usersModel.create({ username, email: email.toLowerCase(), password });
     const token = signToken(user);
     res.cookie("token", token, getCookieOptions());
 
@@ -87,7 +87,7 @@ const login = async (req, res) => {
       username ? { username } : null,
     ].filter(Boolean);
 
-    const user = await userModel.findOne({ $or: query }).select("+password");
+    const user = await usersModel.findOne({ $or: query }).select("+password");
 
     // Use a single vague message to prevent user enumeration
     if (!user || !(await user.comparePassword(password))) {
@@ -122,7 +122,7 @@ const logout = (_req, res) => {
 // ─── Get Authenticated User (for session rehydration) ────────────────────────
 const getMe = async (req, res) => {
   try {
-    const user = await userModel.findById(req.user.id);
+    const user = await usersModel.findById(req.user.id);
     if (!user) return res.status(404).json({ success: false, error: "User not found." });
     return res.status(200).json({ success: true, user: serializeUser(user) });
   } catch (err) {

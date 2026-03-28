@@ -19,7 +19,7 @@ const createPost = async (req, res) => {
       imageUrl = result.url;
     }
 
-    const post = await postModel.create({
+    const post = await postsModel.create({
       caption: caption?.trim() || "",
       user: req.user.id,
       isSecret: isSecret === "true" || isSecret === true,
@@ -63,7 +63,7 @@ const getFeed = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      postModel.countDocuments({ isSecret: { $ne: true } }),
+      postsModel.countDocuments({ isSecret: { $ne: true } }),
     ]);
 
     return res.status(200).json({
@@ -82,7 +82,7 @@ const getFeed = async (req, res) => {
 // ─── Delete Post ──────────────────────────────────────────────────────────────
 const deletePost = async (req, res) => {
   try {
-    const post = await postModel.findById(req.params.postId);
+    const post = await postsModel.findById(req.params.postId);
 
     if (!post) {
       return res.status(404).json({ success: false, error: "Post not found." });
@@ -91,7 +91,7 @@ const deletePost = async (req, res) => {
       return res.status(403).json({ success: false, error: "You do not have permission to delete this post." });
     }
 
-    await postModel.findByIdAndDelete(req.params.postId);
+    await postsModel.findByIdAndDelete(req.params.postId);
 
     return res.status(200).json({ success: true, message: "Post deleted successfully." });
   } catch (err) {
