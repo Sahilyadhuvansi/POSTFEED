@@ -55,7 +55,7 @@ const corsOptions = {
     }
     
     console.warn(`⚠️ Blocked by CORS: ${origin}. Approved: ${allowedOrigins.join(", ")}`);
-    return cb(null, false); // Just reject, don't throw Error to avoid 500
+    return cb(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

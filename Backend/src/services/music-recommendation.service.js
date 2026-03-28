@@ -10,7 +10,7 @@ const aiConfig = require("../config/ai.config");
 class MusicRecommendationService {
   constructor() {
     this.cache = new Map();
-    this.cacheTTL = aiConfig.cache.ttl.recommendations * 1000;
+    this.cacheTTL = (aiConfig.cache.ttl.recommendations || 3600) * 1000;
   }
 
   /**
@@ -134,7 +134,8 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
       ]
     };
 
-    const music = await Music.find(query).limit(limit).sort({ plays: -1 });
+    // Corrected: 'plays' field removed as it's not in the current schema
+    const music = await Music.find(query).sort({ createdAt: -1 }).limit(limit);
 
     return {
       mood,
@@ -158,11 +159,31 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
     const trending = await Music.find(query).sort({ createdAt: -1 }).limit(limit);
 
     let insights = "Popular selection this period.";
+    // Feature flag check and call to private method
     if (trending.length > 0 && aiConfig.features.trendingInsights) {
-      insights = await this._analyzeTrendsAI(trending);
+      try {
+        insights = await this._analyzeTrendsAI(trending);
+      } catch (err) {
+        console.error("Trends AI Error:", err.message);
+      }
     }
 
     return { period, trending, insights };
+  }
+
+  /**
+   * Analyze trending tracks using AI (Internal)
+   */
+  async _analyzeTrendsAI(trending) {
+    const titles = trending.map(t => t.title).join(", ");
+    const userPrompt = `Analyze these trending songs and give a one-sentence summary of the current vibe: ${titles}`;
+    
+    const response = await aiService.chat(
+      [{ role: "user", content: userPrompt }],
+      { systemPrompt: "You are a music trend analyst.", temperature: 0.5, maxTokens: 100 }
+    );
+    
+    return response.content || "Vibe is currently diverse and fresh.";
   }
 
   _parseJSON(text) {
