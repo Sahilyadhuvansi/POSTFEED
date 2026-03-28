@@ -1,5 +1,4 @@
 const Groq = require("groq-sdk");
-const OpenAI = require("openai");
 const aiConfig = require("../config/ai.config");
 
 /**
@@ -15,20 +14,13 @@ class AIService {
       });
     }
 
-    // Initialize OpenAI (Act as a reliable fallback/backup)
-    if (aiConfig.openai.enabled) {
-      this.openai = new OpenAI({
-        apiKey: aiConfig.openai.apiKey,
-      });
-    }
-
     this.requestCount = 0;
     this.totalCost = 0;
   }
 
   /**
-   * Generate chat completion with automatic fallback
-   * Try Groq first (fastest) and then OpenAI as fallback
+   * Generate chat completion
+   * Uses Groq LPU technology for low-latency responses
    */
   async chat(messages, options = {}) {
     const {
@@ -38,20 +30,32 @@ class AIService {
     } = options;
 
     try {
-      // Step 1: Attempt to use Groq for the fastest response (LPU technology)
-      if (this.groq) {
-        return await this._groqChat(messages, systemPrompt, temperature, maxTokens);
+      // Step 1: Verify service configuration
+      if (!this.groq) {
+        console.warn("[AI-Warn] Groq service is not configured (missing API Key).");
+        return {
+          content: "AI assistant is taking a short break. Please try again later.",
+          model: "fallback",
+          usage: null,
+          status: "unavailable"
+        };
       }
 
-      // Step 2: Silent fallback to OpenAI if Groq is unavailable
-      if (this.openai) {
-        return await this._openaiChat(messages, systemPrompt, temperature, maxTokens);
-      }
+      // Step 2: Attempt to use Groq for the fastest response
+      return await this._groqChat(messages, systemPrompt, temperature, maxTokens);
 
-      throw new Error("No AI service configured. Please add GROQ_API_KEY to .env");
     } catch (error) {
-      console.error("AI Service Error:", error.message);
-      throw error;
+      // Step 3: Structured Error Handling (Log internally, safe return for UI)
+      console.error("[AI-System-Error] Critical failure in Groq interaction:", error.message);
+      
+      // Return a safe fallback object to avoid crashing the request lifecycle
+      return {
+        content: "The AI assistant is temporarily offline for maintenance. Our team is tuning the model!",
+        model: "safe-fallback",
+        usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+        error: true,
+        status: "error"
+      };
     }
   }
 
@@ -76,30 +80,7 @@ class AIService {
       content: response.choices[0].message.content,
       model: "groq",
       usage: response.usage,
-    };
-  }
-
-  /**
-   * OpenAI API chat implementation (Backup)
-   */
-  async _openaiChat(messages, systemPrompt, temperature, maxTokens) {
-    const formattedMessages = systemPrompt
-      ? [{ role: "system", content: systemPrompt }, ...messages]
-      : messages;
-
-    const response = await this.openai.chat.completions.create({
-      model: aiConfig.openai.model,
-      messages: formattedMessages,
-      temperature,
-      max_tokens: maxTokens,
-    });
-
-    this._trackUsage("openai", response.usage);
-
-    return {
-      content: response.choices[0].message.content,
-      model: "openai",
-      usage: response.usage,
+      status: "success"
     };
   }
 

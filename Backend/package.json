@@ -29,7 +29,6 @@
     "mongoose": "^9.2.1",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
-    "openai": "^4.86.1",
     "sentiment": "^5.0.2"
   },
   "description": ""

@@ -13,14 +13,6 @@ module.exports = {
     enabled: !!process.env.GROQ_API_KEY,
   },
 
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-4o",
-    maxTokens: 4096,
-    temperature: 0.7,
-    enabled: !!process.env.OPENAI_API_KEY,
-  },
-
   googleVision: {
     keyFilename: process.env.GOOGLE_CLOUD_KEY_FILE,
     projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,

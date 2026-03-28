@@ -4,7 +4,7 @@ const aiService = require("./ai.service");
 const aiConfig = require("../config/ai.config");
 
 /**
- * AI Music Recommendation Engine (Groq/OpenAI Hybrid)
+ * AI Music Recommendation Engine (Powered by Groq)
  * Provides personalized music recommendations using collaborative and content-based filtering
  */
 class MusicRecommendationService {

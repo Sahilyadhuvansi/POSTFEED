@@ -196,7 +196,7 @@ exports.chat = async (req, res) => {
     // System prompt for general-purpose assistant
     const systemPrompt = "You are a helpful and friendly AI assistant. You provide clear, concise, and helpful responses. Keep your answers brief and engaging.";
 
-    // Call Groq service (will fallback to OpenAI if Groq is unavailable)
+    // Call Groq service (optimized for LPU performance)
     const aiResponse = await aiService.chat(messages, {
       systemPrompt,
       temperature,
