@@ -64,10 +64,6 @@ const Header = () => {
             <Music className="w-3.5 h-3.5" />
             Vibes
           </Link>
-          <Link to="/ai-picks" className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${isActive("/ai-picks")}`}>
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            AI Nexus
-          </Link>
           {user && (
             <>
               <div className="w-px h-4 bg-white/10 mx-1" />
@@ -128,9 +124,6 @@ const Header = () => {
           </Link>
           <Link to="/music" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-5 rounded-2xl text-xs font-black uppercase tracking-[0.2em] ${isActive("/music")}`}>
             <Music className="w-5 h-5" /> Frequency
-          </Link>
-          <Link to="/ai-picks" onClick={() => setMobileOpen(false)} className={`flex items-center gap-4 p-5 rounded-2xl text-xs font-black uppercase tracking-[0.2em] ${isActive("/ai-picks")}`}>
-            <Sparkles className="w-5 h-5 text-indigo-400" /> AI Insights
           </Link>
           {user ? (
             <>
