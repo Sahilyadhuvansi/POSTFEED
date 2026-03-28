@@ -217,8 +217,9 @@ exports.chat = async (req, res) => {
     
     res.status(500).json({
       success: false,
-      error: `DEBUG_ERROR: ${error.message}` || "AI assistant error",
-      stack: error.stack // Temporarily expose stack for deep diagnosis
+      error: error.message?.includes("model") 
+        ? "AI model is currently initializing. Please wait." 
+        : "AI assistant is taking a short break. Try again in a moment.",
     });
   }
 };
