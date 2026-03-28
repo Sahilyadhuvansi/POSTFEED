@@ -12,7 +12,7 @@ import {
   MoreVertical,
   Volume2,
   Sparkles,
-  Zap
+  Zap,
 } from "lucide-react";
 import { api } from "../../config";
 import { MusicSkeleton } from "../../components/SkeletonLoader";
@@ -43,16 +43,18 @@ const Music = () => {
 
     const fetchMusics = async () => {
       try {
-        const response = await api.get(
-          `/music?page=1&limit=${MUSIC_PER_PAGE}`,
-        );
+        const response = await api.get(`/music?page=1&limit=${MUSIC_PER_PAGE}`);
         const newMusics = response.data.musics || [];
         setMusics(newMusics);
         setPage(1);
         setHasMore(newMusics.length === MUSIC_PER_PAGE);
         setCache("music_tracks_page_1", { musics: newMusics, page: 1 });
       } catch (error) {
-        addToast("Audio uplink failed. Frequencies offline.", "error");
+        addToast(
+          error.response?.data?.error ||
+            "Audio uplink failed. Frequencies offline.",
+          "error",
+        );
       } finally {
         setLoading(false);
       }
@@ -68,13 +70,15 @@ const Music = () => {
     const targetId = playId || selectId;
 
     if (targetId && musics.length > 0) {
-      const track = musics.find(m => m._id === targetId);
+      const track = musics.find((m) => m._id === targetId);
       if (track) {
         if (playId) {
           playTrack(track, musics);
         } else {
           // Just scroll to it or highlight (handled by grid logic)
-          document.getElementById(`music-${targetId}`)?.scrollIntoView({ behavior: "smooth" });
+          document
+            .getElementById(`music-${targetId}`)
+            ?.scrollIntoView({ behavior: "smooth" });
         }
       }
     }
@@ -137,7 +141,10 @@ const Music = () => {
       setActiveMenu(null);
       addToast("Track neutralized.", "success");
     } catch (error) {
-      addToast(error.response?.data?.error || "Neutralization protocol failed.", "error");
+      addToast(
+        error.response?.data?.error || "Neutralization protocol failed.",
+        "error",
+      );
     }
   };
 
@@ -172,10 +179,12 @@ const Music = () => {
         <div className="mb-16 border-b border-white/5 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl glass border-white/10">
-                    <MusicIcon className="w-4 h-4 text-indigo-400" />
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-neutral-500">Audio Nexus</p>
+              <div className="p-2 rounded-xl glass border-white/10">
+                <MusicIcon className="w-4 h-4 text-indigo-400" />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-neutral-500">
+                Audio Nexus
+              </p>
             </div>
             <h1 className="text-5xl font-black text-white italic tracking-tighter">
               Sonic
@@ -183,12 +192,19 @@ const Music = () => {
                 Universe
               </span>
             </h1>
-            <p className="text-xs font-black text-neutral-500 uppercase tracking-[0.2em] opacity-60">Architectural waveforms in real-time</p>
+            <p className="text-xs font-black text-neutral-500 uppercase tracking-[0.2em] opacity-60">
+              Architectural waveforms in real-time
+            </p>
           </div>
           <div className="flex items-center gap-6">
             <div className="glass px-8 py-5 rounded-[32px] border-white/5 text-center min-w-[140px]">
-              <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest mb-1">Active Clusters</p>
-              <p className="text-2xl font-black text-white">{musics.length}<span className="text-xs text-indigo-400 ml-1">+</span></p>
+              <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest mb-1">
+                Active Clusters
+              </p>
+              <p className="text-2xl font-black text-white">
+                {musics.length}
+                <span className="text-xs text-indigo-400 ml-1">+</span>
+              </p>
             </div>
           </div>
         </div>
@@ -201,8 +217,12 @@ const Music = () => {
               </div>
               <div className="absolute inset-0 bg-pink-500/10 blur-3xl rounded-full" />
             </div>
-            <h2 className="text-2xl font-black text-white mb-2 italic">Silence detected</h2>
-            <p className="text-sm font-medium text-neutral-500 uppercase tracking-widest text-center">Be the first to project your soundscape</p>
+            <h2 className="text-2xl font-black text-white mb-2 italic">
+              Silence detected
+            </h2>
+            <p className="text-sm font-medium text-neutral-500 uppercase tracking-widest text-center">
+              Be the first to project your soundscape
+            </p>
           </div>
         ) : (
           /* Frequency Grid */
@@ -218,7 +238,7 @@ const Music = () => {
                 }`}
               >
                 {/* Artwork Area */}
-                <div 
+                <div
                   className="relative aspect-square m-4 rounded-[32px] overflow-hidden bg-neutral-900 cursor-pointer shadow-2xl"
                   onClick={() => handlePlay(music)}
                 >
@@ -235,7 +255,9 @@ const Music = () => {
                   )}
 
                   {/* Dynamic State Overlay */}
-                  <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${currentTrack?._id === music._id ? "bg-indigo-500/20 backdrop-blur-[4px] opacity-100" : "bg-black/60 opacity-0 group-hover:opacity-100"}`}>
+                  <div
+                    className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${currentTrack?._id === music._id ? "bg-indigo-500/20 backdrop-blur-[4px] opacity-100" : "bg-black/60 opacity-0 group-hover:opacity-100"}`}
+                  >
                     <div className="w-16 h-16 rounded-[24px] glass border-white/20 flex items-center justify-center shadow-2xl transform transition-transform duration-500 group-hover:scale-110 group-active:scale-95">
                       {currentTrack?._id === music._id && isPlaying ? (
                         <Pause className="w-7 h-7 text-white fill-white animate-pulse" />
@@ -244,7 +266,7 @@ const Music = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Waveform Viz */}
                   {currentTrack?._id === music._id && isPlaying && (
                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-end gap-[3px] h-6">
@@ -266,7 +288,7 @@ const Music = () => {
                       <div className="flex items-center gap-2 mt-1.5 opacity-60">
                         <Volume2 className="w-3 h-3 text-neutral-500" />
                         <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-[0.2em] truncate">
-                           {music.artist?.username || "Neural Composer"}
+                          {music.artist?.username || "Unknown artist"}
                         </p>
                       </div>
                     </div>
@@ -303,12 +325,14 @@ const Music = () => {
                 className="py-32 flex flex-col items-center gap-6 col-span-full"
               >
                 <div className="relative">
-                    <div className="w-14 h-14 rounded-full border border-white/5 flex items-center justify-center">
-                        <Sparkles className="w-6 h-6 text-indigo-500 animate-spin-slow" />
-                    </div>
-                    <div className="absolute inset-0 bg-indigo-500/10 blur-3xl rounded-full" />
+                  <div className="w-14 h-14 rounded-full border border-white/5 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-indigo-500 animate-spin-slow" />
+                  </div>
+                  <div className="absolute inset-0 bg-indigo-500/10 blur-3xl rounded-full" />
                 </div>
-                <p className="text-[10px] text-neutral-600 font-black uppercase tracking-[0.6em] animate-pulse">Expanding Frequency</p>
+                <p className="text-[10px] text-neutral-600 font-black uppercase tracking-[0.6em] animate-pulse">
+                  Expanding Frequency
+                </p>
               </div>
             )}
           </div>

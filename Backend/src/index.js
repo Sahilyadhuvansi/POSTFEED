@@ -15,6 +15,8 @@ const userRoutes = require("./features/users/users.routes");
 const musicRoutes = require("./features/music/music.routes");
 const aiRoutes = require("./features/ai/ai.routes");
 const ErrorResponse = require("./utils/ErrorResponse");
+const requestId = require("./middlewares/request-id.middleware");
+const { analyticsMiddleware } = require("./services/ai.performance-analytics");
 
 // ─── Env Validation ───────────────────────────────────────────────────────────
 const REQUIRED_ENV = ["JWT_SECRET", "MONGO_URI"];
@@ -76,7 +78,9 @@ connectDB().catch((err) => {
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors(corsOptions)); // CORS must be absolute first for preflight success
+app.use(requestId); // Assign unique ID to every request
 app.use(compression());
+app.use(analyticsMiddleware); // Track AI performance globally
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(
   helmet({

@@ -1,7 +1,12 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const aiController = require("./ai.controller");
-const authMiddleware = require("../../middlewares/auth.middleware");
+const aiController = require('./ai.controller');
+const authMiddleware = require('../../middlewares/auth.middleware');
+const { aiRateLimiter } = require('../../middlewares/ai.rate-limiter');
+const { quotaCheckMiddleware, quotaDeductionMiddleware } = require('../../middlewares/quota.middleware');
+
+// Apply rate limiting and quotas to protected AI endpoints
+const aiMiddleware = [authMiddleware, aiRateLimiter, quotaCheckMiddleware, quotaDeductionMiddleware];
 
 // ═══════════════════════════════════════════════════════════════
 // Music Recommendation Routes
@@ -12,28 +17,28 @@ const authMiddleware = require("../../middlewares/auth.middleware");
  * @desc    Get personalized music recommendations
  * @access  Private
  */
-router.get("/recommendations", authMiddleware, aiController.getRecommendations);
+router.get("/recommendations", ...aiMiddleware, aiController.getRecommendations);
 
 /**
  * @route   GET /api/ai/similar/:musicId
  * @desc    Find similar songs
  * @access  Public
  */
-router.get("/similar/:musicId", aiController.findSimilar);
+router.get("/similar/:musicId", aiRateLimiter, aiController.findSimilar);
 
 /**
  * @route   POST /api/ai/mood-playlist
  * @desc    Generate mood-based playlist
  * @access  Public
  */
-router.post("/mood-playlist", aiController.generateMoodPlaylist);
+router.post("/mood-playlist", aiRateLimiter, aiController.moodPlaylist);
 
 /**
  * @route   GET /api/ai/trending
  * @desc    Get trending music with AI insights
  * @access  Public
  */
-router.get("/trending", aiController.getTrending);
+router.get("/trending", aiRateLimiter, aiController.getTrending);
 
 // ═══════════════════════════════════════════════════════════════
 // Content Moderation Routes
@@ -44,7 +49,7 @@ router.get("/trending", aiController.getTrending);
  * @desc    Moderate text or image content
  * @access  Private
  */
-router.post("/moderate-content", authMiddleware, aiController.moderateContent);
+router.post("/moderate-content", ...aiMiddleware, aiController.moderateContent);
 
 // ═══════════════════════════════════════════════════════════════
 // Content Generation Routes
@@ -55,21 +60,21 @@ router.post("/moderate-content", authMiddleware, aiController.moderateContent);
  * @desc    Generate AI caption for post
  * @access  Private
  */
-router.post("/generate-caption", authMiddleware, aiController.generateCaption);
+router.post("/generate-caption", ...aiMiddleware, aiController.generateCaption);
 
 /**
  * @route   POST /api/ai/chat
  * @desc    General-purpose chat interface (Groq-powered, Floating Button)
  * @access  Public
  */
-router.post("/chat", aiController.chat);
+router.post("/chat", aiRateLimiter, aiController.chat);
 
 /**
  * @route   POST /api/ai/suggest-hashtags
  * @desc    Suggest hashtags for post
  * @access  Private
  */
-router.post("/suggest-hashtags", authMiddleware, aiController.suggestHashtags);
+router.post("/suggest-hashtags", ...aiMiddleware, aiController.suggestHashtags);
 
 // ═══════════════════════════════════════════════════════════════
 // Statistics

@@ -68,31 +68,59 @@ class MusicRecommendationService {
     if (recommendations.length === 0) return recommendations;
 
     try {
-      const userFavorites = userHistory.slice(0, 5).map((m) => m.title).join(", ");
-      const recTitles = recommendations.map((r, i) => `${i + 1}. ${r.title}`).join("\n");
+      const userFavorites = userHistory
+        .slice(0, 5)
+        .map((m) => m.title)
+        .join(", ") || "New listener";
+      
+      const recTitles = recommendations
+        .map((r, i) => `${i + 1}. "${r.title}" by ${r.artist?.username || "Unknown"}`)
+        .join("\n");
 
-      const systemPrompt = "You are a personalized music DJ.";
-      const userPrompt = `A user likes these songs: ${userFavorites || "New listener"}. 
-Recommend these tracks and generate a brief reason (5-8 words each) for each recommendation:
-${recTitles}
-Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
+      // ✅ IMPROVED PROMPT
+      const systemPrompt = `You are a personalized music curator.
+Your task: Explain why each song matches a user's taste.
+
+OUTPUT FORMAT: Return ONLY a JSON array of short explanations.
+Example: ["Perfect for your indie vibe", "Matches your energy level"]
+
+REQUIREMENTS:
+1. One explanation per song (5-8 words each)
+2. Be specific about why it matches
+3. Return ONLY the JSON array - no explanation before or after`;
+
+      const userPrompt = `User's favorite songs: ${userFavorites}
+      
+Songs to explain:
+${recTitles}`;
 
       const response = await aiService.chat(
         [{ role: "user", content: userPrompt }],
-        { systemPrompt, temperature: 0.6, maxTokens: 500 }
+        {
+          systemPrompt,
+          temperature: 0.6,
+          maxTokens: 500,
+          responseSchema: "json_array",
+          strict: true
+        }
       );
 
-      const reasons = this._parseJSON(response.content);
+      const reasons = response.parseSuccess ? response.content : [];
 
       return recommendations.map((rec, i) => ({
         ...rec.toObject(),
-        recommendationReason: Array.isArray(reasons) && reasons[i] 
-          ? reasons[i] 
-          : "Recommended for your vibe",
+        recommendationReason: Array.isArray(reasons) && reasons[i]
+          ? reasons[i]
+          : "Recommended for your vibe"
       }));
+
     } catch (error) {
-      console.error("Explanation AI Error:", error.message);
-      return recommendations.map(rec => ({ ...rec.toObject(), recommendationReason: "Recommended for you" }));
+      console.error("[Recommendations-Explanation-Error]", error.message);
+      // Fallback to generic reasons
+      return recommendations.map(rec => ({
+        ...rec.toObject(),
+        recommendationReason: "Recommended for you"
+      }));
     }
   }
 
@@ -186,15 +214,6 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
     return response.content || "Vibe is currently diverse and fresh.";
   }
 
-  _parseJSON(text) {
-    if (!text) return [];
-    try {
-      const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
-      return JSON.parse(cleaned);
-    } catch (e) {
-      return [];
-    }
-  }
 
   _getFromCache(key) {
     const cached = this.cache.get(key);
