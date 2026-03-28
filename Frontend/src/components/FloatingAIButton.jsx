@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Send } from "lucide-react";
+import { api } from "../config"; // Use centralized API config
 import "../styles/FloatingAIButton.css";
 
 /**
@@ -30,7 +31,7 @@ const FloatingAIButton = () => {
     
     if (!inputValue.trim()) return;
 
-    // Add user message to chat
+    // Add user message to chat state immediately for UI responsiveness
     const userMessage = {
       id: Date.now(),
       role: "user",
@@ -43,35 +44,20 @@ const FloatingAIButton = () => {
     setError("");
 
     try {
-      // Call backend API
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/ai/chat`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            messages: [
-              ...messages.map((msg) => ({
-                role: msg.role,
-                content: msg.content,
-              })),
-              { role: "user", content: inputValue },
-            ],
-            options: {
-              temperature: 0.7,
-              maxTokens: 1024,
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to get AI response");
-      }
-
-      const data = await response.json();
+      // Use centralized axios instance for consistent headers and error handling
+      const { data } = await api.post("/ai/chat", {
+        messages: [
+          ...messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          { role: "user", content: inputValue },
+        ],
+        options: {
+          temperature: 0.7,
+          maxTokens: 512, // Reduced for faster response
+        },
+      });
 
       // Add AI response to chat
       const aiMessage = {
@@ -83,7 +69,8 @@ const FloatingAIButton = () => {
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
+      const errorMsg = err.response?.data?.error || "AI assistant is taking a break. Try shorter messages.";
+      setError(errorMsg);
       console.error("Chat error:", err);
     } finally {
       setIsLoading(false);

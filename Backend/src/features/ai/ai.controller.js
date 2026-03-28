@@ -210,10 +210,16 @@ exports.chat = async (req, res) => {
       usage: aiResponse.usage,
     });
   } catch (error) {
-    console.error("AI Chat Error:", error);
+    console.error("AI Chat Production Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    
     res.status(500).json({
       success: false,
-      error: "AI assistant is temporarily unavailable. Please try again soon.",
+      error: error.message?.includes("model") 
+        ? "AI model is currently initializing. Please wait." 
+        : "AI assistant is taking a short break. Try again in a moment.",
     });
   }
 };
