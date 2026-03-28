@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Send } from "lucide-react";
-import { api } from "../config"; // Use centralized API config
+import { api } from "../config";
+import { PostCard, SongCard, EmptyStateCard } from "./ui/AIChatCards";
 import "../styles/FloatingAIButton.css";
 
 /**
@@ -63,7 +64,9 @@ const FloatingAIButton = () => {
       const aiMessage = {
         id: Date.now() + 1,
         role: "assistant",
-        content: data.content,
+        type: data.type || "text",
+        payload: data.payload || null,
+        content: data.content || "",
         model: data.model,
       };
 
@@ -140,7 +143,25 @@ const FloatingAIButton = () => {
                 className={`message message-${message.role}`}
               >
                 <div className="message-bubble">
-                  {message.content}
+                  {message.role === "assistant" && message.type === "ui-controller" ? (
+                    <div className="structured-content">
+                      {message.payload?.type === "posts" && message.payload.data?.map(post => (
+                        <PostCard key={post.id} post={post} />
+                      ))}
+                      {message.payload?.type === "songs" && message.payload.data?.map(song => (
+                        <SongCard key={song.id} song={song} />
+                      ))}
+                      {message.payload?.type === "empty" && (
+                        <EmptyStateCard message={message.payload.message} />
+                      )}
+                      {/* Fallback for unknown UI types */}
+                      {!["posts", "songs", "empty"].includes(message.payload?.type) && (
+                         <p>{message.content || "Data received, but I can't render it yet."}</p>
+                      )}
+                    </div>
+                  ) : (
+                    message.content
+                  )}
                 </div>
               </div>
             ))}

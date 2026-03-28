@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useMusic } from "./MusicContext";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../../components/ui/Toast";
 import {
@@ -24,6 +25,7 @@ const Music = () => {
   const { user } = useAuth();
   const { addToast } = useToast();
   const { getFromCache, setCache } = useApiCache();
+  const location = useLocation();
   const observerTarget = useRef(null);
 
   // --- COLD START / CACHE INIT ---
@@ -57,6 +59,26 @@ const Music = () => {
     };
     fetchMusics();
   }, [getFromCache, setCache, initialCached, addToast]);
+
+  // --- DEEP LINKING (AI Controller) ---
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const playId = params.get("play");
+    const selectId = params.get("select");
+    const targetId = playId || selectId;
+
+    if (targetId && musics.length > 0) {
+      const track = musics.find(m => m._id === targetId);
+      if (track) {
+        if (playId) {
+          playTrack(track, musics);
+        } else {
+          // Just scroll to it or highlight (handled by grid logic)
+          document.getElementById(`music-${targetId}`)?.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    }
+  }, [location.search, musics, playTrack]);
 
   const loadMoreMusic = useCallback(() => {
     const nextPage = page + 1;
@@ -188,6 +210,7 @@ const Music = () => {
             {musics.map((music) => (
               <div
                 key={music._id}
+                id={`music-${music._id}`}
                 className={`group relative rounded-[40px] glass-dark border transition-all duration-700 overflow-hidden ${
                   currentTrack?._id === music._id
                     ? "border-indigo-500/40 bg-indigo-500/5 shadow-[0_32px_80px_rgba(79,70,229,0.15)] scale-[1.02]"

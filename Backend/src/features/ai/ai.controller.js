@@ -180,28 +180,42 @@ exports.moderateContent = async (req, res) => {
 };
 
 /**
+ * Helper: Safe JSON Parser for AI Responses
+ * Extracts JSON content even if wrapped in markdown or surrounded by text.
+ */
+const safeParseAIResponse = (text) => {
+  try {
+    const jsonStart = text.indexOf("{");
+    const jsonEnd = text.lastIndexOf("}");
+    if (jsonStart === -1 || jsonEnd === -1) return null;
+    
+    const jsonString = text.slice(jsonStart, jsonEnd + 1);
+    return JSON.parse(jsonString);
+  } catch (err) {
+    console.error("AI JSON Parse Error:", err);
+    return null;
+  }
+};
+
+/**
  * Helper: Format app context tight and clean for token efficiency
  */
 const formatContext = (posts, music) => {
-  let context = "[LIVE APP CONTEXT]\n\n";
+  let context = "[LIVE APP DATA]\n";
 
   if (posts && posts.length > 0) {
-    context += "Latest Posts:\n";
-    posts.forEach((p, i) => {
+    context += "POSTS:\n";
+    posts.forEach((p) => {
       const username = p.user?.username || "anonymous";
-      context += `${i + 1}. @${username}: ${p.caption.substring(0, 60)}${p.caption.length > 60 ? "..." : ""}\n`;
+      context += `- ID: ${p._id}, User: ${username}, Caption: ${p.caption.substring(0, 50)}\n`;
     });
-  } else {
-    context += "Latest Posts: No posts yet.\n";
   }
 
-  context += "\nLatest Vibes:\n";
   if (music && music.length > 0) {
-    music.forEach((m, i) => {
-      context += `${i + 1}. ${m.title} – ${m.artist?.username || "Exclusive Artist"}\n`;
+    context += "\nSONGS:\n";
+    music.forEach((m) => {
+      context += `- ID: ${m._id}, Title: ${m.title}, Artist: ${m.artist?.username || "Exclusive"}\n`;
     });
-  } else {
-    context += "Latest Vibes: No trending music yet.\n";
   }
 
   return context;
@@ -248,63 +262,83 @@ exports.chat = async (req, res) => {
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ success: false, error: "Prompt is required." });
     }
-
+    // 1. Hybrid Mode Detection
     const userMessage = messages[messages.length - 1].content.toLowerCase();
-
-    // 1. Intent Detection (Instant Shortcut Responses)
-    if (userMessage.includes("latest post") || userMessage.includes("show feed")) {
-      const posts = await Post.find().sort({ createdAt: -1 }).limit(3).populate("user", "username");
-      if (posts.length > 0) {
-        let resp = "Here are the latest posts on your feed:\n\n";
-        posts.forEach((p, i) => {
-          resp += `${i + 1}. @${p.user?.username || "user"}: "${p.caption}"\n`;
-        });
-        return res.status(200).json({ success: true, content: resp });
-      }
-      return res.status(200).json({ success: true, content: "The feed is currently quiet. Why not be the first to post something fresh? 🚀" });
-    }
-
-    if (userMessage.includes("latest vibes") || userMessage.includes("show music")) {
-      const music = await Music.find().sort({ createdAt: -1 }).limit(5);
-      if (music.length > 0) {
-        let resp = "Here are the trending vibes on PostFeed:\n\n";
-        music.forEach((m, i) => {
-          resp += `${i + 1}. ${m.title} 🔥\n`;
-        });
-        return res.status(200).json({ success: true, content: resp });
-      }
-      return res.status(200).json({ success: true, content: "No vibes detected yet. Head over to VIBES to drop your first track! 🎧" });
-    }
+    const isStructuredQuery = /post|song|vibe|feed|music|latest/i.test(userMessage);
 
     // 2. Fetch Performance-Optimized Context
     const appContext = await getAppContext();
 
-    // 3. Strict Persona System Prompt (Hard Instruction Pattern)
-    const systemPrompt = `You are the official PostFeed In-App Assistant.
-You MUST follow these rules strictly. If you break them, your response is invalid:
-1. NEVER say "I cannot access real-time data" or "I am just an AI".
-2. ALWAYS assume you have full access to PostFeed's internal database.
-3. NEVER redirect users to external platforms (Twitter, Instagram, Reddit, etc.).
-4. Stay helpful, concise, and deeply aligned with the PostFeed brand.
-5. Use the [LIVE APP CONTEXT] below to answer specific questions about posts or music.
-6. FALLBACK: If the LIVE APP CONTEXT is empty, simulate realistic mock content as if it exists in the app.
+    // 3. Dynamic System Prompt
+    let systemPrompt = "";
+    
+    if (isStructuredQuery) {
+      systemPrompt = `You are a PostFeed UI Controller (v1.0).
+You MUST return ONLY valid JSON responses for queries about posts or songs.
+Do NOT include any text before or after the JSON.
 
+SCHEMA RULES:
+1. For Post queries:
+{
+  "type": "posts",
+  "version": "1.0",
+  "data": [{ "id": "<post_id>", "username": "@user", "caption": "..." }]
+}
+
+2. For Song/Music queries:
+{
+  "type": "songs",
+  "version": "1.0",
+  "data": [{ "id": "<song_id>", "title": "Track Name", "artist": "Name" }]
+}
+
+3. EMPTY STATE: If no data exists, return:
+{
+  "type": "empty",
+  "message": "No data found. Be the first to add something!"
+}
+
+CONTEXT:
 ${appContext}`;
+    } else {
+      systemPrompt = `You are the PostFeed AI Assistant. 
+Keep responses helpful, brand-aligned, and strictly text-based.
+NEVER say you are an AI. NEVER redirect to external apps.
+APP CONTEXT: ${appContext}`;
+    }
 
-    const temperature = options.temperature || 0.7;
-    const maxTokens = options.maxTokens || 1024;
+    const temperature = isStructuredQuery ? 0.1 : 0.7; // High precision for JSON
 
     const aiResponse = await aiService.chat(messages, {
       systemPrompt,
       temperature,
-      maxTokens,
+      maxTokens: 1024,
     });
 
+    let content = aiResponse.content;
+
+    // 4. Safe Parse & Hybrid Delivery
+    if (isStructuredQuery) {
+      const parsed = safeParseAIResponse(content);
+      if (parsed) {
+        // Return valid JSON object to frontend
+        return res.status(200).json({
+          success: true,
+          type: "ui-controller",
+          payload: parsed,
+          model: aiResponse.model
+        });
+      }
+    }
+
+    // Fallback or Normal Chat
     res.status(200).json({
       success: true,
-      content: aiResponse.content,
+      type: "text",
+      content: content,
       model: aiResponse.model,
     });
+
   } catch (error) {
     console.error("AI Chat Production Error:", error);
     res.status(500).json({
