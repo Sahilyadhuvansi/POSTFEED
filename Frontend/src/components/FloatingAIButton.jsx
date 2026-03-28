@@ -1,0 +1,219 @@
+import { useState, useRef, useEffect } from "react";
+import { X, Send } from "lucide-react";
+import "../styles/FloatingAIButton.css";
+
+/**
+ * Floating AI Chat Button Component
+ * 
+ * Features:
+ * - Fixed position in bottom-right corner
+ * - Minimal circular FAB design
+ * - Groq-powered backend integration
+ * - Clean chat interface (no Claude/Anthropic branding)
+ */
+const FloatingAIButton = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const messagesEndRef = useRef(null);
+
+  // Scroll to bottom when messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Handle sending a message
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    
+    if (!inputValue.trim()) return;
+
+    // Add user message to chat
+    const userMessage = {
+      id: Date.now(),
+      role: "user",
+      content: inputValue,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Call backend API
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/ai/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [
+              ...messages.map((msg) => ({
+                role: msg.role,
+                content: msg.content,
+              })),
+              { role: "user", content: inputValue },
+            ],
+            options: {
+              temperature: 0.7,
+              maxTokens: 1024,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get AI response");
+      }
+
+      const data = await response.json();
+
+      // Add AI response to chat
+      const aiMessage = {
+        id: Date.now() + 1,
+        role: "assistant",
+        content: data.content,
+        model: data.model,
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+      console.error("Chat error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Clear chat history
+  const handleClearChat = () => {
+    setMessages([]);
+    setError("");
+  };
+
+  return (
+    <>
+      {/* Floating Circular Button */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="floating-fab"
+          title="Open AI Assistant"
+          aria-label="Open AI Assistant"
+        >
+          <svg
+            className="fab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            {/* Sparkle/Star Icon */}
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </button>
+      )}
+
+      {/* Chat Panel */}
+      {isOpen && (
+        <div className="chat-panel">
+          {/* Header */}
+          <div className="chat-header">
+            <div className="header-content">
+              <h3>AI Assistant</h3>
+              <p className="text-xs">Powered by Groq</p>
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="close-button"
+              aria-label="Close AI Assistant"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Messages Container */}
+          <div className="messages-container">
+            {messages.length === 0 && (
+              <div className="welcome-message">
+                <div className="sparkle">✨</div>
+                <h4>Welcome!</h4>
+                <p>Ask me anything. I'm here to help!</p>
+              </div>
+            )}
+
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`message message-${message.role}`}
+              >
+                <div className="message-bubble">
+                  {message.content}
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="message message-assistant">
+                <div className="message-bubble loading">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="message message-error">
+                <div className="message-bubble">
+                  ⚠️ {error}
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input Area */}
+          <div className="chat-input-area">
+            <form onSubmit={handleSendMessage} className="chat-form">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Type your message..."
+                className="chat-input"
+                disabled={isLoading}
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !inputValue.trim()}
+                className="send-button"
+                aria-label="Send message"
+              >
+                <Send size={18} />
+              </button>
+            </form>
+
+            {messages.length > 0 && (
+              <button
+                onClick={handleClearChat}
+                className="clear-button"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default FloatingAIButton;

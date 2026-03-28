@@ -10,10 +10,29 @@ services:
     env_file:
       - ./Backend/.env
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - REDIS_URL=redis://cache:6379
+      - MONGO_URI=mongodb://mongodb/postfeed
     depends_on:
       - cache
+      - mongodb
+    networks:
+      - postfeed-network
+    restart: always
+
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - postfeed-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
 
   cache:
@@ -21,7 +40,14 @@ services:
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      - postfeed-network
     restart: always
+
+networks:
+  postfeed-network:
+    driver: bridge
 
 volumes:
   redis_data:
+  mongodb_data:

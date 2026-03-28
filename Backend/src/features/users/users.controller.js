@@ -1,5 +1,5 @@
-const userModel = require("./user.model");
-const postModel = require("../post/post.model");
+const usersModel = require("./users.model");
+const postsModel = require("../posts/posts.model");
 const musicModel = require("../music/music.model");
 const storageService = require("../../services/storage.service");
 const { serializeUser } = require("../../utils/userSerializer");
@@ -7,7 +7,7 @@ const { serializeUser } = require("../../utils/userSerializer");
 // ─── Get Own Profile ──────────────────────────────────────────────────────────
 const getProfile = async (req, res) => {
   try {
-    const user = await userModel.findById(req.user.id);
+    const user = await usersModel.findById(req.user.id);
     if (!user) return res.status(404).json({ success: false, error: "User not found." });
     return res.status(200).json({ success: true, user: serializeUser(user) });
   } catch (err) {
@@ -19,7 +19,7 @@ const getProfile = async (req, res) => {
 // ─── Get User by ID (public) ──────────────────────────────────────────────────
 const getUserById = async (req, res) => {
   try {
-    const user = await userModel.findById(req.params.id);
+    const user = await usersModel.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, error: "User not found." });
     return res.status(200).json({ success: true, user: serializeUser(user) });
   } catch (err) {
@@ -40,7 +40,7 @@ const updateProfile = async (req, res) => {
     const updateData = {};
 
     if (username?.trim()) {
-      const existing = await userModel.findOne({ username: username.trim(), _id: { $ne: req.user.id } });
+      const existing = await usersModel.findOne({ username: username.trim(), _id: { $ne: req.user.id } });
       if (existing) {
         return res.status(409).json({ success: false, error: "Username is already taken." });
       }
@@ -54,7 +54,7 @@ const updateProfile = async (req, res) => {
       updateData.profilePic = result.url;
     }
 
-    const updated = await userModel.findByIdAndUpdate(req.user.id, updateData, { new: true, runValidators: true });
+    const updated = await usersModel.findByIdAndUpdate(req.user.id, updateData, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ success: false, error: "User not found." });
 
     return res.status(200).json({ success: true, message: "Profile updated successfully.", user: serializeUser(updated) });
@@ -76,9 +76,9 @@ const deleteAccount = async (req, res) => {
   try {
     // Fetch all user content to collect storage file IDs
     const [posts, tracks, userRecord] = await Promise.all([
-      postModel.find({ user: req.user.id }).select("imageFileId"),
+      postsModel.find({ user: req.user.id }).select("imageFileId"),
       musicModel.find({ artist: req.user.id }).select("audioFileId thumbnailFileId"),
-      userModel.findById(req.user.id).select("profilePicFileId"),
+      usersModel.findById(req.user.id).select("profilePicFileId"),
     ]);
 
     // Delete all storage files concurrently (best-effort — don't fail if missing)
@@ -92,11 +92,11 @@ const deleteAccount = async (req, res) => {
 
     // Clean up all DB records concurrently
     await Promise.all([
-      postModel.deleteMany({ user: req.user.id }),
+      postsModel.deleteMany({ user: req.user.id }),
       musicModel.deleteMany({ artist: req.user.id }),
     ]);
 
-    const deleted = await userModel.findByIdAndDelete(req.user.id);
+    const deleted = await usersModel.findByIdAndDelete(req.user.id);
     if (!deleted) return res.status(404).json({ success: false, error: "User not found." });
 
     res.clearCookie("token", {

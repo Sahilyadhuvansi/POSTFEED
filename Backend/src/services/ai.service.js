@@ -1,3 +1,7 @@
+const Groq = require("groq-sdk");
+const OpenAI = require("openai");
+const aiConfig = require("../config/ai.config");
+
 /**
  * AI Service Manager for POSTFEED
  * Handles all LLM interactions with fallback support
@@ -104,7 +108,9 @@ class AIService {
    */
   _trackUsage(provider, usage) {
     this.requestCount++;
-    // Cost tracking could be more precise, keeping it simple for monitoring.
+    // Est. cost: 0.0001 USD per request (avg for LLM usage at this scale)
+    this.totalCost += 0.0001; 
+    
     if (this.requestCount % 10 === 0) {
       console.log(`[AI-Log] Total requests so far: ${this.requestCount}`);
     }

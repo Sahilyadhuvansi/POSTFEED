@@ -58,6 +58,13 @@ router.post("/moderate-content", authMiddleware, aiController.moderateContent);
 router.post("/generate-caption", authMiddleware, aiController.generateCaption);
 
 /**
+ * @route   POST /api/ai/chat
+ * @desc    General-purpose chat interface (Groq-powered, Floating Button)
+ * @access  Public
+ */
+router.post("/chat", aiController.chat);
+
+/**
  * @route   POST /api/ai/suggest-hashtags
  * @desc    Suggest hashtags for post
  * @access  Private

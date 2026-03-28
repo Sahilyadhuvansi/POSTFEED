@@ -1,4 +1,4 @@
-const postModel = require("./post.model");
+const postsModel = require("./posts.model");
 const storageService = require("../../services/storage.service");
 
 // ─── Create Post ──────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const getFeed = async (req, res) => {
     res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate");
 
     const [posts, total] = await Promise.all([
-      postModel
+      postsModel
         .find({ isSecret: { $ne: true } }) // Don't expose secret posts in feed
         .select("image caption user createdAt")
         .populate("user", "username profilePic")

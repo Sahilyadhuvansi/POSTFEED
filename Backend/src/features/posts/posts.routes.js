@@ -1,6 +1,6 @@
 const express = require("express");
 const multer = require("multer");
-const postController = require("./post.controller");
+const postsController = require("./posts.controller");
 const auth = require("../../middlewares/auth.middleware");
 
 const router = express.Router();
@@ -19,8 +19,8 @@ const upload = multer({
   },
 });
 
-router.post("/create", auth, upload.single("image"), postController.createPost);
-router.delete("/:postId", auth, postController.deletePost);
-router.get("/feed", postController.getFeed);
+router.post("/create", auth, upload.single("image"), postsController.createPost);
+router.delete("/:postId", auth, postsController.deletePost);
+router.get("/feed", postsController.getFeed);
 
 module.exports = router;

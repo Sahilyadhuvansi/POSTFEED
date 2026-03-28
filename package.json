@@ -6,12 +6,22 @@
     "node": ">=18.x"
   },
   "private": true,
+  "workspaces": [
+    "Backend",
+    "Frontend"
+  ],
   "scripts": {
-    "backend": "cd Backend && npm run dev",
-    "frontend": "cd Frontend && npm run dev",
-    "install-all": "cd Backend && npm install && cd ../Frontend && npm install",
-    "build": "cd Frontend && npm run build",
-    "lint": "cd Frontend && npm run lint",
-    "health-check": "curl http://localhost:3001/health"
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "npm run dev --workspace=Backend",
+    "frontend": "npm run dev --workspace=Frontend",
+    "install:all": "npm install",
+    "build": "npm run build --workspace=Frontend",
+    "lint": "npm run lint --workspace=Frontend",
+    "health-check": "curl http://localhost:3001/health",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

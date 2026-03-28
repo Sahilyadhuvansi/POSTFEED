@@ -1,7 +1,7 @@
 const Music = require("../features/music/music.model");
-const User = require("../features/user/user.model");
-const aiService = require("../common/services/ai.service");
-const aiConfig = require("../common/config/ai.config");
+const User = require("../features/users/users.model");
+const aiService = require("./ai.service");
+const aiConfig = require("../config/ai.config");
 
 /**
  * AI Music Recommendation Engine (Groq/OpenAI Hybrid)

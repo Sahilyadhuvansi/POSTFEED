@@ -1,126 +1,90 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useToast } from "../../components/ui/Toast";
+import { User, Lock, Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
 
 const Login = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { addToast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     const result = await login({
       email: identifier,
       username: identifier,
       password,
     });
+    
     if (result.success) {
+      addToast("Welcome back to the universe.", "success");
       navigate("/");
     } else {
-      setError(result.message);
+      addToast(result.message || "Authentication failed. Check your credentials.", "error");
     }
     setLoading(false);
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-black px-4 py-12 sm:px-6">
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-600/20 rounded-full blur-3xl animate-pulse"></div>
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-12 overflow-hidden">
+      {/* Background Ambience */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-[10%] -right-[10%] w-[40rem] h-[40rem] bg-indigo-600/10 rounded-full blur-[160px] animate-pulse" />
+        <div className="absolute -bottom-[10%] -left-[10%] w-[40rem] h-[40rem] bg-pink-600/10 rounded-full blur-[160px] animate-pulse delay-1000" />
       </div>
 
-      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-gray-950/80 backdrop-blur-xl p-8 sm:p-10 shadow-2xl">
+      <div className="relative w-full max-w-md glass rounded-[32px] p-8 md:p-10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] border-white/5">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-pink-500 shadow-lg shadow-indigo-500/25">
-              <svg
-                className="h-6 w-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth="2.5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 12L3.27 3.13a1 1 0 01.95-1.32h15.56a1 1 0 01.95 1.32L18 12m-12 0v6a2 2 0 002 2h8a2 2 0 002-2v-6"
-                />
-              </svg>
+        <div className="text-center mb-10">
+          <div className="flex justify-center mb-6">
+            <div className="relative p-4 rounded-2xl bg-white/5 border border-white/10 shadow-2xl animate-float">
+              <Sparkles className="w-8 h-8 text-indigo-400" />
+              <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full" />
             </div>
           </div>
-          <h2 className="text-2xl font-black text-white tracking-tight">
-            Welcome Back
+          <h2 className="text-3xl font-black text-white tracking-tight italic">
+            Access <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">PostFeed</span>
           </h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Sign in to share your story and discover new whispers
+          <p className="mt-3 text-sm text-neutral-500 font-medium uppercase tracking-widest">
+            Enter your credentials
           </p>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm font-medium flex items-center gap-2.5">
-            <svg
-              className="w-4 h-4 flex-shrink-0"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-            {error}
-          </div>
-        )}
-
         {/* Form */}
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          {/* Email or Username */}
-          <div>
-            <label
-              htmlFor="login-identifier"
-              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
-            >
-              Email or Username
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          {/* Identity */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 ml-1 flex items-center gap-2">
+              <User className="w-3 h-3" /> Identity
             </label>
             <input
-              id="login-identifier"
-              name="identifier"
               type="text"
               required
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
-              placeholder="your@email.com or username"
+              className="w-full rounded-2xl border border-white/5 bg-white/5 px-5 py-4 text-sm text-white placeholder-neutral-700 outline-none transition-all focus:border-indigo-500/50 hover:bg-white/[0.08]"
+              placeholder="Email or Username"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               autoComplete="username"
             />
           </div>
 
-          {/* Password */}
-          <div>
-            <label
-              htmlFor="login-password"
-              className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
-            >
-              Password
+          {/* Key */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 ml-1 flex items-center gap-2">
+              <Lock className="w-3 h-3" /> Secret Key
             </label>
             <div className="relative">
               <input
-                id="login-password"
-                name="password"
                 type={showPassword ? "text" : "password"}
                 required
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 pr-12 text-sm text-white placeholder-gray-600 outline-none transition-all focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full rounded-2xl border border-white/5 bg-white/5 px-5 py-4 pr-14 text-sm text-white placeholder-neutral-700 outline-none transition-all focus:border-indigo-500/50 hover:bg-white/[0.08]"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -129,73 +93,38 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-300 transition"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-neutral-600 hover:text-white transition-colors"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  {showPassword ? (
-                    <>
-                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                      <path
-                        fillRule="evenodd"
-                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                        clipRule="evenodd"
-                      />
-                    </>
-                  ) : (
-                    <path
-                      fillRule="evenodd"
-                      d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
-                      clipRule="evenodd"
-                    />
-                  )}
-                </svg>
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Action */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="group relative w-full overflow-hidden rounded-2xl bg-white px-6 py-4.5 text-sm font-black uppercase tracking-[0.2em] text-black transition-all hover:bg-neutral-200 active:scale-[0.98] disabled:opacity-50"
           >
-            {loading ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
-                <span>Signing in...</span>
-              </div>
-            ) : (
-              "Sign in"
-            )}
+            <div className="relative z-10 flex items-center justify-center gap-3">
+              {loading ? "Authenticating..." : "Enter Universe"}
+              {!loading && <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />}
+            </div>
           </button>
         </form>
 
-        {/* Divider */}
-        <div className="relative my-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10"></div>
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-gray-950 px-4 text-xs text-gray-600">
-              New to POSTFEED?
-            </span>
-          </div>
+        {/* Navigation Footer */}
+        <div className="mt-10 pt-8 border-t border-white/5 text-center">
+            <p className="text-xs text-neutral-500 font-medium">
+              NEW TO THE STREAM?{" "}
+              <Link
+                to="/register"
+                className="ml-2 font-black text-white hover:text-indigo-400 transition-colors uppercase tracking-widest"
+              >
+                Create Hub
+              </Link>
+            </p>
         </div>
-
-        {/* Register Link */}
-        <p className="text-center text-sm text-gray-500">
-          Don't have an account?{" "}
-          <Link
-            to="/register"
-            className="font-bold text-indigo-400 hover:text-pink-400 transition-colors"
-          >
-            Create one free
-          </Link>
-        </p>
       </div>
     </div>
   );

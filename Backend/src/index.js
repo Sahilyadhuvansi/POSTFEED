@@ -10,10 +10,11 @@ const morgan = require("morgan");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const authRoutes = require("./features/auth/auth.routes");
-const postRoutes = require("./features/post/post.routes");
-const userRoutes = require("./features/user/user.routes");
+const postRoutes = require("./features/posts/posts.routes");
+const userRoutes = require("./features/users/users.routes");
 const musicRoutes = require("./features/music/music.routes");
 const aiRoutes = require("./features/ai/ai.routes");
+const ErrorResponse = require("./utils/ErrorResponse");
 
 // ─── Env Validation ───────────────────────────────────────────────────────────
 const REQUIRED_ENV = ["JWT_SECRET", "MONGO_URI"];
@@ -147,13 +148,35 @@ app.use((_req, res) => {
 // ─── Error Handler ────────────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
-  const status = err.status || err.statusCode || 500;
+  let error = { ...err };
+  error.message = err.message;
+
+  // Log error for developers
   const isProd = process.env.NODE_ENV === "production";
-  console.error(`❌ [${status}] ${err.message}`);
+  console.error(`❌ [${err.statusCode || 500}] ${err.message}`);
   if (!isProd) console.error(err.stack);
-  res.status(status).json({
+
+  // Mongoose bad ObjectId
+  if (err.name === "CastError") {
+    const message = "Resource not found";
+    error = new ErrorResponse(message, 404);
+  }
+
+  // Mongoose duplicate key
+  if (err.code === 11000) {
+    const message = "Duplicate field value entered";
+    error = new ErrorResponse(message, 400);
+  }
+
+  // Mongoose validation error
+  if (err.name === "ValidationError") {
+    const message = Object.values(err.errors).map((val) => val.message);
+    error = new ErrorResponse(message.join(". "), 400);
+  }
+
+  res.status(error.statusCode || 500).json({
     success: false,
-    error: isProd && status === 500 ? "Internal Server Error" : err.message,
+    error: error.message || "Server Error",
   });
 });
 

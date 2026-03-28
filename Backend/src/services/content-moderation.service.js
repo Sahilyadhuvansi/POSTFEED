@@ -1,7 +1,7 @@
 const vision = require("@google-cloud/vision");
 const Filter = require("bad-words");
 const Sentiment = require("sentiment");
-const aiConfig = require("../common/config/ai.config");
+const aiConfig = require("../config/ai.config");
 
 /**
  * AI Content Moderation Service (Safety Intelligence)
