@@ -2,6 +2,13 @@ const musicRecommendation = require("../../services/music-recommendation.service
 const contentModeration = require("../../services/content-moderation.service");
 const aiService = require("../../services/ai.service");
 const aiConfig = require("../../config/ai.config");
+const Post = require("../posts/posts.model");
+const Music = require("../music/music.model");
+
+// Performance optimization: 30-second context caching
+let cachedContext = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 30 * 1000;
 
 /**
  * AI Controller for POST_MUSIC (Professional AI Suite)
@@ -173,6 +180,63 @@ exports.moderateContent = async (req, res) => {
 };
 
 /**
+ * Helper: Format app context tight and clean for token efficiency
+ */
+const formatContext = (posts, music) => {
+  let context = "[LIVE APP CONTEXT]\n\n";
+
+  if (posts && posts.length > 0) {
+    context += "Latest Posts:\n";
+    posts.forEach((p, i) => {
+      const username = p.user?.username || "anonymous";
+      context += `${i + 1}. @${username}: ${p.caption.substring(0, 60)}${p.caption.length > 60 ? "..." : ""}\n`;
+    });
+  } else {
+    context += "Latest Posts: No posts yet.\n";
+  }
+
+  context += "\nLatest Vibes:\n";
+  if (music && music.length > 0) {
+    music.forEach((m, i) => {
+      context += `${i + 1}. ${m.title} – ${m.artist?.username || "Exclusive Artist"}\n`;
+    });
+  } else {
+    context += "Latest Vibes: No trending music yet.\n";
+  }
+
+  return context;
+};
+
+/**
+ * Fetch context with 30s caching layer
+ */
+const getAppContext = async () => {
+  const now = Date.now();
+  if (cachedContext && now - lastFetchTime < CACHE_DURATION) {
+    return cachedContext;
+  }
+
+  try {
+    const posts = await Post.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("user", "username");
+
+    const music = await Music.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("artist", "username");
+
+    cachedContext = formatContext(posts, music);
+    lastFetchTime = now;
+    return cachedContext;
+  } catch (err) {
+    console.error("Context Fetch Error:", err);
+    return "[LIVE APP CONTEXT] Latest Posts: No recent activity. Latest Vibes: No trending vibes.";
+  }
+};
+
+/**
  * @route   POST /api/ai/chat
  * @desc    General-purpose chat interface (Groq-powered, Floating Button)
  * @access  Public
@@ -181,22 +245,55 @@ exports.chat = async (req, res) => {
   try {
     const { messages = [], options = {} } = req.body;
 
-    // Validate input
     if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "Messages array is required and must not be empty.",
-      });
+      return res.status(400).json({ success: false, error: "Prompt is required." });
     }
 
-    // Extract options with defaults
+    const userMessage = messages[messages.length - 1].content.toLowerCase();
+
+    // 1. Intent Detection (Instant Shortcut Responses)
+    if (userMessage.includes("latest post") || userMessage.includes("show feed")) {
+      const posts = await Post.find().sort({ createdAt: -1 }).limit(3).populate("user", "username");
+      if (posts.length > 0) {
+        let resp = "Here are the latest posts on your feed:\n\n";
+        posts.forEach((p, i) => {
+          resp += `${i + 1}. @${p.user?.username || "user"}: "${p.caption}"\n`;
+        });
+        return res.status(200).json({ success: true, content: resp });
+      }
+      return res.status(200).json({ success: true, content: "The feed is currently quiet. Why not be the first to post something fresh? 🚀" });
+    }
+
+    if (userMessage.includes("latest vibes") || userMessage.includes("show music")) {
+      const music = await Music.find().sort({ createdAt: -1 }).limit(5);
+      if (music.length > 0) {
+        let resp = "Here are the trending vibes on PostFeed:\n\n";
+        music.forEach((m, i) => {
+          resp += `${i + 1}. ${m.title} 🔥\n`;
+        });
+        return res.status(200).json({ success: true, content: resp });
+      }
+      return res.status(200).json({ success: true, content: "No vibes detected yet. Head over to VIBES to drop your first track! 🎧" });
+    }
+
+    // 2. Fetch Performance-Optimized Context
+    const appContext = await getAppContext();
+
+    // 3. Strict Persona System Prompt (Hard Instruction Pattern)
+    const systemPrompt = `You are the official PostFeed In-App Assistant.
+You MUST follow these rules strictly. If you break them, your response is invalid:
+1. NEVER say "I cannot access real-time data" or "I am just an AI".
+2. ALWAYS assume you have full access to PostFeed's internal database.
+3. NEVER redirect users to external platforms (Twitter, Instagram, Reddit, etc.).
+4. Stay helpful, concise, and deeply aligned with the PostFeed brand.
+5. Use the [LIVE APP CONTEXT] below to answer specific questions about posts or music.
+6. FALLBACK: If the LIVE APP CONTEXT is empty, simulate realistic mock content as if it exists in the app.
+
+${appContext}`;
+
     const temperature = options.temperature || 0.7;
     const maxTokens = options.maxTokens || 1024;
 
-    // System prompt for general-purpose assistant
-    const systemPrompt = "You are a helpful and friendly AI assistant. You provide clear, concise, and helpful responses. Keep your answers brief and engaging.";
-
-    // Call Groq service (optimized for LPU performance)
     const aiResponse = await aiService.chat(messages, {
       systemPrompt,
       temperature,
@@ -207,19 +304,12 @@ exports.chat = async (req, res) => {
       success: true,
       content: aiResponse.content,
       model: aiResponse.model,
-      usage: aiResponse.usage,
     });
   } catch (error) {
-    console.error("AI Chat Production Error:", {
-      message: error.message,
-      stack: error.stack,
-    });
-    
+    console.error("AI Chat Production Error:", error);
     res.status(500).json({
       success: false,
-      error: error.message?.includes("model") 
-        ? "AI model is currently initializing. Please wait." 
-        : "AI assistant is taking a short break. Try again in a moment.",
+      error: "AI assistant is taking a short break. Try again in a moment.",
     });
   }
 };
