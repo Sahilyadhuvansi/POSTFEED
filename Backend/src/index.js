@@ -55,11 +55,11 @@ const corsOptions = {
     }
     
     console.warn(`⚠️ Blocked by CORS: ${origin}. Approved: ${allowedOrigins.join(", ")}`);
-    return cb(new Error(`CORS policy: origin '${origin}' is not authorized for this uplink.`));
+    return cb(null, false); // Just reject, don't throw Error to avoid 500
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -75,6 +75,7 @@ connectDB().catch((err) => {
 });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
+app.use(cors(corsOptions)); // CORS must be absolute first for preflight success
 app.use(compression());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(
@@ -91,13 +92,14 @@ app.use(
         upgradeInsecureRequests: [],
       },
     },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     hsts:
       process.env.NODE_ENV === "production"
         ? { maxAge: 31536000, includeSubDomains: true }
         : false,
   }),
 );
-app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));

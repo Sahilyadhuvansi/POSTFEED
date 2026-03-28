@@ -15,7 +15,7 @@ const aiConfig = require("../../config/ai.config");
  */
 exports.getRecommendations = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { limit = 10, mood = null } = req.query;
 
     const recommendations = await musicRecommendation.getRecommendations(userId, {
@@ -160,7 +160,7 @@ exports.suggestHashtags = async (req, res) => {
 exports.moderateContent = async (req, res) => {
   try {
     const { text = null } = req.body;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     if (!aiConfig.features.contentModeration) return res.status(200).json({ success: true, warning: "Moderation disabled." });
 

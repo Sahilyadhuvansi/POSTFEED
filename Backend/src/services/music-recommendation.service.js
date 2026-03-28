@@ -24,32 +24,25 @@ class MusicRecommendationService {
     if (cached) return cached;
 
     // ─── Step 2: History Analysis ───
-    const userMusic = await Music.find({ userId }).limit(20);
+    const userMusic = await Music.find({ artist: userId }).limit(20);
     
     // Get tracks from other creators
     const allMusic = await Music.find({ 
-      userId: { $ne: userId } 
+      artist: { $ne: userId } 
     })
-      .populate("userId", "username profilePicture")
+      .populate("artist", "username profilePic")
       .limit(100)
-      .sort({ plays: -1, likes: -1 });
+      .sort({ createdAt: -1 }); // Fallback to createdAt as plays/likes are not yet enforced
 
     if (allMusic.length === 0) return [];
 
     // ─── Step 3: Weighted Scoring ───
     const scoredMusic = allMusic.map(music => {
       let score = 0;
-      score += (music.plays || 0) * 0.1;
-      score += (music.likes || 0) * 0.5;
-
-      if (userMusic.length > 0) {
-        const userGenres = userMusic.map(m => m.genre).filter(Boolean);
-        if (userGenres.includes(music.genre)) score += 20;
-      }
-
-      if (mood && music.mood && music.mood.toLowerCase() === mood.toLowerCase()) {
-        score += 30;
-      }
+      // In a production-grade system, these would be enriched by a dedicated Analytics service
+      // For now, we use a basic recency score
+      const recencyDays = (Date.now() - new Date(music.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      score += Math.max(0, 50 - recencyDays); 
 
       return { music, score };
     });
@@ -114,13 +107,10 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
 
     const similarities = allMusic.map(music => {
       let score = 0;
-      if (music.genre === targetMusic.genre) score += 40;
-      if (music.mood === targetMusic.mood) score += 30;
-
       const targetWords = targetMusic.title.toLowerCase().split(' ');
       const musicWords = music.title.toLowerCase().split(' ');
       const commonWords = targetWords.filter(w => musicWords.includes(w));
-      score += commonWords.length * 5;
+      score += commonWords.length * 10;
 
       return { music, score };
     });
@@ -130,7 +120,7 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
     return sorted.map((s) => ({
       ...s.music.toObject(),
       similarityScore: s.score,
-      reason: this._getSimilarityReason(s.score, targetMusic, s.music),
+      reason: s.score > 0 ? `Shared vibe in title` : "New discovery for you",
     }));
   }
 
@@ -140,9 +130,7 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
   async generateMoodPlaylist(mood, limit = 20) {
     const query = {
       $or: [
-        { mood: new RegExp(mood, "i") },
-        { title: new RegExp(mood, "i") },
-        { genre: new RegExp(mood, "i") }
+        { title: new RegExp(mood, "i") }
       ]
     };
 
@@ -159,16 +147,15 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
    * Trends Discovery with AI Insights
    */
   async discoverTrending(options = {}) {
-    const { period = "week", genre = null, limit = 15 } = options;
+    const { period = "week", limit = 15 } = options;
     const startDate = new Date();
     if (period === "day") startDate.setDate(startDate.getDate() - 1);
     else if (period === "week") startDate.setDate(startDate.getDate() - 7);
     else if (period === "month") startDate.setMonth(startDate.getMonth() - 1);
 
     const query = { createdAt: { $gte: startDate } };
-    if (genre) query.genre = genre;
 
-    const trending = await Music.find(query).sort({ plays: -1 }).limit(limit);
+    const trending = await Music.find(query).sort({ createdAt: -1 }).limit(limit);
 
     let insights = "Popular selection this period.";
     if (trending.length > 0 && aiConfig.features.trendingInsights) {
@@ -176,23 +163,6 @@ Return ONLY as a JSON array of strings: ["reason1", "reason2", ...]`;
     }
 
     return { period, trending, insights };
-  }
-
-  async _analyzeTrendsAI(trending) {
-    try {
-      const titles = trending.slice(0, 10).map((m) => m.title).join(", ");
-      const prompt = `Analyze current trending music and identify common patterns: ${titles}. What is currently moving the listeners? Explain in 2 sentences.`;
-      const response = await aiService.chat([{ role: "user", content: prompt }], { maxTokens: 300 });
-      return response.content;
-    } catch (e) {
-      return "Strong momentum in current music selections.";
-    }
-  }
-
-  _getSimilarityReason(score, target, music) {
-    if (score >= 70) return `Vibe match with ${target.title}`;
-    if (score >= 40) return `Same genre: ${music.genre}`;
-    return "Similar energy";
   }
 
   _parseJSON(text) {
