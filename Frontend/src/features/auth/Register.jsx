@@ -36,9 +36,9 @@ const Register = () => {
       addToast("Welcome to the PostFeed Universe!", "success");
       navigate("/");
     } else {
-      addToast(result.message || "Registration failed. Try a different username or email.", "error");
+      addToast(result.message || "Registration failed. Frequency sync unstable.", "error");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

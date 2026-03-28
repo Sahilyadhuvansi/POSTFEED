@@ -26,6 +26,7 @@ if (missing.length) {
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
+  "https://postfeeds-xi.vercel.app", // Explicitly whitelist the production deployment
   ...(process.env.CORS_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
@@ -35,15 +36,26 @@ if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
 
 const corsOptions = {
   origin: (origin, cb) => {
+    // Allow server-to-server or locally-set origins
     if (!origin) return cb(null, true);
-    if (allowedOrigins.includes(origin)) return cb(null, true);
+    
+    const isAllowed = allowedOrigins.some(allowed => 
+      origin === allowed || 
+      (allowed.includes("*") && new RegExp(allowed.replace(/\*/g, ".*")).test(origin))
+    );
+
+    if (isAllowed) return cb(null, true);
+
+    // Development fallback
     if (
       process.env.NODE_ENV !== "production" &&
       origin.startsWith("http://localhost")
     ) {
       return cb(null, true);
     }
-    return cb(new Error(`CORS: origin '${origin}' not allowed`));
+    
+    console.warn(`⚠️ Blocked by CORS: ${origin}. Approved: ${allowedOrigins.join(", ")}`);
+    return cb(new Error(`CORS policy: origin '${origin}' is not authorized for this uplink.`));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],

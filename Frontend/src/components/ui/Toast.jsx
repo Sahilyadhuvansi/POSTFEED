@@ -7,8 +7,14 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const addToast = (message, type = "info", duration = 5000) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
+    // Prevent toast flooding with identical messages
+    setToasts((prev) => {
+      const isDuplicate = prev.some((t) => t.message === message);
+      if (isDuplicate) return prev;
+      
+      const id = Date.now();
+      return [...prev, { id, message, type, duration }];
+    });
   };
 
   const removeToast = (id) => {
