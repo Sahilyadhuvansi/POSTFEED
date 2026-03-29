@@ -16,6 +16,7 @@ const musicRoutes = require("./features/music/music.routes");
 const aiRoutes = require("./features/ai/ai.routes");
 const ErrorResponse = require("./utils/ErrorResponse");
 const requestId = require("./middlewares/request-id.middleware");
+const errorHandler = require("./middlewares/error-handler.middleware");
 const { analyticsMiddleware } = require("./services/ai.performance-analytics");
 
 // ─── Env Validation ───────────────────────────────────────────────────────────
@@ -78,10 +79,8 @@ connectDB().catch((err) => {
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors(corsOptions)); // CORS must be absolute first for preflight success
-app.use(requestId); // Assign unique ID to every request
+app.use(requestId); // FIRST: Assign unique ID to every request
 app.use(compression());
-app.use(analyticsMiddleware); // Track AI performance globally
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -104,9 +103,11 @@ app.use(
         : false,
   }),
 );
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(analyticsMiddleware); // Track AI performance post-parsing
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 const apiLimiter = rateLimit({
@@ -164,39 +165,7 @@ app.use((_req, res) => {
 });
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
-  let error = { ...err };
-  error.message = err.message;
-
-  // Log error for developers
-  const isProd = process.env.NODE_ENV === "production";
-  console.error(`❌ [${err.statusCode || 500}] ${err.message}`);
-  if (!isProd) console.error(err.stack);
-
-  // Mongoose bad ObjectId
-  if (err.name === "CastError") {
-    const message = "Resource not found";
-    error = new ErrorResponse(message, 404);
-  }
-
-  // Mongoose duplicate key
-  if (err.code === 11000) {
-    const message = "Duplicate field value entered";
-    error = new ErrorResponse(message, 400);
-  }
-
-  // Mongoose validation error
-  if (err.name === "ValidationError") {
-    const message = Object.values(err.errors).map((val) => val.message);
-    error = new ErrorResponse(message.join(". "), 400);
-  }
-
-  res.status(error.statusCode || 500).json({
-    success: false,
-    error: error.message || "Server Error",
-  });
-});
+app.use(errorHandler);
 
 // ─── Start (dev only — Vercel handles its own serving) ───────────────────────
 if (process.env.NODE_ENV !== "production") {

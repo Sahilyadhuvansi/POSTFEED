@@ -10,55 +10,102 @@ const aiConfig = require("../config/ai.config");
 class MusicRecommendationService {
   constructor() {
     this.cache = new Map();
+    this.cacheLimit = 100; // LRU limit
     this.cacheTTL = (aiConfig.cache.ttl.recommendations || 3600) * 1000;
+    
+    // v5: atomic stats
+    this.hits = 0;
+    this.misses = 0;
   }
 
   /**
    * Get personalized recommendations for a user
    */
-  async getRecommendations(userId, options = {}) {
-    // ─── Step 1: Cache Check ───
+  getRecommendations(userId, options = {}) {
     const { limit = 10, mood = null, similarTo = null } = options;
     const cacheKey = `rec_${userId}_${limit}_${mood}_${similarTo}`;
-    const cached = this._getFromCache(cacheKey);
-    if (cached) return cached;
 
-    // ─── Step 2: History Analysis ───
-    const userMusic = await Music.find({ artist: userId }).limit(20);
-    
-    // Get tracks from other creators
-    const allMusic = await Music.find({ 
-      artist: { $ne: userId } 
-    })
-      .populate("artist", "username profilePic")
-      .limit(100)
-      .sort({ createdAt: -1 }); // Fallback to createdAt as plays/likes are not yet enforced
-
-    if (allMusic.length === 0) return [];
-
-    // ─── Step 3: Weighted Scoring ───
-    const scoredMusic = allMusic.map(music => {
-      let score = 0;
-      // In a production-grade system, these would be enriched by a dedicated Analytics service
-      // For now, we use a basic recency score
-      const recencyDays = (Date.now() - new Date(music.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-      score += Math.max(0, 50 - recencyDays); 
-
-      return { music, score };
-    });
-
-    // ─── Step 4: Final Selection and AI Explanation ───
-    let recommendations = scoredMusic
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-      .map(item => item.music);
-
-    if (aiConfig.features.aiRecommendations) {
-      recommendations = await this._addAIExplanations(recommendations, userMusic);
+    // ─── Step 1: LRU Promise Cache Check ───
+    if (this.cache.has(cacheKey)) {
+      const entry = this.cache.get(cacheKey);
+      
+      // Check TTL
+      if (Date.now() - entry.timestamp < this.cacheTTL) {
+        this.recordHit();
+        
+        // Sampled Log (10%)
+        if (Math.random() < 0.1) {
+          process.stdout.write(`[Cache-Hit] ${cacheKey}\n`);
+        }
+        
+        // Touch (LRU)
+        this.cache.delete(cacheKey);
+        this.cache.set(cacheKey, entry);
+        
+        return entry.promise;
+      } else {
+        // Expired
+        this.cache.delete(cacheKey);
+      }
     }
 
-    this._setCache(cacheKey, recommendations);
-    return recommendations;
+    this.recordMiss();
+
+    // ─── Step 2: Immediate Cache Setting (Race Prevention) ───
+    const recommendationPromise = (async () => {
+      // Step 2.1: History Analysis
+      const userMusic = await Music.find({ artist: userId }).limit(20);
+      
+      // Step 2.2: Fetch candidates
+      const allMusic = await Music.find({ 
+        artist: { $ne: userId } 
+      })
+        .populate("artist", "username profilePic")
+        .limit(100)
+        .sort({ createdAt: -1 });
+
+      if (allMusic.length === 0) return [];
+
+      // Step 2.3: Weighted Scoring
+      const scoredMusic = allMusic.map(music => {
+        let score = 0;
+        const recencyDays = (Date.now() - new Date(music.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+        score += Math.max(0, 50 - recencyDays); 
+        return { music, score };
+      });
+
+      // Step 2.4: Final Selection
+      let recommendations = scoredMusic
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(item => item.music);
+
+      // Step 2.5: AI Enrichment
+      if (aiConfig.features.aiRecommendations) {
+        recommendations = await this._addAIExplanations(recommendations, userMusic);
+      }
+
+      return recommendations;
+    })();
+
+    // ─── Step 3: Immediate Caching (Race Prevention) ───
+    this.cache.set(cacheKey, {
+      promise: recommendationPromise,
+      timestamp: Date.now()
+    });
+
+    // Background cleanup on failure
+    recommendationPromise.catch(() => {
+      this.cache.delete(cacheKey);
+    });
+
+    // FIFO Eviction
+    if (this.cache.size > this.cacheLimit) {
+      const oldestKey = this.cache.keys().next().value;
+      this.cache.delete(oldestKey);
+    }
+
+    return recommendationPromise;
   }
 
   /**
@@ -215,15 +262,22 @@ ${recTitles}`;
   }
 
 
-  _getFromCache(key) {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.cacheTTL) return cached.data;
-    return null;
+  // ─── Atomic Stats (v5) ───
+  recordHit() { this.hits++; }
+  recordMiss() { this.misses++; }
+
+  getStats() {
+    return {
+      cacheSize: this.cache.size,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate: (this.hits + this.misses) > 0 
+        ? ((this.hits / (this.hits + this.misses)) * 100).toFixed(2) + "%"
+        : "0%"
+    };
   }
 
-  _setCache(key, data) {
-    this.cache.set(key, { data, timestamp: Date.now() });
-  }
+  // Internal caching helpers removed in favor of inline LRU logic
 }
 
 module.exports = new MusicRecommendationService();

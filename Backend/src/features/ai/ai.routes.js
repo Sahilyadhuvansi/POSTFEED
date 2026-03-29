@@ -4,6 +4,7 @@ const aiController = require('./ai.controller');
 const authMiddleware = require('../../middlewares/auth.middleware');
 const { aiRateLimiter } = require('../../middlewares/ai.rate-limiter');
 const { quotaCheckMiddleware, quotaDeductionMiddleware } = require('../../middlewares/quota.middleware');
+const validation = require('../../middlewares/input-validation.middleware');
 
 // Apply rate limiting and quotas to protected AI endpoints
 const aiMiddleware = [authMiddleware, aiRateLimiter, quotaCheckMiddleware, quotaDeductionMiddleware];
@@ -60,21 +61,21 @@ router.post("/moderate-content", ...aiMiddleware, aiController.moderateContent);
  * @desc    Generate AI caption for post
  * @access  Private
  */
-router.post("/generate-caption", ...aiMiddleware, aiController.generateCaption);
+router.post("/generate-caption", ...aiMiddleware, validation.validateCaptionInput, aiController.generateCaption);
 
 /**
  * @route   POST /api/ai/chat
  * @desc    General-purpose chat interface (Groq-powered, Floating Button)
  * @access  Public
  */
-router.post("/chat", aiRateLimiter, aiController.chat);
+router.post("/chat", aiRateLimiter, validation.validateChatInput, aiController.chat);
 
 /**
  * @route   POST /api/ai/suggest-hashtags
  * @desc    Suggest hashtags for post
  * @access  Private
  */
-router.post("/suggest-hashtags", ...aiMiddleware, aiController.suggestHashtags);
+router.post("/suggest-hashtags", ...aiMiddleware, validation.validateHashtagInput, aiController.suggestHashtags);
 
 // ═══════════════════════════════════════════════════════════════
 // Statistics

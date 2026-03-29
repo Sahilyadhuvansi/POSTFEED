@@ -6,7 +6,22 @@
 // ============================================================================
 
 const Groq = require("groq-sdk");
+const crypto = require("crypto");
 const aiConfig = require("../config/ai.config");
+const { analytics } = require("./ai.performance-analytics");
+
+// v4/v5 HARDENING REFINEMENTS
+const DAILY_COST_LIMIT = 5.0; // $5.00 limit
+const MAX_CACHE_SIZE = 100;    // Number of entries
+const MAX_PAYLOAD_SIZE = 50000; // 50KB soft limit
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const SUSPICIOUS_PATTERNS = [
+  /ignore\s+previous\s+instructions/i,
+  /system\s+prompt/i,
+  /act\s+as\s+/i,
+  /dan\s+mode/i,
+  /jailbreak/i
+];
 
 /**
  * Response Validation Schema
@@ -33,62 +48,95 @@ class AIService {
     this.requestCount = 0;
     this.totalCost = 0;
     this.failureLog = [];
+
+    // v5: atomic stats and cache
+    this.cache = new Map();
+    this.hits = 0;
+    this.misses = 0;
   }
 
   /**
    * Enhanced chat with input validation
    */
   async chat(messages, options = {}) {
-    const {
-      temperature = 0.7,
-      maxTokens = 4096,
-      systemPrompt = null,
-      responseSchema = ResponseSchema.PLAIN_TEXT,
-      strict = false,  // NEW: Require exact format or fail
-    } = options;
+      const {
+        temperature = 0.7,
+        maxTokens = 4096,
+        systemPrompt = null,
+        responseSchema = ResponseSchema.PLAIN_TEXT,
+        strict = false,
+      } = options;
 
-    try {
-      // ─── Step 1: Validate Input ───
-      const validation = this._validateInput(messages);
-      if (!validation.valid) {
-        return this._createErrorResponse("Invalid input format", validation.error);
-      }
+      const cacheKey = this._generateCacheKey({ messages, systemPrompt, temperature, responseSchema });
 
-      // ─── Step 2: Check Service Config ───
-      if (!this.groq) {
-        return this._createErrorResponse(
-          "Service unavailable",
-          "Groq API not configured"
+      try {
+        // ─── Step 0: Cache Check (v5) ───
+        const cachedEntry = this.cache.get(cacheKey);
+        if (cachedEntry) {
+          if (Date.now() - cachedEntry.timestamp < CACHE_TTL) {
+            this.recordHit();
+            return cachedEntry.value;
+          }
+          this.cache.delete(cacheKey); // Expired
+        }
+        this.recordMiss();
+
+        // ─── Step 1: Validate Input ───
+        const validation = this._validateInput(messages);
+        if (!validation.valid) {
+          return this._createErrorResponse("Invalid input format", validation.error);
+        }
+
+        // ─── Step 1.5: Circuit Breaker Check ───
+        const dailyReport = analytics.getComprehensiveReport();
+        const currentDailyCost = parseFloat(dailyReport.summary.totalCost);
+        if (currentDailyCost >= DAILY_COST_LIMIT) {
+          return this._createErrorResponse(
+            "Service quota exceeded",
+            "Daily AI usage limit reached. Circuit breaker active."
+          );
+        }
+
+        // ─── Step 2: Check Service Config ───
+        if (!this.groq) {
+          return this._createErrorResponse(
+            "Service unavailable",
+            "Groq API not configured"
+          );
+        }
+
+        // ─── Step 3: Make API Call ───
+        const rawResponse = await this._groqChat(
+          messages,
+          systemPrompt,
+          temperature,
+          maxTokens
         );
-      }
 
-      // ─── Step 3: Make API Call ───
-      const rawResponse = await this._groqChat(
-        messages,
-        systemPrompt,
-        temperature,
-        maxTokens
-      );
+        if (!rawResponse.success) {
+          return rawResponse; // Error already formatted
+        }
 
-      if (!rawResponse.success) {
-        return rawResponse; // Error already formatted
-      }
+        // ─── Step 4: Parse & Validate Response ───
+        const parsed = this._parseResponse(
+          rawResponse.content,
+          responseSchema,
+          strict
+        );
 
-      // ─── Step 4: Parse & Validate Response ───
-      const parsed = this._parseResponse(
-        rawResponse.content,
-        responseSchema,
-        strict
-      );
+        const finalResponse = {
+          content: parsed.content,
+          model: "groq",
+          usage: rawResponse.usage,
+          status: "success",
+          raw: parsed.raw,  // Include raw for debugging
+          parseSuccess: parsed.success
+        };
 
-      return {
-        content: parsed.content,
-        model: "groq",
-        usage: rawResponse.usage,
-        status: "success",
-        raw: parsed.raw,  // Include raw for debugging
-        parseSuccess: parsed.success
-      };
+        // ─── Step 5: Set Cache (v5) ───
+        this._setCache(cacheKey, finalResponse);
+
+        return finalResponse;
 
     } catch (error) {
       console.error("[AI-Service-Critical]", error.message);
@@ -126,9 +174,21 @@ class AIService {
         return { valid: false, error: "Message content must be a string" };
       }
 
+      // Risk-Scoring Injection Guard
+      let riskScore = 0;
+      for (const pattern of SUSPICIOUS_PATTERNS) {
+        if (pattern.test(msg.content)) {
+          riskScore += 1;
+        }
+      }
+
+      if (riskScore >= 2) {
+        return { valid: false, error: "High-confidence prompt injection detected" };
+      }
+
       // Check for extreme input sizes (prevent token waste)
-      if (msg.content.length > 10000) {
-        return { valid: false, error: "Message too long (max 10000 chars)" };
+      if (msg.content.length > 500) {
+        return { valid: false, error: "Message too long (max 500 chars for AI safety)" };
       }
     }
 
@@ -328,8 +388,37 @@ class AIService {
   }
 
   /**
-   * Get service statistics
+   * Clear failure log (admin function)
    */
+  clearFailureLog() {
+    this.failureLog = [];
+  }
+
+  // ─── Atomic Stats (v5) ───
+  recordHit() { this.hits++; }
+  recordMiss() { this.misses++; }
+
+  // ─── Hash-Safe Caching (v5) ───
+  _generateCacheKey(params) {
+    return crypto
+      .createHash("sha256")
+      .update(JSON.stringify(params))
+      .digest("hex");
+  }
+
+  _setCache(key, value) {
+    // Memory Guard: Don't cache oversized payloads
+    if (JSON.stringify(value).length > MAX_PAYLOAD_SIZE) return;
+
+    // FIFO Eviction
+    if (this.cache.size >= MAX_CACHE_SIZE) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, { value, timestamp: Date.now() });
+  }
+
   getStats() {
     return {
       requestCount: this.requestCount,
@@ -337,16 +426,17 @@ class AIService {
       avgCostPerRequest: this.requestCount > 0 
         ? (this.totalCost / this.requestCount).toFixed(6)
         : 0,
+      cache: {
+        size: this.cache.size,
+        hits: this.hits,
+        misses: this.misses,
+        hitRate: (this.hits + this.misses) > 0 
+          ? ((this.hits / (this.hits + this.misses)) * 100).toFixed(2) + "%"
+          : "0%"
+      },
       recentFailures: this.failureLog.slice(-5),
       status: this.groq ? "operational" : "unconfigured"
     };
-  }
-
-  /**
-   * Clear failure log (admin function)
-   */
-  clearFailureLog() {
-    this.failureLog = [];
   }
 }
 
