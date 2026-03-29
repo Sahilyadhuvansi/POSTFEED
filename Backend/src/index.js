@@ -27,7 +27,7 @@ const isConfigured = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
-  "https://postfeeds-xi.vercel.app", // Public Production URL
+  "https://postfeeds-xi.vercel.app", // Definitive Production Origin
   /\.vercel\.app$/,                 // Any Vercel subdomain (Production/Preview)
   ...(process.env.CORS_ORIGINS || "")
     .split(",")
@@ -77,7 +77,8 @@ const corsOptions = {
     "Accept",
     "X-Request-Id" // Ensure our new production tracing header is allowed
   ],
-  exposedHeaders: ["X-Request-Id"] // Expose tracing header to the frontend
+  exposedHeaders: ["X-Request-Id"], // Expose tracing header to the frontend
+  maxAge: 86400 // Senior: Cache preflight results for 24 hours to reduce latency and console noise
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
