@@ -86,7 +86,7 @@ const corsOptions = {
 // ─── App ──────────────────────────────────────────────────────────────────────
 const app = express();
 
-app.set("trust proxy", 1);
+app.set("trust proxy", true); // Fully trust Vercel's proxy chain for IPv4/IPv6 client identification
 
 // Connect DB (non-blocking for serverless)
 let dbError = null;
@@ -127,11 +127,23 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(analyticsMiddleware); // Track AI performance post-parsing
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
+/**
+ * Safe client identifier for distributed environments (Vercel/Cloudflare)
+ */
+const keyGenerator = (req) => {
+  const xForwardedFor = req.headers["x-forwarded-for"];
+  if (xForwardedFor) {
+    return xForwardedFor.split(",")[0].trim();
+  }
+  return req.ip || req.socket.remoteAddress || "anonymous";
+};
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator, // v6: Robust IPv6 support for Vercel
   message: {
     success: false,
     error: "Too many requests. Please try again later.",
@@ -143,6 +155,7 @@ const authLimiter = rateLimit({
   max: 20, // Stricter for login/register
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator, // v6: Robust IPv6 support for Vercel
   message: {
     success: false,
     error: "Too many auth attempts. Please try again later.",
