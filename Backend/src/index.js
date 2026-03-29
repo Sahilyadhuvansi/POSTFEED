@@ -21,12 +21,9 @@ const requestId = require("./middlewares/request-id.middleware");
 const errorHandler = require("./middlewares/error-handler.middleware");
 const { analyticsMiddleware } = require("./services/ai.performance-analytics");
 
-// ─── Env Validation ───────────────────────────────────────────────────────────
-const REQUIRED_ENV = ["JWT_SECRET", "MONGO_URI"];
-const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
-if (missing.length) {
-  process.exit(1);
-}
+// ─── Env Status (Informational) ────────────────────────────────────────────────
+const isConfigured = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
+// Failure-resistant startup: Allow process to load for diagnostic /health endpoint
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
