@@ -194,10 +194,13 @@ app.use((_req, res) => {
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use(errorHandler);
 
-// ─── Start (dev only — Vercel handles its own serving) ───────────────────────
-if (process.env.NODE_ENV !== "production") {
+// ─── Start (local only — Vercel handles its own serving) ──────────────────────
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   const PORT = process.env.PORT || 3001;
-  app.listen(PORT);
+  app.listen(PORT, () => {
+    // Silence is golden, but for local dev, we need to know it's UP
+    // console.log(`PostFeed Backend running locally on port ${PORT}`);
+  });
 }
 
 module.exports = app;
