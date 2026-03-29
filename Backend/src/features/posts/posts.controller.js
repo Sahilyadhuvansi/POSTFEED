@@ -1,16 +1,16 @@
+"use strict";
+
 const postsModel = require("./posts.model");
 const storageService = require("../../services/storage.service");
+const ErrorResponse = require("../../utils/ErrorResponse");
 
 // ─── Create Post ──────────────────────────────────────────────────────────────
-const createPost = async (req, res) => {
+const createPost = async (req, res, next) => {
   try {
     const { caption, isSecret } = req.body;
 
     if (!req.file && (!caption || !caption.trim())) {
-      return res.status(400).json({
-        success: false,
-        error: "Post must have either an image or a caption.",
-      });
+      return next(new ErrorResponse("Post must have either an image or a caption", 400));
     }
 
     let imageUrl;
@@ -30,49 +30,22 @@ const createPost = async (req, res) => {
       ...(imageUrl && { image: imageUrl }),
     });
 
-    return res
-      .status(201)
-      .json({ success: true, message: "Post created successfully.", post });
+    return res.status(201).json({ 
+      success: true, 
+      message: "Post created successfully", 
+      post,
+      requestId: req.id 
+    });
   } catch (err) {
-    console.error("Create Post Error:", err.message);
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: "File too large. Maximum allowed size is 10MB.",
-        });
+      return next(new ErrorResponse("File too large (Max 10MB)", 400));
     }
-    if (err.name === "ValidationError") {
-      return res.status(400).json({
-        success: false,
-        error: Object.values(err.errors)
-          .map((e) => e.message)
-          .join(". "),
-      });
-    }
-    if (err.message?.includes("upload") || err.message?.includes("ImageKit")) {
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error: "Image upload failed. Try a smaller file or different format.",
-        });
-    }
-    if (err.message?.includes("Only JPG") || err.message?.includes("allowed")) {
-      return res.status(400).json({ success: false, error: err.message });
-    }
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error: "Failed to create post. Please try again.",
-      });
+    next(err);
   }
 };
 
 // ─── Get Feed ─────────────────────────────────────────────────────────────────
-const getFeed = async (req, res) => {
+const getFeed = async (req, res, next) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
@@ -82,7 +55,7 @@ const getFeed = async (req, res) => {
 
     const [posts, total] = await Promise.all([
       postsModel
-        .find({ isSecret: { $ne: true } }) // Don't expose secret posts in feed
+        .find({ isSecret: { $ne: true } })
         .select("image caption user createdAt")
         .populate("user", "username profilePic")
         .sort({ createdAt: -1 })
@@ -98,17 +71,15 @@ const getFeed = async (req, res) => {
       total,
       page,
       totalPages: Math.ceil(total / limit),
+      requestId: req.id
     });
   } catch (err) {
-    console.error("Get Feed Error:", err.message);
-    return res
-      .status(500)
-      .json({ success: false, error: "Failed to load feed. Please refresh." });
+    next(err);
   }
 };
 
 // ─── Get Post By ID ──────────────────────────────────────────────────────────
-const getPostById = async (req, res) => {
+const getPostById = async (req, res, next) => {
   try {
     const post = await postsModel
       .findById(req.params.postId)
@@ -117,48 +88,41 @@ const getPostById = async (req, res) => {
       .lean();
 
     if (!post) {
-      return res.status(404).json({ success: false, error: "Post not found." });
+      return next(new ErrorResponse("Post not found", 404, "POST_NOT_FOUND"));
     }
 
-    return res.status(200).json({ success: true, data: post });
+    return res.status(200).json({ 
+      success: true, 
+      data: post,
+      requestId: req.id 
+    });
   } catch (err) {
-    console.error("Get Post By Id Error:", err.message);
-    return res
-      .status(500)
-      .json({ success: false, error: "Failed to load post." });
+    next(err);
   }
 };
 
 // ─── Delete Post ──────────────────────────────────────────────────────────────
-const deletePost = async (req, res) => {
+const deletePost = async (req, res, next) => {
   try {
     const post = await postsModel.findById(req.params.postId);
 
     if (!post) {
-      return res.status(404).json({ success: false, error: "Post not found." });
+      return next(new ErrorResponse("Post not found", 404, "POST_NOT_FOUND"));
     }
+    
     if (post.user.toString() !== req.user.id) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: "You do not have permission to delete this post.",
-        });
+      return next(new ErrorResponse("You do not have permission to delete this post", 403, "FORBIDDEN"));
     }
 
     await postsModel.findByIdAndDelete(req.params.postId);
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Post deleted successfully." });
+    return res.status(200).json({ 
+      success: true, 
+      message: "Post deleted successfully",
+      requestId: req.id 
+    });
   } catch (err) {
-    console.error("Delete Post Error:", err.message);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error: "Failed to delete post. Please try again.",
-      });
+    next(err);
   }
 };
 

@@ -1,3 +1,5 @@
+"use strict";
+
 const express = require("express");
 const { register, login, logout, getMe } = require("./auth.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");

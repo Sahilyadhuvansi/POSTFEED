@@ -1,3 +1,5 @@
+"use strict";
+
 const express = require("express");
 const multer = require("multer");
 const usersController = require("./users.controller");

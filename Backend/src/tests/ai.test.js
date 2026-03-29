@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * AI Service Test Suite
  * Comprehensive testing for AI reliability and output consistency

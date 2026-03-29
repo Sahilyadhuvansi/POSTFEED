@@ -1,3 +1,5 @@
+"use strict";
+
 // CommonJS validator using envalid
 const { cleanEnv, str, url, num } = require("envalid");
 

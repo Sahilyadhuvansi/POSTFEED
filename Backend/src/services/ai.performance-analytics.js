@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * AI Performance Metrics & Analytics
  * Tracks and analyzes AI service performance in detail with pluggable storage
@@ -187,7 +189,7 @@ const analyticsMiddleware = (req, res, next) => {
       if (parsed?.success === false) {
         analytics.recordError(endpoint, "API_ERROR", parsed?.error);
       }
-    } catch (e) {
+    } catch (_e) {
       // Ignore parse errors from non-JSON responses
     }
 

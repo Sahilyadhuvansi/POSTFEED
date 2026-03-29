@@ -1,3 +1,5 @@
+"use strict";
+
 const OLD_DEFAULT_PIC =
   process.env.OLD_DEFAULT_PIC ||
   "https://ik.imagekit.io/sanujii/default-profile.png";

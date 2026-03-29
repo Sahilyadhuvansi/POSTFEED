@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * AI Input Validation Middleware
  * Protects AI endpoints from XSS, SQL injection, Prompt injection, and Cost explosion

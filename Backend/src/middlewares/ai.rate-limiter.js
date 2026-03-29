@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * AI Rate Limiting Middleware
  * Fast, stateless protection against API abuse

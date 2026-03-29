@@ -1,3 +1,5 @@
+"use strict";
+
 const { expect } = require("chai");
 const musicRecommendation = require("../services/music-recommendation.service");
 const aiService = require("../services/ai.service");

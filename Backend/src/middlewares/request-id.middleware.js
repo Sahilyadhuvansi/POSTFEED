@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * Request ID Middleware
  * Assigns a unique UUID to every request for tracing and observability

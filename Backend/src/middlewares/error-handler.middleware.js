@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * Global Error Handler Middleware
  * Normalizes all error types into a consistent JSON response
@@ -6,7 +8,7 @@
 
 const ErrorResponse = require('../utils/ErrorResponse');
 
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
   let error = { ...err };
   error.message = err.message;
 

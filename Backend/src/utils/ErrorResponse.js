@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * Custom Error Class for API responses
  * This allows us to throw errors with specific status codes, messages, and structured details

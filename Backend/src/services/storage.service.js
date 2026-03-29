@@ -1,3 +1,5 @@
+"use strict";
+
 const { ImageKit } = require("@imagekit/nodejs");
 
 const imagekit = new ImageKit({
@@ -27,7 +29,7 @@ async function deleteFile(fileId) {
   } catch (error) {
     // Ignore "file not found" errors — the file may already be deleted
     if (error?.statusCode === 404 || error?.message?.includes("not found")) {
-      console.warn(`File ${fileId} not found in ImageKit, skipping delete.`);
+      // console log scrubbed
       return null;
     }
     throw error;

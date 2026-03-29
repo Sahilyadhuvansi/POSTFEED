@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * Quota Management Middleware
  * Stateful usage tracking for AI services

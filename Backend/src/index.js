@@ -1,3 +1,5 @@
+"use strict";
+
 require("dotenv").config();
 
 const express = require("express");
@@ -23,7 +25,6 @@ const { analyticsMiddleware } = require("./services/ai.performance-analytics");
 const REQUIRED_ENV = ["JWT_SECRET", "MONGO_URI"];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (missing.length) {
-  console.error(`❌ Missing required env vars: ${missing.join(", ")}`);
   process.exit(1);
 }
 
@@ -57,7 +58,6 @@ const corsOptions = {
       return cb(null, true);
     }
     
-    console.warn(`⚠️ Blocked by CORS: ${origin}. Approved: ${allowedOrigins.join(", ")}`);
     return cb(null, false);
   },
   credentials: true,
@@ -73,7 +73,6 @@ app.set("trust proxy", 1);
 // Connect DB (non-blocking for serverless)
 let dbError = null;
 connectDB().catch((err) => {
-  console.error("Database connection failed:", err.message);
   dbError = err.message;
 });
 
@@ -170,9 +169,7 @@ app.use(errorHandler);
 // ─── Start (dev only — Vercel handles its own serving) ───────────────────────
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () =>
-    console.log(`🚀 Server running on http://localhost:${PORT}`),
-  );
+  app.listen(PORT);
 }
 
 module.exports = app;

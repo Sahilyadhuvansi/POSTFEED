@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * AI Error Recovery & Fallback Strategies
  * Implements intelligent, context-aware recovery for AI failures

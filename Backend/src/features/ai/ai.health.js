@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * AI Service Health Checker
  * (Satisfies ai.test.js requirements)

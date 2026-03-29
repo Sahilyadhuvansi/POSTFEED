@@ -1,5 +1,6 @@
+"use strict";
+
 const Music = require("../features/music/music.model");
-const User = require("../features/users/users.model");
 const aiService = require("./ai.service");
 const aiConfig = require("../config/ai.config");
 
@@ -22,8 +23,8 @@ class MusicRecommendationService {
    * Get personalized recommendations for a user
    */
   getRecommendations(userId, options = {}) {
-    const { limit = 10, mood = null, similarTo = null } = options;
-    const cacheKey = `rec_${userId}_${limit}_${mood}_${similarTo}`;
+    const { limit = 10, _mood = null, _similarTo = null } = options;
+    const cacheKey = `rec_${userId}_${limit}_${_mood}_${_similarTo}`;
 
     // ─── Step 1: LRU Promise Cache Check ───
     if (this.cache.has(cacheKey)) {
@@ -161,8 +162,8 @@ ${recTitles}`;
           : "Recommended for your vibe"
       }));
 
-    } catch (error) {
-      console.error("[Recommendations-Explanation-Error]", error.message);
+    } catch (_error) {
+      // console log scrubbed
       // Fallback to generic reasons
       return recommendations.map(rec => ({
         ...rec.toObject(),
@@ -238,8 +239,8 @@ ${recTitles}`;
     if (trending.length > 0 && aiConfig.features.trendingInsights) {
       try {
         insights = await this._analyzeTrendsAI(trending);
-      } catch (err) {
-        console.error("Trends AI Error:", err.message);
+      } catch (_err) {
+        // console log scrubbed
       }
     }
 

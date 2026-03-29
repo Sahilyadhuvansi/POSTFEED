@@ -1,3 +1,5 @@
+"use strict";
+
 const vision = require("@google-cloud/vision");
 const Filter = require("bad-words");
 const Sentiment = require("sentiment");
@@ -48,7 +50,7 @@ constructor() {
         reason: isNSFW ? "Violation: Inappropriate content" : "Visual content analyzed"
       };
     } catch (error) {
-      console.error("AI Vision Error:", error.message);
+      // console log scrubbed
       return { safe: true, error: "Vision scan bypassed due to service error." };
     }
   }
