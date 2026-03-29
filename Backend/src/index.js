@@ -30,7 +30,8 @@ if (missing.length) {
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
-  "https://postfeeds-xi.vercel.app", // Explicitly whitelist the production deployment
+  "https://postfeeds-xi.vercel.app", // Public Production URL
+  /\.vercel\.app$/,                 // Any Vercel subdomain (Production/Preview)
   ...(process.env.CORS_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
@@ -38,31 +39,48 @@ const allowedOrigins = [
 ];
 if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
 
+/**
+ * CORS POLICY - Post Music AI (Production Refactor)
+ * Senior Feature: Failure-resistant origin matching with wildcard support
+ */
 const corsOptions = {
   origin: (origin, cb) => {
-    // Allow server-to-server or locally-set origins
     if (!origin) return cb(null, true);
-    
-    const isAllowed = allowedOrigins.some(allowed => 
-      origin === allowed || 
-      (allowed.includes("*") && new RegExp(allowed.replace(/\*/g, ".*")).test(origin))
-    );
+
+    const isAllowed = allowedOrigins.some((allowed) => {
+      if (allowed instanceof RegExp) return allowed.test(origin);
+      if (typeof allowed === "string") {
+        return (
+          origin === allowed ||
+          (allowed.includes("*") &&
+            new RegExp(allowed.replace(/\*/g, ".*")).test(origin))
+        );
+      }
+      return false;
+    });
 
     if (isAllowed) return cb(null, true);
 
-    // Development fallback
+    // Development fallback for local loopback
     if (
       process.env.NODE_ENV !== "production" &&
-      origin.startsWith("http://localhost")
+      (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1"))
     ) {
       return cb(null, true);
     }
-    
+
     return cb(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "X-Requested-With", 
+    "Accept",
+    "X-Request-Id" // Ensure our new production tracing header is allowed
+  ],
+  exposedHeaders: ["X-Request-Id"] // Expose tracing header to the frontend
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
