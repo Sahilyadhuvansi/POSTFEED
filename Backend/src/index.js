@@ -101,8 +101,8 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "https:"],
-        fontSrc: ["'self'", "https:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        fontSrc: ["'self'", "'unsafe-inline'", "https:"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: ["'self'", "https:"],
         objectSrc: ["'none'"],
@@ -166,7 +166,7 @@ app.get("/", (_req, res) => {
     .json({ message: "PostFeed & Music API is running", version: "1.0.0" });
 });
 
-app.get("/health", (_req, res) => {
+app.get("/api/health", (_req, res) => {
   const dbConnected = mongoose.connection.readyState === 1;
   const envValid = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
   const healthy = dbConnected && envValid;
