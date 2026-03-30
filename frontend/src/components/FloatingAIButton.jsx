@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Send } from "lucide-react";
-import { api } from "../config";
+import api from "../services/api";
 import { PostCard, SongCard, EmptyStateCard } from "./ui/AIChatCards";
 import "../styles/FloatingAIButton.css";
 
 /**
  * Floating AI Chat Button Component
- * 
+ *
  * Features:
  * - Fixed position in bottom-right corner
  * - Minimal circular FAB design
@@ -29,7 +29,7 @@ const FloatingAIButton = () => {
   // Handle sending a message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
+
     if (!inputValue.trim()) return;
 
     // Add user message to chat state immediately for UI responsiveness
@@ -72,7 +72,9 @@ const FloatingAIButton = () => {
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
-      const errorMsg = err.response?.data?.error || "AI assistant is taking a break. Try shorter messages.";
+      const errorMsg =
+        err.response?.data?.error ||
+        "AI assistant is taking a break. Try shorter messages.";
       setError(errorMsg);
       console.error("Chat error:", err);
     } finally {
@@ -143,20 +145,28 @@ const FloatingAIButton = () => {
                 className={`message message-${message.role}`}
               >
                 <div className="message-bubble">
-                  {message.role === "assistant" && message.type === "ui-controller" ? (
+                  {message.role === "assistant" &&
+                  message.type === "ui-controller" ? (
                     <div className="structured-content">
-                      {message.payload?.type === "posts" && message.payload.data?.map(post => (
-                        <PostCard key={post.id} post={post} />
-                      ))}
-                      {message.payload?.type === "songs" && message.payload.data?.map(song => (
-                        <SongCard key={song.id} song={song} />
-                      ))}
+                      {message.payload?.type === "posts" &&
+                        message.payload.data?.map((post) => (
+                          <PostCard key={post.id} post={post} />
+                        ))}
+                      {message.payload?.type === "songs" &&
+                        message.payload.data?.map((song) => (
+                          <SongCard key={song.id} song={song} />
+                        ))}
                       {message.payload?.type === "empty" && (
                         <EmptyStateCard message={message.payload.message} />
                       )}
                       {/* Fallback for unknown UI types */}
-                      {!["posts", "songs", "empty"].includes(message.payload?.type) && (
-                         <p>{message.content || "Data received, but I can't render it yet."}</p>
+                      {!["posts", "songs", "empty"].includes(
+                        message.payload?.type,
+                      ) && (
+                        <p>
+                          {message.content ||
+                            "Data received, but I can't render it yet."}
+                        </p>
                       )}
                     </div>
                   ) : (
@@ -178,9 +188,7 @@ const FloatingAIButton = () => {
 
             {error && (
               <div className="message message-error">
-                <div className="message-bubble">
-                  ⚠️ {error}
-                </div>
+                <div className="message-bubble">⚠️ {error}</div>
               </div>
             )}
 
@@ -210,10 +218,7 @@ const FloatingAIButton = () => {
             </form>
 
             {messages.length > 0 && (
-              <button
-                onClick={handleClearChat}
-                className="clear-button"
-              >
+              <button onClick={handleClearChat} className="clear-button">
                 Clear
               </button>
             )}

@@ -1,6 +1,16 @@
 import { useState } from "react";
-import { Sparkles, Copy, Check, Type, Music, Zap, Brain, Wand2, Hash } from "lucide-react";
-import { api } from "../../config";
+import {
+  Sparkles,
+  Copy,
+  Check,
+  Type,
+  Music,
+  Zap,
+  Brain,
+  Wand2,
+  Hash,
+} from "lucide-react";
+import api from "../../services/api";
 import { useToast } from "../../components/ui/Toast";
 
 const NeuralNarrator = ({ onCaptionGenerated }) => {
@@ -16,10 +26,11 @@ const NeuralNarrator = ({ onCaptionGenerated }) => {
   const generateCaption = async () => {
     try {
       setLoading(true);
-      const response = await api.post(
-        "/ai/generate-caption",
-        { context, musicTitle, mood }
-      );
+      const response = await api.post("/ai/generate-caption", {
+        context,
+        musicTitle,
+        mood,
+      });
 
       if (response.data.success) {
         setCaption(response.data.data.caption);
@@ -27,7 +38,10 @@ const NeuralNarrator = ({ onCaptionGenerated }) => {
         addToast("Narrative sequence generated.", "success");
       }
     } catch (error) {
-      addToast(error.response?.data?.error || "Generation error. Nexus link unstable.", "error");
+      addToast(
+        error.response?.data?.error || "Generation error. Nexus link unstable.",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -35,10 +49,11 @@ const NeuralNarrator = ({ onCaptionGenerated }) => {
 
   const generateHashtags = async (captionText) => {
     try {
-      const response = await api.post(
-        "/ai/suggest-hashtags",
-        { caption: captionText, musicTitle, genre: mood }
-      );
+      const response = await api.post("/ai/suggest-hashtags", {
+        caption: captionText,
+        musicTitle,
+        genre: mood,
+      });
 
       if (response.data.success) {
         setHashtags(response.data.data.hashtags);
@@ -49,7 +64,7 @@ const NeuralNarrator = ({ onCaptionGenerated }) => {
   };
 
   const copyToClipboard = () => {
-    const fullText = `${caption}\n\n${hashtags.map(h => `#${h}`).join(" ")}`;
+    const fullText = `${caption}\n\n${hashtags.map((h) => `#${h}`).join(" ")}`;
     navigator.clipboard.writeText(fullText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -68,14 +83,18 @@ const NeuralNarrator = ({ onCaptionGenerated }) => {
             <Brain className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-white italic tracking-tight">Neural Narrator</h3>
-            <p className="text-[10px] font-black text-neutral-600 uppercase tracking-[0.2em] mt-0.5">AI-Powered Context Generation</p>
+            <h3 className="text-xl font-black text-white italic tracking-tight">
+              Neural Narrator
+            </h3>
+            <p className="text-[10px] font-black text-neutral-600 uppercase tracking-[0.2em] mt-0.5">
+              AI-Powered Context Generation
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-            <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
-            <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse delay-75" />
-            <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse delay-150" />
+          <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
+          <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse delay-75" />
+          <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse delay-150" />
         </div>
       </div>
 
@@ -112,16 +131,18 @@ const NeuralNarrator = ({ onCaptionGenerated }) => {
             <Zap className="w-3 h-3" /> Emotional Frequency
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {["chill", "energetic", "focus", "happy", "sad", "lo-fi"].map((m) => (
+            {["chill", "energetic", "focus", "happy", "sad", "lo-fi"].map(
+              (m) => (
                 <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMood(m)}
-                    className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${mood === m ? "bg-indigo-500 border-indigo-500 text-white shadow-lg mx-scale-105" : "glass border-white/5 text-neutral-500 hover:bg-white/5 hover:text-white"}`}
+                  key={m}
+                  type="button"
+                  onClick={() => setMood(m)}
+                  className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${mood === m ? "bg-indigo-500 border-indigo-500 text-white shadow-lg mx-scale-105" : "glass border-white/5 text-neutral-500 hover:bg-white/5 hover:text-white"}`}
                 >
-                    {m}
+                  {m}
                 </button>
-            ))}
+              ),
+            )}
           </div>
         </div>
       </div>
@@ -150,8 +171,10 @@ const NeuralNarrator = ({ onCaptionGenerated }) => {
         <div className="mt-10 p-6 glass rounded-[24px] border border-indigo-500/20 animate-in fade-in zoom-in-95 duration-500">
           <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-4">
             <div className="flex items-center gap-2">
-                <Wand2 className="w-4 h-4 text-indigo-400" />
-                <p className="text-[10px] font-black text-white uppercase tracking-widest">Neural Proposal</p>
+              <Wand2 className="w-4 h-4 text-indigo-400" />
+              <p className="text-[10px] font-black text-white uppercase tracking-widest">
+                Neural Proposal
+              </p>
             </div>
             <button
               onClick={copyToClipboard}
@@ -171,7 +194,9 @@ const NeuralNarrator = ({ onCaptionGenerated }) => {
             </button>
           </div>
 
-          <p className="text-sm font-medium text-neutral-300 leading-relaxed italic mb-6">"{caption}"</p>
+          <p className="text-sm font-medium text-neutral-300 leading-relaxed italic mb-6">
+            "{caption}"
+          </p>
 
           {hashtags.length > 0 && (
             <div className="flex flex-wrap gap-2">

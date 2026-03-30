@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useMusic } from "./MusicContext";
+import { useMusic } from "../features/music/MusicContext";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
-import { useToast } from "../../components/ui/Toast";
+import { useToast } from "../components/ui/Toast";
 import {
   Play,
   Pause,
@@ -14,9 +14,9 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import api from "../../services/api";
-import { MusicSkeleton } from "../../components/SkeletonLoader";
-import { useApiCache } from "../../hooks/useApiCache";
+import api from "../services/api";
+import { MusicSkeleton } from "../components/SkeletonLoader";
+import { useApiCache } from "../hooks/useApiCache";
 
 const MUSIC_PER_PAGE = 15;
 
@@ -343,4 +343,3 @@ const Music = () => {
 };
 
 export default Music;
-

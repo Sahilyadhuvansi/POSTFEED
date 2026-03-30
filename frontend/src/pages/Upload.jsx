@@ -6,8 +6,8 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { IMAGEKIT_UPLOAD_URL } from "../../config";
-import api from "../../services/api";
+import { IMAGEKIT_UPLOAD_URL } from "../config";
+import api from "../services/api";
 
 import { parseBlob } from "music-metadata-browser";
 
@@ -198,9 +198,7 @@ const Upload = () => {
           const title = file.name.replace(/\.[^/.]+$/, "");
 
           // Get auth
-          const { data: authParams } = await api.get(
-            "/music/imagekit-auth",
-          );
+          const { data: authParams } = await api.get("/music/imagekit-auth");
 
           // Upload audio
           const audioResult = await uploadToImageKit(file, authParams);
@@ -233,9 +231,7 @@ const Upload = () => {
             }
 
             if (coverFile) {
-              const { data: thumbAuth } = await api.get(
-                "/music/imagekit-auth",
-              );
+              const { data: thumbAuth } = await api.get("/music/imagekit-auth");
               thumbnailResult = await uploadToImageKit(coverFile, thumbAuth);
             }
           } catch (thumbErr) {
@@ -462,4 +458,3 @@ const Upload = () => {
 };
 
 export default Upload;
-

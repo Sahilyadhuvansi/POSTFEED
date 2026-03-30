@@ -9,8 +9,8 @@ import {
   Headphones,
   Disc,
 } from "lucide-react";
-import { api } from "../../config";
-import { useToast } from "../../components/ui/Toast";
+import api from "../services/api";
+import { useToast } from "../components/ui/Toast";
 import { useMusic } from "../features/music/MusicContext";
 
 const AINexus = () => {
@@ -212,4 +212,3 @@ const AINexus = () => {
 };
 
 export default AINexus;
-

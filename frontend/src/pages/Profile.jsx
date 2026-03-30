@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
-import { DEFAULT_AVATAR, api } from "../../config";
+import { DEFAULT_AVATAR } from "../config";
+import api from "../services/api";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_SIZE_MB = 5;
@@ -40,7 +41,9 @@ const Profile = () => {
       return;
     }
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(`Image too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max is ${MAX_SIZE_MB}MB.`);
+      setError(
+        `Image too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max is ${MAX_SIZE_MB}MB.`,
+      );
       return;
     }
     setNewProfilePic(file);
@@ -72,7 +75,10 @@ const Profile = () => {
       if (status === 401) setError("Session expired. Please log in again.");
       else if (status === 409) setError("That username is already taken.");
       else if (status === 413) setError("Image too large. Max 4.5MB.");
-      else setError(err.response?.data?.error || "Update failed. Please try again.");
+      else
+        setError(
+          err.response?.data?.error || "Update failed. Please try again.",
+        );
     } finally {
       setLoading(false);
     }
@@ -108,27 +114,59 @@ const Profile = () => {
               <div className="h-full w-full rounded-full overflow-hidden bg-gray-900 ring-4 ring-black">
                 <img
                   src={preview || DEFAULT_AVATAR}
-                  onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_AVATAR; }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = DEFAULT_AVATAR;
+                  }}
                   alt="Profile"
                   className="h-full w-full object-cover"
                 />
               </div>
               {isEditing && (
                 <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
                   </svg>
                 </div>
               )}
             </div>
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileChange}
+            />
 
             {/* Info */}
             <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl font-black text-white">{user.username}</h1>
-              <p className="text-sm text-gray-500 mt-1">Member since {new Date(user.createdAt || Date.now()).getFullYear()}</p>
-              {user.bio && <p className="text-sm text-gray-400 mt-2 max-w-md">{user.bio}</p>}
+              <h1 className="text-2xl sm:text-3xl font-black text-white">
+                {user.username}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Member since{" "}
+                {new Date(user.createdAt || Date.now()).getFullYear()}
+              </p>
+              {user.bio && (
+                <p className="text-sm text-gray-400 mt-2 max-w-md">
+                  {user.bio}
+                </p>
+              )}
             </div>
 
             {/* Buttons */}
@@ -167,19 +205,31 @@ const Profile = () => {
             <h2 className="text-lg font-bold text-white mb-6">Edit Profile</h2>
             <form onSubmit={handleUpdate} className="space-y-6">
               <div>
-                <label htmlFor="p-username" className="block text-xs font-semibold text-gray-400 mb-2 ml-1">Username</label>
+                <label
+                  htmlFor="p-username"
+                  className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+                >
+                  Username
+                </label>
                 <input
                   id="p-username"
                   type="text"
                   value={form.username}
-                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, username: e.target.value })
+                  }
                   className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
                   placeholder="Username"
                   autoComplete="username"
                 />
               </div>
               <div>
-                <label htmlFor="p-bio" className="block text-xs font-semibold text-gray-400 mb-2 ml-1">Bio</label>
+                <label
+                  htmlFor="p-bio"
+                  className="block text-xs font-semibold text-gray-400 mb-2 ml-1"
+                >
+                  Bio
+                </label>
                 <textarea
                   id="p-bio"
                   value={form.bio}
@@ -188,18 +238,30 @@ const Profile = () => {
                   maxLength={160}
                   className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 h-24 resize-none"
                 />
-                <p className="text-right text-xs text-gray-600 mt-1">{form.bio.length}/160</p>
+                <p className="text-right text-xs text-gray-600 mt-1">
+                  {form.bio.length}/160
+                </p>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={loading} className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 transition-all">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 px-6 py-3 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 transition-all"
+                >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                       Saving...
                     </span>
-                  ) : "Save Changes"}
+                  ) : (
+                    "Save Changes"
+                  )}
                 </button>
-                <button type="button" onClick={handleCancelEdit} className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] px-6 py-3 text-sm font-semibold text-gray-400 hover:text-white transition-all">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] px-6 py-3 text-sm font-semibold text-gray-400 hover:text-white transition-all"
+                >
                   Cancel
                 </button>
               </div>
@@ -212,4 +274,3 @@ const Profile = () => {
 };
 
 export default Profile;
-

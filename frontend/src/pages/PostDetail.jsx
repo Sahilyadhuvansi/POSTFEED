@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { api, DEFAULT_AVATAR } from "../../config";
-import { useToast } from "../../components/ui/Toast";
+import { DEFAULT_AVATAR } from "../config";
+import api from "../services/api";
+import { useToast } from "../components/ui/Toast";
 import { X, Heart, MessageCircle, Share2, User, Calendar } from "lucide-react";
 
 /**
@@ -159,4 +160,3 @@ const PostDetail = () => {
 };
 
 export default PostDetail;
-
