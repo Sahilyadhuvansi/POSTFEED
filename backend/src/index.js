@@ -35,7 +35,7 @@ const allowedOrigins = [
     .map((o) => o.trim())
     .filter(Boolean),
 ];
-if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
+if (process.env.frontend_URL) allowedOrigins.push(process.env.frontend_URL);
 
 /**
  * CORS POLICY - Post Music AI (Production Refactor)
@@ -222,7 +222,7 @@ async function startServer() {
 
   // ─── FINAL LISTEN (Outside failure blocks — Render REQUIREMENT) ──────────────
   app.listen(PORT, "0.0.0.0", () => {
-    logger.info(`🚀 PostFeed Backend active on 0.0.0.0:${PORT}`);
+    logger.info(`🚀 PostFeed backend active on 0.0.0.0:${PORT}`);
     if (!isConfigured) {
       logger.warn("⚠️ JWT_SECRET or MONGO_URI missing from environment!");
     }

@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Backend Constants
+ * backend Constants
  * Centralized values for configuration and business logic constraints
  */
 

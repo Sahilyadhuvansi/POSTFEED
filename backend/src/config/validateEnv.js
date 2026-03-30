@@ -8,7 +8,7 @@ const env = cleanEnv(process.env, {
   PORT: num({ default: 3001 }),
 
   // Optional values with sensible defaults
-  FRONTEND_URL: str({ default: "http://localhost:5001" }),
+  frontend_URL: str({ default: "http://localhost:5001" }),
   CORS_ORIGINS: str({ default: "http://localhost:5173" }),
   MONGO_URI: str({ default: "" }),  // Handle missing vars in db service
   JWT_SECRET: str({ default: "dev_fallback_not_secure_change_me" }), 

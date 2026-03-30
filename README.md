@@ -32,8 +32,8 @@ graph TD
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18, Vite, Tailwind CSS, Lucide React, Axios.
-- **Backend**: Node.js, Express, Mongoose, JWT, Helmet, Morgan.
+- **frontend**: React 18, Vite, Tailwind CSS, Lucide React, Axios.
+- **backend**: Node.js, Express, Mongoose, JWT, Helmet, Morgan.
 - **AI**: Groq (Llama3), Google Cloud Platform features.
 - **Storage**: ImageKit.io for media assets.
 
@@ -90,7 +90,7 @@ graph TD
 - **Separation of Concerns**: Business logic resides in `services/`, not `routes/`.
 - **API Strategy**: Centralized Axios instance in `frontend/src/services/api.js`.
 - **Constants**: Shared configurations in `backend/src/constants/`.
-- **Deployment**: Configured for Vercel (Frontend) and scalable Backend environments.
+- **Deployment**: Configured for Vercel (frontend) and scalable backend environments.
 
 ---
 

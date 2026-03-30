@@ -2,7 +2,7 @@
 
 /**
  * Shared Constants
- * Shared across Backend and Frontend to ensure business logic consistency
+ * Shared across backend and frontend to ensure business logic consistency
  */
 
 module.exports = {
