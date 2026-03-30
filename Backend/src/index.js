@@ -20,6 +20,7 @@ const ErrorResponse = require("./utils/ErrorResponse");
 const requestId = require("./middlewares/request-id.middleware");
 const errorHandler = require("./middlewares/error-handler.middleware");
 const { analyticsMiddleware } = require("./services/ai.performance-analytics");
+const logger = require("./utils/logger");
 
 // ─── Env Status (Informational) ────────────────────────────────────────────────
 const isConfigured = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
@@ -203,8 +204,7 @@ app.use(errorHandler);
 if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
-    // Silence is golden, but for local dev, we need to know it's UP
-    // console.log(`PostFeed Backend running locally on port ${PORT}`);
+    logger.info(`PostFeed Backend running locally on port ${PORT}`);
   });
 }
 
