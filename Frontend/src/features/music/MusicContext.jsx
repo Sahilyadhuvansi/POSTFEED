@@ -1,17 +1,29 @@
+// ─── Commit: Music context - audio Engine State ───
+// What this does: Manages the global audio player, playlist, and volume.
+// Why it exists: To allow music to play continuously while the user browses the app.
+// How it works: Wraps the native HTML5 Audio API in a React Context.
+// Beginner note: This is the "CD Player" of the application—it holds the disc and controls the volume.
+
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
 
 const MusicContext = createContext(null);
 
 export const MusicProvider = ({ children }) => {
+  // ─── Commit: Player State Management ───
+  // What this does: Tracks the current song, progress, and playback status.
+
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(() => {
-    // Persist volume preference across sessions
     return parseFloat(localStorage.getItem("playerVolume") || "0.7");
   });
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  // ─── Commit: Persistent audio Reference ───
+  // why it exists: useRef keeps the same Audio object alive for the entire session.
+  // Interview insight: Using useRef for native DOM/Web elements prevents unnecessary re-renders when their internal state changes.
 
   const audioRef = useRef(new Audio());
   const currentTrack = playlist[currentIndex] || null;
@@ -22,7 +34,10 @@ export const MusicProvider = ({ children }) => {
     localStorage.setItem("playerVolume", String(volume));
   }, [volume]);
 
-  // ─── Audio Event Listeners ───────────────────────────────────────────────
+  // ─── Commit: Audio Event Orchestration ───
+  // What this does: Syncs the native <audio> events (like time update) with React state.
+  // How it works: Adds specialized event listeners to the Audio object and cleans them up on unmount.
+
   useEffect(() => {
     const audio = audioRef.current;
 
@@ -52,7 +67,9 @@ export const MusicProvider = ({ children }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, playlist.length]);
 
-  // ─── Toggle Play/Pause ────────────────────────────────────────────────────
+  // ─── Commit: Playback Logic ───
+  // What this does: toggles between play/pause and handles track switching.
+
   const togglePlay = useCallback(() => {
     if (!currentTrack) return;
     if (isPlaying) {
@@ -65,11 +82,9 @@ export const MusicProvider = ({ children }) => {
     }
   }, [isPlaying, currentTrack]);
 
-  // ─── Play a Track ─────────────────────────────────────────────────────────
   const playTrack = useCallback((track, newPlaylist) => {
     const targetPlaylist = newPlaylist || playlist;
 
-    // Update playlist if a new one is supplied
     if (newPlaylist) setPlaylist(newPlaylist);
 
     const idx = targetPlaylist.findIndex((t) => t._id === track._id);
@@ -78,13 +93,11 @@ export const MusicProvider = ({ children }) => {
       return;
     }
 
-    // Same track → toggle
     if (currentIndex === idx && playlist === targetPlaylist) {
       togglePlay();
       return;
     }
 
-    // New track → play it
     const src = track.audioUrl || track.uri;
     if (!src) {
       console.error("No audio source for track:", track._id);
@@ -103,7 +116,9 @@ export const MusicProvider = ({ children }) => {
       });
   }, [currentIndex, playlist, togglePlay]);
 
-  // ─── Navigation ───────────────────────────────────────────────────────────
+  // ─── Commit: Navigation Controls ───
+  // What this does: Logic for "Next" and "Previous" track switching.
+
   const playNext = useCallback(() => {
     if (!playlist.length) return;
     const next = (currentIndex + 1) % playlist.length;
@@ -112,7 +127,6 @@ export const MusicProvider = ({ children }) => {
 
   const playPrevious = useCallback(() => {
     if (!playlist.length) return;
-    // If more than 3 seconds in, restart track instead of going back
     if (audioRef.current.currentTime > 3) {
       audioRef.current.currentTime = 0;
       return;
@@ -121,7 +135,7 @@ export const MusicProvider = ({ children }) => {
     playTrack(playlist[prev]);
   }, [currentIndex, playlist, playTrack]);
 
-  // ─── Seek ─────────────────────────────────────────────────────────────────
+  // ─── Commit: Scrubbing (Seek) Logic ───
   const seek = useCallback((value) => {
     if (!audioRef.current.duration || isNaN(audioRef.current.duration)) return;
     audioRef.current.currentTime = (value / 100) * audioRef.current.duration;
@@ -141,9 +155,9 @@ export const MusicProvider = ({ children }) => {
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useMusic = () => {
   const ctx = useContext(MusicContext);
   if (!ctx) throw new Error("useMusic must be used inside MusicProvider");
   return ctx;
 };
+

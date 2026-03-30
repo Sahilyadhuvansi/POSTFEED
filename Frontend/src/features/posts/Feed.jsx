@@ -1,3 +1,9 @@
+// ─── Commit: Feed Component - The Heart of the App ───
+// What this does: Renders the social media feed, handles infinite scrolling, and displays post details in a modal.
+// Why it exists: To provide the primary content consumption experience for users.
+// How it works: Uses React Hooks (useEffect, useState) to fetch and display posts, and uses an IntersectionObserver for infinite scrolling.
+// Beginner note: The "Feed" is the most complex part of a social app—it combines networking, image handling, and lazy-loading.
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -18,15 +24,21 @@ import {
   Send,
 } from "lucide-react";
 
+// ─── Commit: Optimization Constants ───
 const POSTS_PER_PAGE = 12;
 
 const Feed = () => {
+  // ─── Commit: State & Ref Infrastructure ───
+  // What this does: Initializes global hooks and local refs for UI management.
+  // Interview insight: Using refs (like observerTarget) allows us to interact with the DOM without triggering React re-renders.
+
   const { user } = useAuth();
   const { getFromCache, setCache } = useApiCache();
   const { addToast } = useToast();
   const observerTarget = useRef(null);
   const postMenuRef = useRef(null);
 
+  // Check cache for instant page load
   const initialCached = getFromCache("feed_page_1");
 
   const [posts, setPosts] = useState(initialCached?.posts || []);
@@ -36,7 +48,10 @@ const Feed = () => {
   const [page, setPage] = useState(1);
   const [activeMenu, setActiveMenu] = useState(null);
 
-  // ─── Initial Load ──────────────────────────────────────────────────────────
+  // ─── Commit: Bootup Data Fetching ───
+  // What this does: Fetches the first page of posts if not already in cache.
+  // How it works: useEffect fires on mount, calls the Backend's /posts/feed endpoint via axios (api).
+
   useEffect(() => {
     if (initialCached) return;
     api
@@ -54,10 +69,13 @@ const Feed = () => {
         );
       })
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Load More (Infinite Scroll) ───────────────────────────────────────────
+  // ─── Commit: Infinite Load Logic ───
+  // What this does: Fetches the next page of posts and appends them to the current list.
+  // Why it exists: To keep users engaged by never reaching a "End of page".
+  // Interview insight: 'Promise.all' or sequence-based fetching? Here we use sequential page-based fetching for predictability.
+
   const loadMorePosts = useCallback(() => {
     const nextPage = page + 1;
     const cacheKey = `feed_page_${nextPage}`;
@@ -82,7 +100,10 @@ const Feed = () => {
       .catch((err) => console.error("Expansion error:", err.message));
   }, [page, getFromCache, setCache]);
 
-  // ─── Intersection Observer ─────────────────────────────────────────────────
+  // ─── Commit: Viewport Observation ───
+  // What this does: Triggers 'loadMorePosts' when the user scrolls to the bottom of the feed.
+  // How it works: Uses the IntersectionObserver API to watch the 'observerTarget' div.
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -94,7 +115,7 @@ const Feed = () => {
     return () => observer.disconnect();
   }, [hasMore, loading, loadMorePosts]);
 
-  // ─── Close menu on outside click ───────────────────────────────────────────
+  // ─── Commit: UI Helper - outside Click Handler ───
   useEffect(() => {
     const handler = (e) => {
       if (postMenuRef.current && !postMenuRef.current.contains(e.target)) {
@@ -105,7 +126,7 @@ const Feed = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // ─── Delete Post ───────────────────────────────────────────────────────────
+  // ─── Commit: Data Deletion Flow ───
   const handleDeletePost = async (e, postId) => {
     e.stopPropagation();
     if (!window.confirm("Broadcast deletion? This cannot be undone.")) return;
@@ -396,3 +417,4 @@ const Feed = () => {
 };
 
 export default Feed;
+

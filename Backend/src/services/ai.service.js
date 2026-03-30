@@ -1,15 +1,20 @@
-"use strict";
+// ─── Commit: AI Service - Brain of the Application ───
+// What this does: Interfaces with external AI providers (Groq) to generate intelligent responses.
+// Why it exists: To power the AI chat assistant and other smart features in PostFeed.
+// How it works: Uses the Groq SDK, implements caching, and handles cost monitoring in real-time.
+// Beginner note: A "Service" is like a specialist you hire for a specific job—in this case, "The Brain".
 
-// ============================================================================
-// AI SERVICE - Post Music AI (Production Refactor)
-// ============================================================================
-// Status: Production-hardened with zero-log observability
-// ============================================================================
+"use strict";
 
 const Groq = require("groq-sdk");
 const crypto = require("crypto");
 const aiConfig = require("../config/ai.config");
 const { analytics } = require("./ai.performance-analytics");
+
+// ─── Commit: AI Safety and Guardrails ───
+// What this does: Defines strict limits and patterns to prevent AI abuse or unexpected costs.
+// Why it exists: To protect the server from infinite loops, prompt injection, and high API bills.
+// Interview insight: Implementing a "Circuit Breaker" (like DAILY_COST_LIMIT) is critical for production AI apps.
 
 const DAILY_COST_LIMIT = 5.0; 
 const MAX_CACHE_SIZE = 100;    
@@ -45,6 +50,11 @@ class AIService {
     this.hits = 0;
     this.misses = 0;
   }
+
+  // ─── Commit: Core Chat Orchestration ───
+  // What this does: Main entry point for AI requests with built-in caching and validation.
+  // How it works: Checks cache first $\rightarrow$ Validates input $\rightarrow$ Checks budget $\rightarrow$ Calls API.
+  // Interview insight: Caching AI responses with SHA-256 keys (hashing the prompt) saves money and reduces latency.
 
   async chat(messages, options = {}) {
       const {
@@ -123,6 +133,9 @@ class AIService {
     }
   }
 
+  // ─── Commit: Prompt Injection Detection ───
+  // What this does: Scans messages for malicious patterns that try to "jailbreak" the AI.
+  
   _validateInput(messages) {
     if (!Array.isArray(messages)) return { valid: false, error: "Messages must be an array" };
     if (messages.length === 0) return { valid: false, error: "Messages array cannot be empty" };
@@ -143,6 +156,10 @@ class AIService {
     return { valid: true };
   }
 
+  // ─── Commit: intelligent Response Parsing ───
+  // What this does: Extracts and cleans JSON from AI's markdown-heavy responses.
+  // why it exists: AI often includes "Here is your JSON:" text which breaks JSON.parse().
+  
   _parseResponse(text, schema = ResponseSchema.PLAIN_TEXT, strict = false) {
     const raw = text;
     try {
@@ -241,6 +258,9 @@ class AIService {
     };
   }
 
+  // ─── Commit: Token Cost Tracking ───
+  // What this does: Calculates the monetary cost of each request based on token usage.
+  
   _trackUsage(_provider, usage) {
     this.requestCount++;
     if (usage && usage.total_tokens) {
@@ -305,3 +325,4 @@ class AIService {
 
 const aiService = new AIService();
 module.exports = aiService;
+

@@ -1,10 +1,21 @@
+// ─── Commit: Posts Controller - Social Feed Management ───
+// What this does: Handles the creation, retrieval, and deletion of social media posts.
+// Why it exists: To allow users to share content and view a dynamic feed of posts.
+// How it works: Interacts with the Posts Model and integrates with a Storage Service for image uploads.
+// Beginner note: This is the "Engine" of the social feed, managing how data flows from the user to the database and back.
+
 "use strict";
 
 const postsModel = require("./posts.model");
 const storageService = require("../../services/storage.service");
 const ErrorResponse = require("../../utils/ErrorResponse");
 
-// ─── Create Post ──────────────────────────────────────────────────────────────
+// ─── Commit: Create Post Logic (Media + Text) ───
+// What this does: Processes new posts, potentially including an image upload.
+// Why it exists: To allow users to post both captions and visual media.
+// How it works: Uses 'storageService' to upload images from a buffer before saving the post metadata.
+// Interview insight: Decoupling metadata (DB) from binary data (Storage Bucket) is essential for scalability.
+
 const createPost = async (req, res, next) => {
   try {
     const { caption, isSecret } = req.body;
@@ -44,7 +55,12 @@ const createPost = async (req, res, next) => {
   }
 };
 
-// ─── Get Feed ─────────────────────────────────────────────────────────────────
+// ─── Commit: Feed Retrieval (Pagination & Caching) ───
+// What this does: Fetches a list of public posts with pagination support.
+// Why it exists: To provide a performant way to browse content without overloading the client.
+// How it works: Uses Mongoose .skip() and .limit() for offset-based pagination.
+// Interview insight: Always include 'Cache-Control' headers for read-heavy feed endpoints to improve edge performance.
+
 const getFeed = async (req, res, next) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
@@ -78,7 +94,9 @@ const getFeed = async (req, res, next) => {
   }
 };
 
-// ─── Get Post By ID ──────────────────────────────────────────────────────────
+// ─── Commit: Single Post Lookup ───
+// What this does: Retrieves all details for a specific post by its unique ID.
+
 const getPostById = async (req, res, next) => {
   try {
     const post = await postsModel
@@ -101,7 +119,12 @@ const getPostById = async (req, res, next) => {
   }
 };
 
-// ─── Delete Post ──────────────────────────────────────────────────────────────
+// ─── Commit: Post Deletion (Authorization Check) ───
+// What this does: Deletes a post while ensuring only the owner can do so.
+// Why it exists: To maintain data ownership and security protocols.
+// How it works: Compares the logged-in user ID with the post's author ID before proceeding.
+// Beginner note: This is a classic example of "Resource-level Authorization".
+
 const deletePost = async (req, res, next) => {
   try {
     const post = await postsModel.findById(req.params.postId);
@@ -127,3 +150,4 @@ const deletePost = async (req, res, next) => {
 };
 
 module.exports = { createPost, getFeed, getPostById, deletePost };
+

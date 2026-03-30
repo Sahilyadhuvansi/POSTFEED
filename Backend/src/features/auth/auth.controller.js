@@ -1,3 +1,9 @@
+// ─── Commit: Authentication Controller - Core Logic ───
+// What this does: Manages user registration, login, logout, and profile fetching.
+// Why it exists: To authorize and identify users within the application.
+// How it works: Interacts with the User Model and uses JWT (JSON Web Tokens) for session management.
+// Beginner note: The Auth Controller is like a bouncer at a club—it checks IDs and gives out wristbands (tokens).
+
 "use strict";
 
 const usersModel = require("../users/users.model");
@@ -5,7 +11,12 @@ const jwt = require("jsonwebtoken");
 const { serializeUser } = require("../../utils/userSerializer");
 const ErrorResponse = require("../../utils/ErrorResponse");
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Commit: Security Helpers and Token Signing ───
+// What this does: Defines cookie options and JWT generation logic.
+// Why it exists: Secure cookies (httpOnly) prevent Cross-Site Scripting (XSS) from stealing tokens.
+// How it works: signToken() encodes user data into a cryptographically signed string.
+// Interview insight: Always use 'httpOnly' and 'secure' flags for session cookies in production.
+
 const COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 const getCookieOptions = () => ({
@@ -20,7 +31,10 @@ const signToken = (user) =>
     expiresIn: "7d",
   });
 
-// ─── Register ─────────────────────────────────────────────────────────────────
+// ─── Commit: User Registration Logic ───
+// What this does: Handles new account creation, including validation and duplicate checks.
+// How it works: Hashes passwords (via model hooks) and returns a session cookie/token on success.
+
 const register = async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
@@ -60,7 +74,12 @@ const register = async (req, res, next) => {
   }
 };
 
-// ─── Login ────────────────────────────────────────────────────────────────────
+// ─── Commit: Secure Login Strategy ───
+// What this does: Authenticates existing users and returns a session.
+// Why it exists: To permit users to access protected routes after identity verification.
+// How it works: Usesbcrypt comparison to verify passwords without storing them in plain text.
+// Interview insight: Use vague error messages (e.g., "Invalid credentials") to prevent account enumeration.
+
 const login = async (req, res, next) => {
   try {
     const { email, username, password } = req.body;
@@ -76,7 +95,6 @@ const login = async (req, res, next) => {
 
     const user = await usersModel.findOne({ $or: query }).select("+password");
 
-    // Single vague message for security (enumeration protection)
     if (!user || !(await user.comparePassword(password))) {
       return next(new ErrorResponse("Invalid credentials", 401, "AUTH_FAILED"));
     }
@@ -96,7 +114,9 @@ const login = async (req, res, next) => {
   }
 };
 
-// ─── Logout ───────────────────────────────────────────────────────────────────
+// ─── Commit: Session Termination (Logout) ───
+// What this does: Clears the authentication cookies from the client browser.
+
 const logout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
@@ -110,7 +130,9 @@ const logout = (req, res) => {
   });
 };
 
-// ─── Get Me ───────────────────────────────────────────────────────────────────
+// ─── Commit: Profile Data Fetching (Get Me) ───
+// What this does: Retrieves the data for the currently authenticated user.
+
 const getMe = async (req, res, next) => {
   try {
     const user = await usersModel.findById(req.user.id);
@@ -128,3 +150,4 @@ const getMe = async (req, res, next) => {
 };
 
 module.exports = { register, login, logout, getMe };
+

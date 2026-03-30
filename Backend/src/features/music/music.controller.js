@@ -1,3 +1,9 @@
+// ─── Commit: Music Controller - Audio Library Logic ───
+// What this does: Manages music uploads, retrieval, and deletion within the platform.
+// Why it exists: To provide a structured way for artists to share their tracks with the community.
+// How it works: Integrates with the Music Model and external storage via 'storageService' (ImageKit).
+// Beginner note: The Music Controller handles the "Vibe" of the app, making sure songs are saved and played correctly.
+
 "use strict";
 
 const musicModel = require("./music.model");
@@ -9,7 +15,12 @@ const ErrorResponse = require("../../utils/ErrorResponse");
  * Senior Feature: Silent Error Handling & Scalable File Cleanup
  */
 
-// ─── ImageKit Auth ────────────────────────────────────────────────────────────
+// ─── Commit: Client-Side Upload Authorization ───
+// What this does: Provides the frontend with secure, short-lived tokens for direct file uploads.
+// Why it exists: For security and efficiency. Direct uploads reduce server CPU and bandwidth.
+// How it works: Generates a signature and timestamp that the storage provider (ImageKit) validates.
+// Interview insight: "Direct-to-S3-style" uploads are a best practice for handling large media files.
+
 const getImageKitAuth = (req, res, next) => {
   try {
     const authParams = storageService.getAuthParams();
@@ -24,7 +35,11 @@ const getImageKitAuth = (req, res, next) => {
   }
 };
 
-// ─── Create Music ─────────────────────────────────────────────────────────────
+// ─── Commit: Create Music Entry ───
+// What this does: Saves the metadata of an uploaded track into the database.
+// why it exists: To index the song (title, artist, URLs) so it can be searched and played.
+// How it works: Takes URLs and File IDs from the frontend after a successful direct upload.
+
 const createMusic = async (req, res, next) => {
   try {
     const { title, audioUrl, audioFileId, thumbnailUrl, thumbnailFileId } = req.body;
@@ -62,7 +77,10 @@ const createMusic = async (req, res, next) => {
   }
 };
 
-// ─── Get All Music ────────────────────────────────────────────────────────────
+// ─── Commit: paginated Music Discovery ───
+// What this does: Lists all music tracks with pagination and artist population.
+// Why it exists: To build the explore feed where users find new music.
+
 const getAllMusics = async (req, res, next) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
@@ -94,7 +112,11 @@ const getAllMusics = async (req, res, next) => {
   }
 };
 
-// ─── Delete Music ─────────────────────────────────────────────────────────────
+// ─── Commit: Atomic track Deletion ───
+// What this does: Removes a song from the DB and triggers cleanup of the binary files.
+// How it works: Uses 'Promise.allSettled' to attempt file deletion without blocking the DB update.
+// Interview insight: Atomic deletes are ideal, but if storage cleanup fails, it shouldn't stop the user from deleting the DB record.
+
 const deleteMusic = async (req, res, next) => {
   try {
     const music = await musicModel.findById(req.params.musicId);
@@ -107,11 +129,11 @@ const deleteMusic = async (req, res, next) => {
       return next(new ErrorResponse("Forbidden", 403, "NOT_AUTHORIZED"));
     }
 
-    // Delete storage files concurrently (best-effort — non-blocking for DB delete)
+    // Direct deletion with non-blocking file purging
     Promise.allSettled([
       music.audioFileId ? storageService.deleteFile(music.audioFileId) : Promise.resolve(),
       music.thumbnailFileId ? storageService.deleteFile(music.thumbnailFileId) : Promise.resolve(),
-    ]).catch(() => {}); // Silent catch for post-DB-delete cleanup
+    ]).catch(() => {}); 
 
     await musicModel.findByIdAndDelete(req.params.musicId);
 
@@ -126,3 +148,4 @@ const deleteMusic = async (req, res, next) => {
 };
 
 module.exports = { getImageKitAuth, createMusic, getAllMusics, deleteMusic };
+
