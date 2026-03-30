@@ -5,24 +5,49 @@
 // 3) Production domain fallback map
 
 const FRONTEND_HOST = window.location.hostname;
+const FRONTEND_ORIGIN = window.location.origin.replace(/\/+$/, "");
 const ENV_API_URL = (import.meta.env.VITE_API_URL || "").trim();
+
+const normalizeApiBase = (rawUrl) => {
+  if (!rawUrl) return "";
+  const sanitized = rawUrl.trim().replace(/\/+$/, "");
+  return sanitized.endsWith("/api") ? sanitized.slice(0, -4) : sanitized;
+};
+
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
+const normalizedEnvApiBase = normalizeApiBase(ENV_API_URL);
+const isLocalHost = (host) => LOCAL_HOSTS.has(host);
+
+const isEnvPointingToFrontend =
+  !!normalizedEnvApiBase &&
+  !isLocalHost(FRONTEND_HOST) &&
+  (normalizedEnvApiBase === FRONTEND_ORIGIN ||
+    normalizedEnvApiBase === `https://${FRONTEND_HOST}` ||
+    normalizedEnvApiBase === `http://${FRONTEND_HOST}`);
 
 const PRODUCTION_API_FALLBACKS = {
   // Primary production frontend domain
   "postfeeds-xi.vercel.app": "https://post-music.onrender.com",
 };
 
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
-
 const FALLBACK_API_URL = LOCAL_HOSTS.has(FRONTEND_HOST)
   ? "http://localhost:3001"
   : PRODUCTION_API_FALLBACKS[FRONTEND_HOST] || "";
 
-export const API_URL = (ENV_API_URL || FALLBACK_API_URL).replace(/\/+$/, "");
+const effectiveEnvApiBase = isEnvPointingToFrontend ? "" : normalizedEnvApiBase;
+
+export const API_URL = normalizeApiBase(
+  effectiveEnvApiBase || FALLBACK_API_URL,
+);
 
 if (!API_URL) {
   console.warn(
     "[config] API URL is not configured. Set VITE_API_URL in your frontend environment (Vercel Project Settings → Environment Variables).",
+  );
+} else if (isEnvPointingToFrontend) {
+  console.warn(
+    `[config] Ignoring VITE_API_URL (${ENV_API_URL}) because it points to the frontend domain. Falling back to ${API_URL}.`,
   );
 }
 
