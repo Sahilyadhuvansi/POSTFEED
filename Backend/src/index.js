@@ -1,3 +1,9 @@
+// ─── Commit: Core Framework and Security Imports ───
+// What this does: Imports essential libraries for the Express application.
+// Why it exists: Helmet for security, CORS for cross-origin requests, Mongoose for DB, etc.
+// How it works: Uses require() to load installed npm packages.
+// Beginner note: Think of this as gathering all your specialized tools before starting a construction project.
+
 "use strict";
 
 require("dotenv").config();
@@ -21,14 +27,23 @@ const requestId = require("./middlewares/request-id.middleware");
 const errorHandler = require("./middlewares/error-handler.middleware");
 const { analyticsMiddleware } = require("./services/ai.performance-analytics");
 
-// ─── Env Status (Informational) ────────────────────────────────────────────────
-const isConfigured = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
-// Failure-resistant startup: Allow process to load for diagnostic /health endpoint
+// ─── Commit: Environment State Check ───
+// What this does: Verifies if critical environment variables are loaded.
+// Why it exists: Prevents the application from running in a broken state if secrets are missing.
+// How it works: Simple boolean check using logical AND (&&).
+// Interview insight: Always validate env vars early to ensure "Fail-Fast" behavior.
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
+const isConfigured = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
+
+// ─── Commit: CORS Configuration ───
+// What this does: Defines which domains are allowed to access this API.
+// Why it exists: Browser security (SOP) blocks requests from different domains unless CORS headers are present.
+// How it works: Uses an array of strings and regex to match the 'Origin' header.
+// Beginner note: It's like a guest list for a private party. Only those on the list get in.
+
 const allowedOrigins = [
-  "https://postfeeds-xi.vercel.app", // Definitive Production Origin
-  /\.vercel\.app$/,                 // Any Vercel subdomain (Production/Preview)
+  "https://postfeeds-xi.vercel.app", 
+  /\.vercel\.app$/,                 
   ...(process.env.CORS_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
@@ -37,8 +52,7 @@ const allowedOrigins = [
 if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
 
 /**
- * CORS POLICY - Post Music AI (Production Refactor)
- * Senior Feature: Failure-resistant origin matching with wildcard support
+ * CORS options logic for matching origins dynamically.
  */
 const corsOptions = {
   origin: (origin, cb) => {
@@ -58,7 +72,6 @@ const corsOptions = {
 
     if (isAllowed) return cb(null, true);
 
-    // Development fallback for local loopback
     if (
       process.env.NODE_ENV !== "production" &&
       (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1"))
@@ -75,26 +88,35 @@ const corsOptions = {
     "Authorization", 
     "X-Requested-With", 
     "Accept",
-    "X-Request-Id" // Ensure our new production tracing header is allowed
+    "X-Request-Id" 
   ],
-  exposedHeaders: ["X-Request-Id"], // Expose tracing header to the frontend
-  maxAge: 86400 // Senior: Cache preflight results for 24 hours to reduce latency and console noise
+  exposedHeaders: ["X-Request-Id"], 
+  maxAge: 86400 
 };
 
-// ─── App ──────────────────────────────────────────────────────────────────────
+// ─── Commit: Express App and Database Initialization ───
+// What this does: Initializes the Express application and establishes DB connection.
+// Why it exists: express() starts the framework; connectDB() connects to MongoDB.
+// How it works: connectDB is an async function called without blocking the main thread.
+// Interview insight: Modern cloud apps often connect to DB asynchronously to speed up cold starts.
+
 const app = express();
 
-app.set("trust proxy", true); // Fully trust Vercel's proxy chain for IPv4/IPv6 client identification
+app.set("trust proxy", true); 
 
-// Connect DB (non-blocking for serverless)
 let dbError = null;
 connectDB().catch((err) => {
   dbError = err.message;
 });
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors(corsOptions)); // CORS must be absolute first for preflight success
-app.use(requestId); // FIRST: Assign unique ID to every request
+// ─── Commit: Middleware Pipeline ───
+// What this does: Configures a sequence of functions that process every request.
+// Why it exists: To handle security (Helmet), parsing (JSON), and logging (Morgan).
+// How it works: app.use() adds functions to the Express middleware stack.
+// Beginner note: Think of this as an assembly line where each station adds or checks something on the product.
+
+app.use(cors(corsOptions)); 
+app.use(requestId); 
 app.use(compression());
 app.use(
   helmet({
@@ -122,12 +144,14 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(analyticsMiddleware); // Track AI performance post-parsing
+app.use(analyticsMiddleware); 
 
-// ─── Rate Limiting ────────────────────────────────────────────────────────────
-/**
- * Safe client identifier for distributed environments (Vercel/Cloudflare)
- */
+// ─── Commit: API Rate Limiting ───
+// What this does: Limits the number of requests a single user can make.
+// Why it exists: Protects against Brute Force attacks and API abuse (DoS).
+// How it works: Tracks the IP address and increments a counter per windowMs.
+// Interview insight: Always use a 'keyGenerator' that understands proxies (X-Forwarded-For).
+
 const keyGenerator = (req) => {
   const xForwardedFor = req.headers["x-forwarded-for"];
   if (xForwardedFor) {
@@ -141,7 +165,7 @@ const apiLimiter = rateLimit({
   max: 500,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator, // v6: Robust IPv6 support for Vercel
+  keyGenerator, 
   message: {
     success: false,
     error: "Too many requests. Please try again later.",
@@ -150,17 +174,22 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // Stricter for login/register
+  max: 20, 
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator, // v6: Robust IPv6 support for Vercel
+  keyGenerator, 
   message: {
     success: false,
     error: "Too many auth attempts. Please try again later.",
   },
 });
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+// ─── Commit: Application Routing ───
+// What this does: Maps URL paths to specific feature logic.
+// Why it exists: To keep the codebase organized by separating concerns (auth, music, ai).
+// How it works: app.use() attaches router objects to specific path prefixes.
+// Beginner note: It's like the GPS of your app—telling requests where to go based on the destination.
+
 app.get("/", (_req, res) => {
   res
     .status(200)
@@ -187,21 +216,29 @@ app.use("/api/users", apiLimiter, userRoutes);
 app.use("/api/music", apiLimiter, musicRoutes);
 app.use("/api/ai", apiLimiter, aiRoutes);
 
-// ─── 404 ──────────────────────────────────────────────────────────────────────
+// ─── Commit: Global Error Handling ───
+// What this does: Catches all errors and 404s in one central place.
+// Why it exists: Ensures the app doesn't crash and returns consistent JSON error messages.
+// How it works: The last two middlewares catch unhandled routes and thrown errors.
+// Interview insight: Centralized error handling is crucial for logging and production monitoring.
+
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: "Route not found" });
 });
 
-// ─── Error Handler ────────────────────────────────────────────────────────────
 app.use(errorHandler);
 
-// ─── Start (local only — Vercel handles its own serving) ──────────────────────
+// ─── Commit: Server Ignition ───
+// What this does: Starts the server on a specific port for local development.
+// Why it exists: Vercel is serverless, but we need a local listener to code and test.
+// How it works: app.listen() opens a socket to listen for incoming HTTP traffic.
+
 if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
-    // Silence is golden, but for local dev, we need to know it's UP
     // console.log(`PostFeed Backend running locally on port ${PORT}`);
   });
 }
 
 module.exports = app;
+

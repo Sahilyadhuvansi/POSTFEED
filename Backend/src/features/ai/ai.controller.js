@@ -1,9 +1,10 @@
-"use strict";
+// ─── Commit: AI Service Integration and Logic ───
+// What this does: Orchestrates AI features like recommendations, captions, and chat.
+// Why it exists: To provide intelligent, AI-driven experiences for the Post Music platform.
+// How it works: Interfaces with internal services (musicRecommendation, aiService) to process user requests.
+// Beginner note: The Controller is the "Brain" of the feature—it decides what happens when a user clicks a button.
 
-/**
- * AI CONTROLLER - Post Music AI (Production Refactor)
- * Senior Feature: Consistent Error Delegation & Standardized Telemetry
- */
+"use strict";
 
 const musicRecommendation = require("../../services/music-recommendation.service");
 const contentModeration = require("../../services/content-moderation.service");
@@ -12,10 +13,20 @@ const aiConfig = require("../../config/ai.config");
 const Post = require("../posts/posts.model");
 const Music = require("../music/music.model");
 
-// Cache context (limit lookups)
+// ─── Commit: Context Caching ───
+// What this does: Stores application data temporarily in memory.
+// Why it exists: To avoid hitting the database on every single AI chat message.
+// How it works: Checks if 'cachedContext' is recent (within CACHE_DURATION).
+
 let cachedContext = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 30 * 1000;
+
+// ─── Commit: AI System Prompts ───
+// What this does: Defines the instructions (Personalities) for the AI models.
+// Why it exists: Large Language Models (LLMs) need specific context to perform specialized tasks accurately.
+// How it works: Strings of text that are passed to the AI as "system" messages.
+// Interview insight: "Prompt Engineering" at the code level ensures consistent and formatted AI responses.
 
 const SYSTEM_PROMPTS = {
   captionGeneration: `Artist branding expert. Generate Instagram caption. 150-200 chars. 1-2 emojis. No hashtags. Return text only.`,
@@ -26,6 +37,10 @@ const SYSTEM_PROMPTS = {
   chatStructured: `PostFeed Data Controller. APP CONTEXT: {appContext}. Query: {userQuery}. Return ONLY valid JSON structured for posts/songs/empty. No explanation.`,
   chatGeneral: `Friendly AI Assistant guide for the music platform. APP CONTEXT: {appContext}. Be encouraging and concise.`
 };
+
+// ─── Commit: Music Recommendation Engine ───
+// What this does: Fetches personalized music suggestions and similar tracks.
+// Why it exists: Drives user discovery and spent time on the platform.
 
 exports.getRecommendations = async (req, res, next) => {
   try {
@@ -46,6 +61,9 @@ exports.findSimilar = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── Commit: AI Mood and Trending Insights ───
+// What this does: Uses AI to describe moods and analyze music trends.
 
 exports.moodPlaylist = async (req, res, next) => {
   try {
@@ -69,6 +87,10 @@ exports.getTrending = async (req, res, next) => {
   }
 };
 
+// ─── Commit: AI Content Moderation ───
+// What this does: Checks user-generated content for safety and compliance.
+// why it exists: To maintain a healthy and safe community environment.
+
 exports.moderateContent = async (req, res, next) => {
   try {
     const { content } = req.body;
@@ -78,6 +100,10 @@ exports.moderateContent = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── Commit: AI-Powered Caption Generation ───
+// What this does: Uses AI to write social media captions for music posts.
+// Why it exists: Saves users time and provides professional-sounding copy.
 
 exports.generateCaption = async (req, res, next) => {
   try {
@@ -97,6 +123,12 @@ exports.generateCaption = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── Commit: Universal AI Chat Interface ───
+// What this does: Handles general questions and "Structured" data lookups via AI.
+// Why it exists: Provides a natural language interface for users to interact with the app.
+// How it works: Dynamically switches prompts based on whether the user asks for data (posts/songs) or just chats.
+// Interview insight: Combining "Search" and "Chat" into one interface is a core pattern of "AI-Native" apps.
 
 exports.chat = async (req, res, next) => {
   try {
@@ -128,6 +160,9 @@ exports.chat = async (req, res, next) => {
   }
 };
 
+// ─── Commit: AI Hashtag Suggestions ───
+// What this does: Suggests relevant hashtags for music marketing.
+
 exports.suggestHashtags = async (req, res, next) => {
   try {
     const { caption = "", musicTitle = "", genre = "" } = req.body;
@@ -142,6 +177,9 @@ exports.suggestHashtags = async (req, res, next) => {
     res.status(200).json({ success: true, data: { hashtags: ["music", "newmusic"], source: "fallback" }, requestId: req.id });
   }
 };
+
+// ─── Commit: AI Performance Stats ───
+// What this does: Returns cache hit rates and cost analysis for AI features.
 
 exports.getStats = async (req, res, next) => {
   try {
@@ -167,6 +205,10 @@ exports.getStats = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── Commit: Application Context Builder ───
+// What this does: Aggregates recent posts and music into a single context string for the AI.
+// Why it exists: To give the AI "Eyes" into what is currently happening on the platform.
 
 const getAppContext = async () => {
   const now = Date.now();

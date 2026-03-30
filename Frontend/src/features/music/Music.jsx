@@ -1,3 +1,9 @@
+// ─── Commit: React UI Layer - Music Discovery ───
+// What this does: Renders the main music grid and handles infinite scrolling.
+// Why it exists: To provide a visual interface for users to discover and play tracks.
+// How it works: Uses React Hooks (useEffect, useState) to manage data fetching and UI state.
+// Beginner note: Components are the building blocks of your UI—like LEGO pieces that fit together.
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useMusic } from "./MusicContext";
 import { useLocation } from "react-router-dom";
@@ -18,9 +24,18 @@ import { api } from "../../config";
 import { MusicSkeleton } from "../../components/SkeletonLoader";
 import { useApiCache } from "../../hooks/useApiCache";
 
+// ─── Commit: Pagination and Core Settings ───
+// What this does: Sets global constants for the music feature.
+// why it exists: Keeps numbers like "15 tracks per page" consistent across the app.
+
 const MUSIC_PER_PAGE = 15;
 
 const Music = () => {
+  // ─── Commit: Custom Hooks and Global State ───
+  // What this does: Contextualizes the component with global music, auth, and toast systems.
+  // How it works: useMusic() provides the player state, useAuth() provides the current user.
+  // Interview insight: Decoupling UI logic into Custom Hooks makes components cleaner and more testable.
+
   const { currentTrack, playTrack, isPlaying } = useMusic();
   const { user } = useAuth();
   const { addToast } = useToast();
@@ -28,7 +43,10 @@ const Music = () => {
   const location = useLocation();
   const observerTarget = useRef(null);
 
-  // --- COLD START / CACHE INIT ---
+  // ─── Commit: Cold Start and Cache Management ───
+  // What this does: Optimizes initial load by checking if data was previously cached in memory.
+  // Why it exists: To provide a "Blink-of-an-eye" feel when navigating back to the music page.
+
   const initialCached = getFromCache("music_tracks_page_1");
 
   const [musics, setMusics] = useState(initialCached?.musics || []);
@@ -37,7 +55,10 @@ const Music = () => {
   const [page, setPage] = useState(initialCached?.page || 1);
   const [activeMenu, setActiveMenu] = useState(null);
 
-  // --- DATA FETCHING ---
+  // ─── Commit: Intelligent Data Fetching ───
+  // What this does: Calls the Backend API to get the first page of music.
+  // How it works: useEffect triggers on mount, uses Axios (api) to fetch, and handles success/error.
+
   useEffect(() => {
     if (initialCached) return;
 
@@ -62,7 +83,11 @@ const Music = () => {
     fetchMusics();
   }, [getFromCache, setCache, initialCached, addToast]);
 
-  // --- DEEP LINKING (AI Controller) ---
+  // ─── Commit: Deep Linking (AI Integration) ───
+  // What this does: Handles "Play" or "Select" commands coming from the URL.
+  // Why it exists: Allows the AI to "control" the UI by providing a direct link to a track.
+  // How it works: Monitors the URLSearchParams and triggers 'playTrack' if a match is found.
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const playId = params.get("play");
@@ -75,7 +100,6 @@ const Music = () => {
         if (playId) {
           playTrack(track, musics);
         } else {
-          // Just scroll to it or highlight (handled by grid logic)
           document
             .getElementById(`music-${targetId}`)
             ?.scrollIntoView({ behavior: "smooth" });
@@ -83,6 +107,11 @@ const Music = () => {
       }
     }
   }, [location.search, musics, playTrack]);
+
+  // ─── Commit: Infinite Scroll Mechanics ───
+  // What this does: Automatically loads the next page when the user reaches the bottom.
+  // How it works: Uses the IntersectionObserver API to detect when 'observerTarget' is visible.
+  // Interview insight: Infinite scroll is better for discovery than pagination buttons in media apps.
 
   const loadMoreMusic = useCallback(() => {
     const nextPage = page + 1;
@@ -126,6 +155,8 @@ const Music = () => {
 
     return () => observer.disconnect();
   }, [hasMore, loading, loadMoreMusic]);
+
+  // ─── Commit: UI Interaction Handlers ───
 
   const handlePlay = (music) => {
     playTrack(music, musics);
@@ -302,7 +333,7 @@ const Music = () => {
                           <MoreVertical className="w-4 h-4" />
                         </button>
                         {activeMenu === music._id && (
-                          <div className="absolute right-0 bottom-full mb-3 w-48 rounded-[24px] glass-dark border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)] p-2 z-20 animate-fade-in-up">
+                          <div className="absolute right-0 bottom-full mb-3 w-48 rounded-[24px] glass-dark border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.08)] p-2 z-20 animate-fade-in-up">
                             <button
                               onClick={(e) => handleDelete(e, music._id)}
                               className="w-full flex items-center gap-4 px-4 py-3.5 text-xs font-black uppercase tracking-widest text-red-400 hover:bg-red-400/5 rounded-[18px] transition-all"
@@ -343,3 +374,4 @@ const Music = () => {
 };
 
 export default Music;
+

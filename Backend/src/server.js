@@ -1,18 +1,23 @@
+// ─── Commit: Node.js Cluster Orchestration ───
+// What this does: Spawns worker processes using all available CPU cores for horizontal scaling.
+// Why it exists: To leverage multi-core CPUs, as a single Node.js instance stays on a single core.
+// How it works: uses the cluster module to fork workers from a main process.
+// Beginner note: Imagine your CPU as a multi-lane highway; clustering lets you use every lane instead of just one!
+
 const cluster = require("cluster");
 const os = require("os");
 const app = require("./index");
 const logger = require("./common/utils/logger");
 
-/**
- * PRODUCTION-GRADE CLUSTER (Advanced Horizontal Scaling)
- * What this does: Spawns worker processes using all available CPU cores.
- * Why it exists: A single Node core handles 1/Nth of potential capacity. 
- * Orchestration: The Master process (isPrimary) monitors and manages worker lifecycles.
- * Resilience: Auto-healing – if a worker crashes, the cluster forks a replacement instantly.
- */
 const numCPUs = os.cpus().length;
 
 if (cluster.isPrimary) {
+  // ─── Commit: Cluster Primary Process Logic ───
+  // What this does: Manages the lifecycle of multiple worker processes.
+  // Why it exists: If a single process fails, the master can restart it instantly (Resilience).
+  // How it works: Uses cluster.fork() in a loop to create workers.
+  // Interview insight: This is a "Shared-Nothing" architecture where workers don't share memory.
+
   logger.info(`🚀 MASTER: Orchestrating Cluster with ${numCPUs} CPU cores...`);
 
   // Spawn initial workers
@@ -20,7 +25,11 @@ if (cluster.isPrimary) {
     cluster.fork();
   }
 
-  // Graceful Restart: Handling signals on Primary process
+  // ─── Commit: Cluster Self-Healing Logic ───
+  // What this does: Monitors workers and restarts them if they crash.
+  // Why it exists: Ensures high availability (Production Standard).
+  // How it works: Listens for 'exit' events and forks a new worker if the exit code is non-zero.
+
   process.on("SIGTERM", () => {
     logger.warn("⚠️ MASTER: SIGTERM received. Closing Cluster workers gracefully...");
     for (const id in cluster.workers) {
@@ -28,7 +37,6 @@ if (cluster.isPrimary) {
     }
   });
 
-  // Self-Healing
   cluster.on("exit", (worker, code, signal) => {
     if (signal !== "SIGTERM" && code !== 0) {
       logger.error(`❌ WORKER [${worker.process.pid}]: Crashed (${signal || code}). Reviving...`);
@@ -36,12 +44,17 @@ if (cluster.isPrimary) {
     }
   });
 } else {
+  // ─── Commit: Worker Process HTTP Server ───
+  // What this does: Listens for incoming HTTP traffic on a specific port.
+  // Why it exists: To actually serve API requests using the Express app.
+  // How it works: Worker calls app.listen() to start its own HTTP server.
+  // Interview insight: Port sharing is handled by the cluster module at the OS level.
+
   const PORT = process.env.PORT || 3001;
   const server = app.listen(PORT, () => {
     logger.info(`✅ WORKER [${process.pid}]: Online at http://localhost:${PORT}`);
   });
 
-  // Listen for shutdown signal from Primary
   process.on("message", (msg) => {
     if (msg === "shutdown") {
       logger.warn(`🛑 WORKER [${process.pid}]: Shutdown signal received. Closing connections...`);
@@ -49,12 +62,10 @@ if (cluster.isPrimary) {
         logger.info(`👋 WORKER [${process.pid}]: Cleanup finished. Safe to exit.`);
         process.exit(0);
       });
-      // Safety timeout for exit (10s max)
       setTimeout(() => process.exit(1), 10000);
     }
   });
   
-  // Direct signal handling for individual workers (non-clustered fallback)
   const shutdown = () => {
     logger.warn(`🛑 SIGTERM received. Closing HTTP server...`);
     server.close(() => {
@@ -66,3 +77,4 @@ if (cluster.isPrimary) {
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 }
+
