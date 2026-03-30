@@ -6,10 +6,10 @@ build/
 .vercel/
 
 # Monorepo
-Frontend/node_modules/
-Backend/node_modules/
-Frontend/dist/
-Frontend/build/
+frontend/node_modules/
+backend/node_modules/
+frontend/dist/
+frontend/build/
 
 # 🔐 Environment
 .env*

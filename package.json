@@ -7,16 +7,16 @@
   },
   "private": true,
   "workspaces": [
-    "Backend",
-    "Frontend"
+    "backend",
+    "frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"cd Backend && npm run dev\" \"cd Frontend && npm run dev\"",
-    "backend": "cd Backend && npm run dev",
-    "frontend": "cd Frontend && npm run dev",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm run dev",
     "install:all": "npm install",
-    "build": "npm run build --workspace=Frontend",
-    "lint": "npm run lint --workspace=Frontend",
+    "build": "npm run build --workspace=frontend",
+    "lint": "npm run lint --workspace=frontend",
     "health-check": "curl http://localhost:3001/health",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
