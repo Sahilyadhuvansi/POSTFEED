@@ -1,31 +1,39 @@
+"use strict";
+
 const musicModel = require("./music.model");
 const storageService = require("../../services/storage.service");
+const ErrorResponse = require("../../utils/ErrorResponse");
+
+/**
+ * MUSIC CONTROLLER - Post Music AI (Production Refactor)
+ * Senior Feature: Silent Error Handling & Scalable File Cleanup
+ */
 
 // ─── ImageKit Auth ────────────────────────────────────────────────────────────
-const getImageKitAuth = (_req, res) => {
+const getImageKitAuth = (req, res, next) => {
   try {
     const authParams = storageService.getAuthParams();
     return res.status(200).json({
       success: true,
       ...authParams,
       publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+      requestId: req.id
     });
   } catch (err) {
-    console.error("ImageKit Auth Error:", err.message);
-    return res.status(500).json({ success: false, error: "Could not initialize upload service." });
+    next(err);
   }
 };
 
 // ─── Create Music ─────────────────────────────────────────────────────────────
-const createMusic = async (req, res) => {
+const createMusic = async (req, res, next) => {
   try {
     const { title, audioUrl, audioFileId, thumbnailUrl, thumbnailFileId } = req.body;
 
     if (!title?.trim()) {
-      return res.status(400).json({ success: false, error: "Title is required." });
+      return next(new ErrorResponse("Title is required", 400));
     }
     if (!audioUrl || !audioFileId) {
-      return res.status(400).json({ success: false, error: "Audio file is required." });
+      return next(new ErrorResponse("Audio file is required", 400));
     }
 
     const music = await musicModel.create({
@@ -39,7 +47,7 @@ const createMusic = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Track uploaded successfully.",
+      message: "Track uploaded successfully",
       music: {
         id: music._id,
         audioUrl: music.audioUrl,
@@ -47,18 +55,15 @@ const createMusic = async (req, res) => {
         thumbnailUrl: music.thumbnailUrl,
         artist: music.artist,
       },
+      requestId: req.id
     });
   } catch (err) {
-    console.error("Create Music Error:", err.message);
-    if (err.name === "ValidationError") {
-      return res.status(400).json({ success: false, error: Object.values(err.errors).map((e) => e.message).join(". ") });
-    }
-    return res.status(500).json({ success: false, error: "Failed to save track. Please try again." });
+    next(err);
   }
 };
 
 // ─── Get All Music ────────────────────────────────────────────────────────────
-const getAllMusics = async (req, res) => {
+const getAllMusics = async (req, res, next) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(parseInt(req.query.limit) || 15, 50);
@@ -76,37 +81,47 @@ const getAllMusics = async (req, res) => {
       musicModel.countDocuments(),
     ]);
 
-    return res.status(200).json({ success: true, musics, total, page, totalPages: Math.ceil(total / limit) });
+    return res.status(200).json({ 
+      success: true, 
+      musics, 
+      total, 
+      page, 
+      totalPages: Math.ceil(total / limit),
+      requestId: req.id 
+    });
   } catch (err) {
-    console.error("Get Musics Error:", err.message);
-    return res.status(500).json({ success: false, error: "Failed to load music. Please refresh." });
+    next(err);
   }
 };
 
 // ─── Delete Music ─────────────────────────────────────────────────────────────
-const deleteMusic = async (req, res) => {
+const deleteMusic = async (req, res, next) => {
   try {
     const music = await musicModel.findById(req.params.musicId);
 
     if (!music) {
-      return res.status(404).json({ success: false, error: "Track not found." });
+      return next(new ErrorResponse("Track not found", 404, "NOT_FOUND"));
     }
+    
     if (music.artist.toString() !== req.user.id) {
-      return res.status(403).json({ success: false, error: "You do not have permission to delete this track." });
+      return next(new ErrorResponse("Forbidden", 403, "NOT_AUTHORIZED"));
     }
 
-    // Delete storage files concurrently (best-effort — don't block DB delete)
-    await Promise.allSettled([
+    // Delete storage files concurrently (best-effort — non-blocking for DB delete)
+    Promise.allSettled([
       music.audioFileId ? storageService.deleteFile(music.audioFileId) : Promise.resolve(),
       music.thumbnailFileId ? storageService.deleteFile(music.thumbnailFileId) : Promise.resolve(),
-    ]);
+    ]).catch(() => {}); // Silent catch for post-DB-delete cleanup
 
     await musicModel.findByIdAndDelete(req.params.musicId);
 
-    return res.status(200).json({ success: true, message: "Track deleted successfully." });
+    return res.status(200).json({ 
+      success: true, 
+      message: "Track deleted successfully",
+      requestId: req.id 
+    });
   } catch (err) {
-    console.error("Delete Music Error:", err.message);
-    return res.status(500).json({ success: false, error: "Failed to delete track. Please try again." });
+    next(err);
   }
 };
 

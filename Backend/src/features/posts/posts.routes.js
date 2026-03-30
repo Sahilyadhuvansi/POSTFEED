@@ -1,6 +1,8 @@
+"use strict";
+
 const express = require("express");
 const multer = require("multer");
-const postController = require("./post.controller");
+const postsController = require("./posts.controller");
 const auth = require("../../middlewares/auth.middleware");
 
 const router = express.Router();
@@ -26,6 +28,7 @@ const upload = multer({
   },
 });
 
+<<<<<<< HEAD:Backend/src/features/post/post.routes.js
 // ─── Commit: Post Routing Tier ───
 // What this does: Maps HTTP methods to specific controller functions.
 // Pattern: RESTful API design.
@@ -36,5 +39,16 @@ const upload = multer({
 router.post("/create", auth, upload.single("image"), postController.createPost);
 router.delete("/:postId", auth, postController.deletePost);
 router.get("/feed", postController.getFeed);
+=======
+router.post(
+  "/create",
+  auth,
+  upload.single("image"),
+  postsController.createPost,
+);
+router.delete("/:postId", auth, postsController.deletePost);
+router.get("/feed", postsController.getFeed);
+router.get("/:postId", postsController.getPostById);
+>>>>>>> main:Backend/src/features/posts/posts.routes.js
 
 module.exports = router;

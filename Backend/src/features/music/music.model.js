@@ -1,3 +1,5 @@
+"use strict";
+
 const mongoose = require("mongoose");
 
 const musicSchema = new mongoose.Schema(
@@ -14,7 +16,7 @@ const musicSchema = new mongoose.Schema(
     },
     artist: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
+      ref: "User", // Corrected case (must match "User" in users.model.js)
       required: [true, "Artist reference is required"],
       index: true,
     },
@@ -31,10 +33,10 @@ const musicSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }, // ← FIX: was missing — getAllMusics sorts by createdAt
+  { timestamps: true },
 );
 
 // Index for feed sorting
 musicSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model("music", musicSchema);
+module.exports = mongoose.model("Music", musicSchema); // Corrected case

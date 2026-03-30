@@ -1,7 +1,9 @@
-const userModel = require("../user/user.model");
+"use strict";
+
+const usersModel = require("../users/users.model");
 const jwt = require("jsonwebtoken");
 const { serializeUser } = require("../../utils/userSerializer");
-
+const ErrorResponse = require("../../utils/ErrorResponse");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 7; // 7 days
@@ -18,46 +20,31 @@ const signToken = (user) =>
     expiresIn: "7d",
   });
 
-const handleDbError = (err, res) => {
-  const mongoErrors = ["MongoNetworkError", "MongoAuthenticationError", "MongoTimeoutError"];
-  if (mongoErrors.includes(err.name)) {
-    return res.status(503).json({ success: false, error: "Database unavailable. Please try again later." });
-  }
-  if (err.name === "ValidationError") {
-    const messages = Object.values(err.errors).map((e) => e.message);
-    return res.status(400).json({ success: false, error: messages.join(", ") });
-  }
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyPattern || {})[0] || "field";
-    return res.status(409).json({ success: false, error: `An account with this ${field} already exists.` });
-  }
-  return res.status(500).json({
-    success: false,
-    error: process.env.NODE_ENV === "development" ? err.message : "Internal server error",
-  });
-};
-
 // ─── Register ─────────────────────────────────────────────────────────────────
-const register = async (req, res) => {
+const register = async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({ success: false, error: "All fields are required." });
+      return next(new ErrorResponse("All fields are required", 400));
     }
     if (password.length < 6) {
-      return res.status(400).json({ success: false, error: "Password must be at least 6 characters." });
+      return next(new ErrorResponse("Password must be at least 6 characters", 400));
     }
 
-    const existing = await userModel.findOne({
+    const existing = await usersModel.findOne({
       $or: [{ email: email.toLowerCase() }, { username }],
     });
     if (existing) {
       const field = existing.email === email.toLowerCase() ? "email" : "username";
-      return res.status(409).json({ success: false, error: `An account with this ${field} already exists.` });
+      return next(new ErrorResponse(`An account with this ${field} already exists`, 409, "DUPLICATE_ENTRY"));
     }
 
-    const user = await userModel.create({ username, email: email.toLowerCase(), password });
+    const user = await usersModel.create({ 
+      username, 
+      email: email.toLowerCase(), 
+      password 
+    });
     const token = signToken(user);
     res.cookie("token", token, getCookieOptions());
 
@@ -66,20 +53,20 @@ const register = async (req, res) => {
       message: "Account created successfully",
       user: serializeUser(user),
       token,
+      requestId: req.id
     });
   } catch (err) {
-    console.error("Register Error:", err.message);
-    return handleDbError(err, res);
+    next(err);
   }
 };
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   try {
     const { email, username, password } = req.body;
 
     if ((!email && !username) || !password) {
-      return res.status(400).json({ success: false, error: "Email/username and password are required." });
+      return next(new ErrorResponse("Email/username and password are required", 400));
     }
 
     const query = [
@@ -87,11 +74,11 @@ const login = async (req, res) => {
       username ? { username } : null,
     ].filter(Boolean);
 
-    const user = await userModel.findOne({ $or: query }).select("+password");
+    const user = await usersModel.findOne({ $or: query }).select("+password");
 
-    // Use a single vague message to prevent user enumeration
+    // Single vague message for security (enumeration protection)
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ success: false, error: "Invalid credentials." });
+      return next(new ErrorResponse("Invalid credentials", 401, "AUTH_FAILED"));
     }
 
     const token = signToken(user);
@@ -102,32 +89,41 @@ const login = async (req, res) => {
       message: "Login successful",
       user: serializeUser(user),
       token,
+      requestId: req.id
     });
   } catch (err) {
-    console.error("Login Error:", err.message);
-    return handleDbError(err, res);
+    next(err);
   }
 };
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
-const logout = (_req, res) => {
+const logout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
-  return res.status(200).json({ success: true, message: "Logged out successfully." });
+  return res.status(200).json({ 
+    success: true, 
+    message: "Logged out successfully",
+    requestId: req.id 
+  });
 };
 
-// ─── Get Authenticated User (for session rehydration) ────────────────────────
-const getMe = async (req, res) => {
+// ─── Get Me ───────────────────────────────────────────────────────────────────
+const getMe = async (req, res, next) => {
   try {
-    const user = await userModel.findById(req.user.id);
-    if (!user) return res.status(404).json({ success: false, error: "User not found." });
-    return res.status(200).json({ success: true, user: serializeUser(user) });
+    const user = await usersModel.findById(req.user.id);
+    if (!user) {
+      return next(new ErrorResponse("User not found", 404, "USER_NOT_FOUND"));
+    }
+    return res.status(200).json({ 
+      success: true, 
+      user: serializeUser(user),
+      requestId: req.id 
+    });
   } catch (err) {
-    console.error("GetMe Error:", err.message);
-    return res.status(500).json({ success: false, error: "Failed to load user." });
+    next(err);
   }
 };
 

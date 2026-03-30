@@ -1,4 +1,6 @@
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const PROD_BACKEND = "https://postfeed-backend.vercel.app";
+export const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname.includes('vercel.app') ? PROD_BACKEND : "http://localhost:3001");
 
 export const DEFAULT_AVATAR =
   import.meta.env.VITE_DEFAULT_AVATAR ||

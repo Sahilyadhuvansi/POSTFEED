@@ -1,3 +1,5 @@
+"use strict";
+
 const express = require("express");
 const musicController = require("./music.controller");
 const auth = require("../../middlewares/auth.middleware");

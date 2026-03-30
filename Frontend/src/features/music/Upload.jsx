@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
   Upload as UploadIcon,
@@ -7,7 +6,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { API_URL, IMAGEKIT_UPLOAD_URL } from "../../config";
+import { api, IMAGEKIT_UPLOAD_URL } from "../../config";
 
 import { parseBlob } from "music-metadata-browser";
 
@@ -198,8 +197,8 @@ const Upload = () => {
           const title = file.name.replace(/\.[^/.]+$/, "");
 
           // Get auth
-          const { data: authParams } = await axios.get(
-            `${API_URL}/api/music/imagekit-auth`,
+          const { data: authParams } = await api.get(
+            "/music/imagekit-auth",
           );
 
           // Upload audio
@@ -233,8 +232,8 @@ const Upload = () => {
             }
 
             if (coverFile) {
-              const { data: thumbAuth } = await axios.get(
-                `${API_URL}/api/music/imagekit-auth`,
+              const { data: thumbAuth } = await api.get(
+                "/music/imagekit-auth",
               );
               thumbnailResult = await uploadToImageKit(coverFile, thumbAuth);
             }
@@ -246,7 +245,7 @@ const Upload = () => {
           }
 
           // Save in DB
-          await axios.post(`${API_URL}/api/music`, {
+          await api.post("/music", {
             title:
               audioFiles.length === 1
                 ? title

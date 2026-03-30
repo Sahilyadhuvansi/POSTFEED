@@ -1,17 +1,16 @@
+"use strict";
+
 const vision = require("@google-cloud/vision");
 const Filter = require("bad-words");
 const Sentiment = require("sentiment");
-const aiConfig = require("../common/config/ai.config");
+const aiConfig = require("../config/ai.config");
 
 /**
  * AI Content Moderation Service (Safety Intelligence)
  * Filters inappropriate content (images, text, spam) using multi-layer analysis.
  */
 class ContentModerationService {
-  // ─── Commit: Moderation Engines Initialization ───
-  // What this does: Loads Google Vision for images and NLP libraries for text.
-  // Interview insight: Combining Vision (CV) and NLP ensures "Holistic Safety" across all content types.
-  constructor() {
+constructor() {
     // Initialize Google Cloud Vision if configured
     if (aiConfig.googleVision.enabled) {
       this.visionClient = new vision.ImageAnnotatorClient({
@@ -21,8 +20,6 @@ class ContentModerationService {
 
     this.filter = new Filter();
     this.sentiment = new Sentiment();
-
-    // ─── Commit: Spam & Fraud Pattern Recognition ───
     this.spamPatterns = [
       /buy now/i, /click here/i, /free money/i, /earn \$\d+/i,
       /winner/i, /congratulations/i, /prize/i
@@ -32,9 +29,6 @@ class ContentModerationService {
   /**
    * Moderate image content using Computer Vision (CV)
    */
-  // ─── Commit: Vision API Implementation ───
-  // How it works: Sends image buffer to Google Cloud for SafeSearch analysis.
-  // Beginner note: SafeSearch detects adult, violent, and medical content.
   async moderateImage(imageBuffer) {
     if (!this.visionClient) return { safe: true, warning: "Vision service inactive" };
 
@@ -56,7 +50,7 @@ class ContentModerationService {
         reason: isNSFW ? "Violation: Inappropriate content" : "Visual content analyzed"
       };
     } catch (error) {
-      console.error("AI Vision Error:", error.message);
+      // console log scrubbed
       return { safe: true, error: "Vision scan bypassed due to service error." };
     }
   }
@@ -64,7 +58,6 @@ class ContentModerationService {
   /**
    * Moderate text content using Sentiment and NLP (Natural Language Processing)
    */
-  // ─── Commit: Textual Safety Logic ───
   moderateText(text) {
     if (!text || text.trim().length === 0) return { safe: true };
 
@@ -99,7 +92,6 @@ class ContentModerationService {
   /**
    * Universal Content Moderation (Holistic Analysis)
    */
-  // ─── Commit: Multi-Layer Security Layer ───
   async moderateContent(options = {}) {
     const { text = null, image = null, userId = null } = options;
 
@@ -140,5 +132,4 @@ class ContentModerationService {
   }
 }
 
-// ─── Commit: Singleton Export ───
 module.exports = new ContentModerationService();

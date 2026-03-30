@@ -1,33 +1,23 @@
-# ─── PRODUCTION DOCKERFILE ─────────────────────────────────────────────────────
-# Multi-stage build for minimal image size and maximum security.
-# ──────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
 
-FROM node:24-alpine AS base
-
-# Stage 1: Dependencies installer
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
-
-# Stage 2: Final Production Runner
-FROM base AS runner
-WORKDIR /app
-
-# Non-Root Security (Best Practice)
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs
-USER nodejs
-
-# Copy pre-installed dependencies from stage 1
-COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
+RUN npm install
 COPY . .
 
-# Environment Configuration
+# Final production stage
+FROM node:20-alpine
+
+WORKDIR /app
+COPY --from=builder /app ./
+
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV LOG_LEVEL=info
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3001) + '/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 EXPOSE 3001
 
-CMD ["node", "src/server.js"]
+CMD ["npm", "start"]

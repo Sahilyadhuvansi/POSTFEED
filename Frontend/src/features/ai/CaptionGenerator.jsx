@@ -1,182 +1,195 @@
-import { useState } from 'react'
-import { Sparkles, Copy, Check } from 'lucide-react'
-import axios from 'axios'
+import { useState } from "react";
+import { Sparkles, Copy, Check, Type, Music, Zap, Brain, Wand2, Hash } from "lucide-react";
+import { api } from "../../config";
+import { useToast } from "../../components/ui/Toast";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-
-export default function CaptionGenerator({ onCaptionGenerated }) {
-  const [context, setContext] = useState('')
-  const [musicTitle, setMusicTitle] = useState('')
-  const [mood, setMood] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [caption, setCaption] = useState('')
-  const [hashtags, setHashtags] = useState([])
-  const [copied, setCopied] = useState(false)
+const NeuralNarrator = ({ onCaptionGenerated }) => {
+  const [context, setContext] = useState("");
+  const [musicTitle, setMusicTitle] = useState("");
+  const [mood, setMood] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [caption, setCaption] = useState("");
+  const [hashtags, setHashtags] = useState([]);
+  const [copied, setCopied] = useState(false);
+  const { addToast } = useToast();
 
   const generateCaption = async () => {
     try {
-      setLoading(true)
-      const token = localStorage.getItem('token')
-
-      const response = await axios.post(
-        `${API_URL}/api/ai/generate-caption`,
-        { context, musicTitle, mood },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      setLoading(true);
+      const response = await api.post(
+        "/ai/generate-caption",
+        { context, musicTitle, mood }
+      );
 
       if (response.data.success) {
-        setCaption(response.data.data.caption)
-        await generateHashtags(response.data.data.caption)
+        setCaption(response.data.data.caption);
+        await generateHashtags(response.data.data.caption);
+        addToast("Narrative sequence generated.", "success");
       }
     } catch (error) {
-      console.error('Failed to generate caption:', error)
-      alert('Failed to generate caption. Please try again.')
+      addToast(error.response?.data?.error || "Generation error. Nexus link unstable.", "error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const generateHashtags = async (captionText) => {
     try {
-      const token = localStorage.getItem('token')
-
-      const response = await axios.post(
-        `${API_URL}/api/ai/suggest-hashtags`,
-        { caption: captionText, musicTitle, genre: mood },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const response = await api.post(
+        "/ai/suggest-hashtags",
+        { caption: captionText, musicTitle, genre: mood }
+      );
 
       if (response.data.success) {
-        setHashtags(response.data.data.hashtags)
+        setHashtags(response.data.data.hashtags);
       }
     } catch (error) {
-      console.error('Failed to generate hashtags:', error)
+      console.error("Frequency analysis failed:", error);
     }
-  }
+  };
 
   const copyToClipboard = () => {
-    const fullText = `${caption}\n\n${hashtags.map(h => `#${h}`).join(' ')}`
-    navigator.clipboard.writeText(fullText)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const fullText = `${caption}\n\n${hashtags.map(h => `#${h}`).join(" ")}`;
+    navigator.clipboard.writeText(fullText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
 
     if (onCaptionGenerated) {
-      onCaptionGenerated(caption, hashtags)
+      onCaptionGenerated(caption, hashtags);
     }
-  }
+    addToast("Data copied to broadcast buffer.", "info");
+  };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="w-5 h-5 text-purple-500" />
-        <h3 className="text-lg font-semibold">AI Caption Generator</h3>
+    <div className="glass-dark border border-white/5 rounded-[32px] p-8 shadow-[0_32px_80px_rgba(0,0,0,0.4)]">
+      <div className="mb-10 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl glass border-white/10 text-indigo-400">
+            <Brain className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-white italic tracking-tight">Neural Narrator</h3>
+            <p className="text-[10px] font-black text-neutral-600 uppercase tracking-[0.2em] mt-0.5">AI-Powered Context Generation</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+            <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
+            <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse delay-75" />
+            <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse delay-150" />
+        </div>
       </div>
 
-      {/* Input Fields */}
-      <div className="space-y-4 mb-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Music Title
+      {/* Logic Fields */}
+      <div className="space-y-6 mb-10">
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1 flex items-center gap-2">
+            <Music className="w-3 h-3" /> Sonic Identity
           </label>
           <input
             type="text"
             value={musicTitle}
             onChange={(e) => setMusicTitle(e.target.value)}
-            placeholder="Enter your music title..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Track Title or Focus..."
+            className="w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-4 text-sm font-medium text-white focus:outline-none focus:border-indigo-500/50 transition-all hover:bg-white/[0.07]"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Context (optional)
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1 flex items-center gap-2">
+            <Type className="w-3 h-3" /> Core Narrative
           </label>
           <textarea
             value={context}
             onChange={(e) => setContext(e.target.value)}
-            placeholder="What's this music about? Any special story?"
+            placeholder="What's this music about? Infuse your story..."
             rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+            className="w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-4 text-sm font-medium text-white focus:outline-none focus:border-indigo-500/50 transition-all hover:bg-white/[0.07] resize-none"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Mood
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1 flex items-center gap-2">
+            <Zap className="w-3 h-3" /> Emotional Frequency
           </label>
-          <select
-            value={mood}
-            onChange={(e) => setMood(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          >
-            <option value="">Select mood...</option>
-            <option value="chill">Chill</option>
-            <option value="energetic">Energetic</option>
-            <option value="happy">Happy</option>
-            <option value="sad">Sad</option>
-            <option value="focus">Focus</option>
-          </select>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {["chill", "energetic", "focus", "happy", "sad", "lo-fi"].map((m) => (
+                <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMood(m)}
+                    className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${mood === m ? "bg-indigo-500 border-indigo-500 text-white shadow-lg mx-scale-105" : "glass border-white/5 text-neutral-500 hover:bg-white/5 hover:text-white"}`}
+                >
+                    {m}
+                </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Generate Button */}
+      {/* Action Point */}
       <button
         onClick={generateCaption}
         disabled={loading || !musicTitle.trim()}
-        className="w-full px-4 py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+        className={`w-full py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 active:scale-95 shadow-[0_20px_40px_rgba(0,0,0,0.3)] ${loading ? "bg-white/10 text-neutral-500 cursor-not-allowed" : "bg-white text-black hover:bg-neutral-200"}`}
       >
         {loading ? (
           <>
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Generating...
+            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            Neural Synthesis...
           </>
         ) : (
           <>
-            <Sparkles className="w-5 h-5" />
-            Generate Caption
+            <Sparkles className="w-4 h-4" />
+            Infuse Narrative
           </>
         )}
       </button>
 
-      {/* Generated Caption */}
+      {/* Synthetic Output */}
       {caption && (
-        <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-          <div className="flex items-start justify-between mb-3">
-            <p className="font-medium text-purple-900">Generated Caption:</p>
+        <div className="mt-10 p-6 glass rounded-[24px] border border-indigo-500/20 animate-in fade-in zoom-in-95 duration-500">
+          <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-4">
+            <div className="flex items-center gap-2">
+                <Wand2 className="w-4 h-4 text-indigo-400" />
+                <p className="text-[10px] font-black text-white uppercase tracking-widest">Neural Proposal</p>
+            </div>
             <button
               onClick={copyToClipboard}
-              className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700"
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-white transition-colors"
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4" />
-                  Copied!
+                  <Check className="w-3.5 h-3.5" />
+                  Captured
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4" />
-                  Copy
+                  <Copy className="w-3.5 h-3.5" />
+                  Extract
                 </>
               )}
             </button>
           </div>
 
-          <p className="text-gray-800 mb-3">{caption}</p>
+          <p className="text-sm font-medium text-neutral-300 leading-relaxed italic mb-6">"{caption}"</p>
 
           {hashtags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {hashtags.map((tag, index) => (
-                <span
+                <div
                   key={index}
-                  className="px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] font-black text-indigo-400 lowercase tracking-tight"
                 >
-                  #{tag}
-                </span>
+                  <Hash className="w-2.5 h-2.5 opacity-50" />
+                  {tag}
+                </div>
               ))}
             </div>
           )}
         </div>
       )}
     </div>
-  )
-}
+  );
+};
+
+export default NeuralNarrator;

@@ -1,6 +1,8 @@
+"use strict";
+
 const express = require("express");
 const multer = require("multer");
-const userController = require("./user.controller");
+const usersController = require("./users.controller");
 const auth = require("../../middlewares/auth.middleware");
 
 const router = express.Router();
@@ -19,9 +21,9 @@ const upload = multer({
   },
 });
 
-router.get("/profile", auth, userController.getProfile);
-router.put("/profile", auth, upload.single("profilePic"), userController.updateProfile);
-router.delete("/profile", auth, userController.deleteAccount);
-router.get("/:id", userController.getUserById);
+router.get("/profile", auth, usersController.getProfile);
+router.put("/profile", auth, upload.single("profilePic"), usersController.updateProfile);
+router.delete("/profile", auth, usersController.deleteAccount);
+router.get("/:id", usersController.getUserById);
 
 module.exports = router;

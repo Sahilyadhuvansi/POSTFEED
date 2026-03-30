@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+<<<<<<< HEAD
 import { X, Send, Sparkles, Trash2 } from "lucide-react";
 
 /**
@@ -6,6 +7,21 @@ import { X, Send, Sparkles, Trash2 } from "lucide-react";
  * 
  * Re-imagined with high-end glassmorphism and smooth animations
  * integrated with the project's dark theme.
+=======
+import { X, Send } from "lucide-react";
+import { api } from "../config";
+import { PostCard, SongCard, EmptyStateCard } from "./ui/AIChatCards";
+import "../styles/FloatingAIButton.css";
+
+/**
+ * Floating AI Chat Button Component
+ * 
+ * Features:
+ * - Fixed position in bottom-right corner
+ * - Minimal circular FAB design
+ * - Groq-powered backend integration
+ * - Clean chat interface (no Claude/Anthropic branding)
+>>>>>>> main
  */
 const FloatingAIButton = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,22 +31,43 @@ const FloatingAIButton = () => {
   const [error, setError] = useState("");
   const messagesEndRef = useRef(null);
 
+<<<<<<< HEAD
   // Auto-scroll to latest message
+=======
+  // Scroll to bottom when messages update
+>>>>>>> main
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+<<<<<<< HEAD
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
 
     const userMessage = { id: Date.now(), role: "user", content: inputValue };
+=======
+  // Handle sending a message
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    
+    if (!inputValue.trim()) return;
+
+    // Add user message to chat state immediately for UI responsiveness
+    const userMessage = {
+      id: Date.now(),
+      role: "user",
+      content: inputValue,
+    };
+
+>>>>>>> main
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
     setError("");
 
     try {
+<<<<<<< HEAD
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/ai/chat`,
         {
@@ -55,11 +92,44 @@ const FloatingAIButton = () => {
       ]);
     } catch (err) {
       setError(err.message || "Something went wrong.");
+=======
+      // Use centralized axios instance for consistent headers and error handling
+      const { data } = await api.post("/ai/chat", {
+        messages: [
+          ...messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          { role: "user", content: inputValue },
+        ],
+        options: {
+          temperature: 0.7,
+          maxTokens: 512, // Reduced for faster response
+        },
+      });
+
+      // Add AI response to chat
+      const aiMessage = {
+        id: Date.now() + 1,
+        role: "assistant",
+        type: data.type || "text",
+        payload: data.payload || null,
+        content: data.content || "",
+        model: data.model,
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || "AI assistant is taking a break. Try shorter messages.";
+      setError(errorMsg);
+      console.error("Chat error:", err);
+>>>>>>> main
     } finally {
       setIsLoading(false);
     }
   };
 
+<<<<<<< HEAD
   return (
     <div className="fixed bottom-6 right-6 z-[1000] flex flex-col items-end">
       {/* Floating Action Button */}
@@ -73,11 +143,40 @@ const FloatingAIButton = () => {
           <span className="absolute inset-0 animate-ping rounded-full bg-indigo-400 opacity-20"></span>
           
           <Sparkles className="relative z-10 h-8 w-8 transition-transform group-hover:rotate-12" />
+=======
+  // Clear chat history
+  const handleClearChat = () => {
+    setMessages([]);
+    setError("");
+  };
+
+  return (
+    <>
+      {/* Floating Circular Button */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="floating-fab"
+          title="Open AI Assistant"
+          aria-label="Open AI Assistant"
+        >
+          <svg
+            className="fab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            {/* Sparkle/Star Icon */}
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+>>>>>>> main
         </button>
       )}
 
       {/* Chat Panel */}
       {isOpen && (
+<<<<<<< HEAD
         <div className="flex w-[380px] origin-bottom-right animate-in fade-in slide-in-from-bottom-5 duration-300 flex-col overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950/95 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 sm:w-[420px]">
           
           {/* Dynamic Header */}
@@ -126,21 +225,83 @@ const FloatingAIButton = () => {
                   }`}
                 >
                   {msg.content}
+=======
+        <div className="chat-panel">
+          {/* Header */}
+          <div className="chat-header">
+            <div className="header-content">
+              <h3>AI Assistant</h3>
+              <p className="text-xs">Powered by Groq</p>
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="close-button"
+              aria-label="Close AI Assistant"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Messages Container */}
+          <div className="messages-container">
+            {messages.length === 0 && (
+              <div className="welcome-message">
+                <div className="sparkle">✨</div>
+                <h4>Welcome!</h4>
+                <p>Ask me anything. I'm here to help!</p>
+              </div>
+            )}
+
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`message message-${message.role}`}
+              >
+                <div className="message-bubble">
+                  {message.role === "assistant" && message.type === "ui-controller" ? (
+                    <div className="structured-content">
+                      {message.payload?.type === "posts" && message.payload.data?.map(post => (
+                        <PostCard key={post.id} post={post} />
+                      ))}
+                      {message.payload?.type === "songs" && message.payload.data?.map(song => (
+                        <SongCard key={song.id} song={song} />
+                      ))}
+                      {message.payload?.type === "empty" && (
+                        <EmptyStateCard message={message.payload.message} />
+                      )}
+                      {/* Fallback for unknown UI types */}
+                      {!["posts", "songs", "empty"].includes(message.payload?.type) && (
+                         <p>{message.content || "Data received, but I can't render it yet."}</p>
+                      )}
+                    </div>
+                  ) : (
+                    message.content
+                  )}
+>>>>>>> main
                 </div>
               </div>
             ))}
 
             {isLoading && (
+<<<<<<< HEAD
               <div className="flex justify-start animate-pulse">
                 <div className="flex space-x-1.5 bg-zinc-900/50 rounded-2xl px-4 py-3 border border-zinc-800/50">
                   <div className="h-1.5 w-1.5 bg-zinc-600 rounded-full animate-bounce"></div>
                   <div className="h-1.5 w-1.5 bg-zinc-600 rounded-full animate-bounce delay-100"></div>
                   <div className="h-1.5 w-1.5 bg-zinc-600 rounded-full animate-bounce delay-200"></div>
+=======
+              <div className="message message-assistant">
+                <div className="message-bubble loading">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+>>>>>>> main
                 </div>
               </div>
             )}
 
             {error && (
+<<<<<<< HEAD
               <div className="flex justify-center">
                 <span className="px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-medium">
                   {error}
@@ -153,24 +314,50 @@ const FloatingAIButton = () => {
           {/* Precision Input Area */}
           <div className="bg-zinc-950 p-4 border-t border-zinc-900 group">
             <form onSubmit={handleSendMessage} className="relative flex items-center space-x-2">
+=======
+              <div className="message message-error">
+                <div className="message-bubble">
+                  ⚠️ {error}
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input Area */}
+          <div className="chat-input-area">
+            <form onSubmit={handleSendMessage} className="chat-form">
+>>>>>>> main
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
+<<<<<<< HEAD
                 placeholder="Ask anything..."
                 className="w-full rounded-2xl bg-zinc-900 border-zinc-800 px-5 py-3.5 pr-14 text-[14px] text-white placeholder-zinc-500 outline-none ring-offset-zinc-950 transition-all focus:ring-2 focus:ring-indigo-500/50"
+=======
+                placeholder="Type your message..."
+                className="chat-input"
+>>>>>>> main
                 disabled={isLoading}
                 autoFocus
               />
               <button
                 type="submit"
                 disabled={isLoading || !inputValue.trim()}
+<<<<<<< HEAD
                 className="absolute right-2 top-1.5 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-30"
+=======
+                className="send-button"
+                aria-label="Send message"
+>>>>>>> main
               >
                 <Send size={18} />
               </button>
             </form>
 
+<<<<<<< HEAD
             <div className="mt-3 flex items-center justify-between px-1">
               {messages.length > 0 && (
                 <button
@@ -187,6 +374,20 @@ const FloatingAIButton = () => {
         </div>
       )}
     </div>
+=======
+            {messages.length > 0 && (
+              <button
+                onClick={handleClearChat}
+                className="clear-button"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+>>>>>>> main
   );
 };
 

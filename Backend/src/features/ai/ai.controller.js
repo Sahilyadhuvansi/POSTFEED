@@ -1,241 +1,185 @@
+"use strict";
+
+/**
+ * AI CONTROLLER - Post Music AI (Production Refactor)
+ * Senior Feature: Consistent Error Delegation & Standardized Telemetry
+ */
+
 const musicRecommendation = require("../../services/music-recommendation.service");
 const contentModeration = require("../../services/content-moderation.service");
-const aiService = require("../../common/services/ai.service");
-const aiConfig = require("../../common/config/ai.config");
-const logger = require("../../common/utils/logger");
+const aiService = require("../../services/ai.service");
+const aiConfig = require("../../config/ai.config");
+const Post = require("../posts/posts.model");
+const Music = require("../music/music.model");
 
-/**
- * AI Controller for POST_MUSIC (Professional AI Suite)
- * Handles music analysis, recommendations, and creative generation
- */
+// Cache context (limit lookups)
+let cachedContext = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 30 * 1000;
 
-/**
- * @route   GET /api/ai/recommendations
- * @desc    Get personalized music recommendations (Fast LPU Cache)
- * @access  Private
- */
-exports.getRecommendations = async (req, res) => {
+const SYSTEM_PROMPTS = {
+  captionGeneration: `Artist branding expert. Generate Instagram caption. 150-200 chars. 1-2 emojis. No hashtags. Return text only.`,
+  hashtagSuggestion: `Music marketing expert. Return ONLY a JSON array of 5-8 relevant lowercase hashtags.`,
+  moodPlaylist: `AI DJ. Describe a {mood} mood in 1-2 sentences. Text only.`,
+  trendingAnalysis: `Trends analyst. Summarize current tracks in 1 sentence. Text only.`,
+  recommendationReasons: `Music taste expert. Provide brief (5-10 words) specific reasons for matches. Return JSON array.`,
+  chatStructured: `PostFeed Data Controller. APP CONTEXT: {appContext}. Query: {userQuery}. Return ONLY valid JSON structured for posts/songs/empty. No explanation.`,
+  chatGeneral: `Friendly AI Assistant guide for the music platform. APP CONTEXT: {appContext}. Be encouraging and concise.`
+};
+
+exports.getRecommendations = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-    const { limit = 10, mood = null } = req.query;
-
-    const recommendations = await musicRecommendation.getRecommendations(userId, {
-      limit: parseInt(limit),
-      mood,
-    });
-
-    res.status(200).json({
-      success: true,
-      count: recommendations.length,
-      data: recommendations,
-    });
+    const userId = req.user.id;
+    const recommendations = await musicRecommendation.getRecommendations(userId);
+    res.status(200).json({ success: true, data: recommendations, requestId: req.id });
   } catch (error) {
-    console.error("AI Recommendations Error:", error);
-    res.status(500).json({ success: false, error: "AI recommendation engine is recovering. Try again shortly." });
+    next(error);
   }
 };
 
-/**
- * @route   GET /api/ai/similar/:musicId
- * @desc    Find songs with similar "Musical Fingerprint"
- * @access  Public
- */
-exports.findSimilar = async (req, res) => {
+exports.findSimilar = async (req, res, next) => {
   try {
     const { musicId } = req.params;
-    const { limit = 5 } = req.query;
-
-    const similar = await musicRecommendation.findSimilar(musicId, parseInt(limit));
-
-    res.status(200).json({
-      success: true,
-      count: similar.length,
-      data: similar,
-    });
+    const similar = await musicRecommendation.findSimilarTracks(musicId);
+    res.status(200).json({ success: true, data: similar, requestId: req.id });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to fingerprint track." });
+    next(error);
   }
 };
 
-/**
- * @route   POST /api/ai/generate-caption
- * @desc    Creative AI caption generation (Groq Priority)
- * @access  Private
- */
-exports.generateCaption = async (req, res) => {
+exports.moodPlaylist = async (req, res, next) => {
+  try {
+    const { mood } = req.body;
+    const prompt = SYSTEM_PROMPTS.moodPlaylist.replace("{mood}", mood);
+    const aiRes = await aiService.chat([{ role: "user", content: prompt }], { temperature: 0.8 });
+    res.status(200).json({ success: true, data: { description: aiRes.content }, requestId: req.id });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getTrending = async (req, res, next) => {
+  try {
+    const trending = await Music.find().sort({ playCount: -1 }).limit(10).lean();
+    const prompt = SYSTEM_PROMPTS.trendingAnalysis;
+    const aiRes = await aiService.chat([{ role: "user", content: "Analyze: " + trending.map(m => m.title).join(", ") }], { systemPrompt: prompt });
+    res.status(200).json({ success: true, data: { tracks: trending, insight: aiRes.content }, requestId: req.id });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.moderateContent = async (req, res, next) => {
+  try {
+    const { content } = req.body;
+    const result = await contentModeration.moderate(content);
+    res.status(200).json({ success: true, data: result, requestId: req.id });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.generateCaption = async (req, res, next) => {
   try {
     const { context = "", mood = "", musicTitle = "" } = req.body;
-
     if (!aiConfig.features.captionGeneration) {
-      return res.status(503).json({ success: false, error: "Caption generation is currently in maintenance." });
+      throw new Error("Feature temporarily disabled");
     }
-
-    const systemPrompt = "You are a social media specialist for musicians.";
-    const userPrompt = `Context: ${context || "New music drop"}\nTrack: ${musicTitle || "Vibe check"}\nMood: ${mood || "energetic"}\n\nGenerate a short (150 char), engaging caption with 1-2 emojis. Return ONLY text.`;
-
-    const aiRes = await aiService.chat(
-      [{ role: "user", content: userPrompt }],
-      { systemPrompt, temperature: 0.8, maxTokens: 200 }
-    );
-
-    res.status(200).json({
-      success: true,
-      data: { caption: aiRes.content.trim() },
+    const userPrompt = `Context: ${context}\nTrack: ${musicTitle}\nMood: ${mood}`;
+    const aiRes = await aiService.chat([{ role: "user", content: userPrompt }], {
+      systemPrompt: SYSTEM_PROMPTS.captionGeneration,
+      temperature: 0.6,
+      maxTokens: 250,
+      strict: true
     });
+    res.status(200).json({ success: true, data: { caption: aiRes.content }, model: aiRes.model, requestId: req.id });
   } catch (error) {
-    console.error("AI Caption Error:", error);
-    res.status(500).json({ success: false, error: "AI creative studio is busy. Please try again soon." });
+    next(error);
   }
 };
 
-/**
- * @route   POST /api/ai/suggest-hashtags
- * @desc    Context-aware hashtag suggestion
- * @access  Private
- */
-exports.suggestHashtags = async (req, res) => {
+exports.chat = async (req, res, next) => {
+  try {
+    const { messages = [] } = req.body;
+    const userMessage = messages[messages.length - 1].content.toLowerCase();
+    const isStructured = /post|song|music|feed|latest/i.test(userMessage);
+
+    const appContext = await getAppContext();
+    let systemPrompt = isStructured 
+      ? SYSTEM_PROMPTS.chatStructured.replace("{appContext}", appContext).replace("{userQuery}", userMessage)
+      : SYSTEM_PROMPTS.chatGeneral.replace("{appContext}", appContext);
+
+    const aiRes = await aiService.chat(messages, {
+      systemPrompt,
+      temperature: isStructured ? 0.1 : 0.7,
+      responseSchema: isStructured ? "json_object" : "plain_text",
+      strict: isStructured
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      type: isStructured ? "structured" : "text",
+      [isStructured ? "payload" : "content"]: aiRes.content,
+      model: aiRes.model,
+      requestId: req.id
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.suggestHashtags = async (req, res, next) => {
   try {
     const { caption = "", musicTitle = "", genre = "" } = req.body;
-
-    const userPrompt = `Caption: ${caption}\nTrack: ${musicTitle}\nGenre: ${genre}\n\nSuggest 5-8 relevant hashtags. Return ONLY a JSON array like ["tag1", "tag2"].`;
-
-    const aiRes = await aiService.chat(
-      [{ role: "user", content: userPrompt }],
-      { temperature: 0.7, maxTokens: 200 }
-    );
-
-    const text = aiRes.content.trim();
-    const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
-    let hashtags = [];
-    try {
-      hashtags = JSON.parse(cleaned);
-    } catch (e) {
-      hashtags = ["music", "trending", genre || "artist"].filter(Boolean);
-    }
-
-    res.status(200).json({
-      success: true,
-      data: { hashtags },
+    const prompt = SYSTEM_PROMPTS.hashtagSuggestion.replace("{caption}", caption).replace("{musicTitle}", musicTitle).replace("{genre}", genre);
+    const aiRes = await aiService.chat([{ role: "user", content: prompt }], {
+      temperature: 0.5,
+      responseSchema: "json_array",
+      strict: true
     });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Could not fetch suggestions." });
+    res.status(200).json({ success: true, data: { hashtags: aiRes.content }, model: aiRes.model, requestId: req.id });
+  } catch (_e) {
+    res.status(200).json({ success: true, data: { hashtags: ["music", "newmusic"], source: "fallback" }, requestId: req.id });
   }
 };
 
-/**
- * @route   POST /api/ai/mood-playlist
- * @desc    Generate mood-based playlist
- * @access  Public
- */
-exports.generateMoodPlaylist = async (req, res) => {
-  try {
-    const { mood = "" } = req.body;
-    if (!mood) return res.status(400).json({ success: false, error: "Mood is required." });
-
-    const playlist = await musicRecommendation.generateMoodPlaylist(mood);
-    res.status(200).json({ success: true, data: playlist });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Playlist engine failed." });
-  }
-};
-
-/**
- * @route   GET /api/ai/trending
- * @desc    Get trending tracks with AI insights
- * @access  Public
- */
-exports.getTrending = async (req, res) => {
-  try {
-    const { period = "week", genre = null } = req.query;
-    const trends = await musicRecommendation.discoverTrending({ period, genre });
-    res.status(200).json({ success: true, data: trends });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Trends analysis failed." });
-  }
-};
-
-/**
- * @route   POST /api/ai/moderate-content
- * @desc    Real-time content moderation (Safety Check)
- * @access  Private
- */
-exports.moderateContent = async (req, res) => {
-  try {
-    const { text = null } = req.body;
-    const userId = req.user._id;
-
-    if (!aiConfig.features.contentModeration) return res.status(200).json({ success: true, warning: "Moderation disabled." });
-
-    const moderation = await contentModeration.moderateContent({ text, userId });
-
-    res.status(200).json({ success: true, data: moderation });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Safety filter failed." });
-  }
-};
-
-/**
- * @route   POST /api/ai/chat
- * @desc    General-purpose chat interface (Groq-powered, Floating Button)
- * @access  Public
- */
-exports.chat = async (req, res) => {
-  try {
-    const { messages = [], options = {} } = req.body;
-
-    // Validate input
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "Messages array is required and must not be empty.",
-      });
-    }
-
-    // Extract options with defaults
-    const temperature = options.temperature || 0.7;
-    const maxTokens = options.maxTokens || 1024;
-
-    // System prompt for general-purpose assistant
-    const systemPrompt = "You are a helpful and friendly AI assistant. You provide clear, concise, and helpful responses. Keep your answers brief and engaging.";
-
-    // Call Groq service (will fallback to OpenAI if Groq is unavailable)
-    const aiResponse = await aiService.chat(messages, {
-      systemPrompt,
-      temperature,
-      maxTokens,
-    });
-
-    res.status(200).json({
-      success: true,
-      content: aiResponse.content,
-      model: aiResponse.model,
-      usage: aiResponse.usage,
-    });
-  } catch (error) {
-    console.error("AI Chat Error:", error);
-    res.status(500).json({
-      success: false,
-      error: "AI assistant is temporarily unavailable. Please try again soon.",
-    });
-  }
-};
-
-/**
- * @route   GET /api/ai/stats
- * @desc    Performance and economic tracking (Admin view)
- * @access  Private
- */
-exports.getStats = async (req, res) => {
+exports.getStats = async (req, res, next) => {
   try {
     const aiStats = aiService.getStats();
-    res.status(200).json({
-      success: true,
-      data: {
-        aiPerformance: aiStats,
-        serviceStatus: aiConfig.features,
+    const recStats = musicRecommendation.getStats();
+    const globalHits = (aiStats.cache?.hits || 0) + (recStats.hits || 0);
+    const globalMisses = (aiStats.cache?.misses || 0) + (recStats.misses || 0);
+
+    res.status(200).json({ 
+      success: true, 
+      data: { 
+        global: {
+          hitRate: (globalHits + globalMisses) > 0 ? ((globalHits / (globalHits + globalMisses)) * 100).toFixed(2) + "%" : "0%",
+          totalCost: aiStats.totalCost,
+          avgCost: aiStats.avgCostPerRequest
+        },
+        services: { ai: aiStats, recommendations: recStats },
+        features: aiConfig.features 
       },
+      requestId: req.id
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to load telemetry." });
+    next(error);
+  }
+};
+
+const getAppContext = async () => {
+  const now = Date.now();
+  if (cachedContext && now - lastFetchTime < CACHE_DURATION) return cachedContext;
+  try {
+    const [posts, music] = await Promise.all([
+      Post.find().sort({ createdAt: -1 }).limit(5).populate("user", "username").lean(),
+      Music.find().sort({ createdAt: -1 }).limit(5).populate("artist", "username").lean()
+    ]);
+    cachedContext = `Recent Posts: ${posts.map(p => `@${p.user?.username}: ${p.caption}`).join(" | ")}\nTrending: ${music.map(m => `"${m.title}"`).join(", ")}`;
+    lastFetchTime = now;
+    return cachedContext;
+  } catch (_err) {
+    return "[Context unavailable]";
   }
 };

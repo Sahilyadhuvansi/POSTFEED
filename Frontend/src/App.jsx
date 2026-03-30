@@ -11,6 +11,7 @@ import Profile from "./features/users/Profile";
 import Music from "./features/music/Music";
 import Upload from "./features/music/Upload";
 import Recommendations from "./features/ai/Recommendations";
+import PostDetail from "./features/posts/PostDetail";
 
 // Components
 import Header from "./components/Header";
@@ -44,6 +45,7 @@ const AppRouter = () => {
       />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/post/:postId" element={<PostDetail />} />
       <Route
         path="/profile"
         element={
