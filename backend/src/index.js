@@ -200,12 +200,35 @@ app.use((_req, res) => {
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use(errorHandler);
 
-// ─── Start (local only — Vercel handles its own serving) ──────────────────────
-if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
-    logger.info(`PostFeed Backend running locally on port ${PORT}`);
+// ─── Startup Logic (Optimized for Render/Production) ───────────────────────────
+const PORT = process.env.PORT || 10000;
+
+async function startServer() {
+  try {
+    // 1. Database Connection
+    await connectDB();
+    logger.info("✅ Database connected successfully");
+
+    // 2. Redis Connection (Optional layer — don't block server boot)
+    if (process.env.REDIS_URL || process.env.NODE_ENV === "development") {
+      const { getRedisClient } = require("./utils/redis");
+      getRedisClient()
+        .then(() => logger.info("✅ Redis connected (or fallback active)"))
+        .catch((err) => logger.warn(`⚠️ Redis failed: ${err.message}`));
+    }
+  } catch (err) {
+    logger.error(`❌ Startup critical failure: ${err.message}`);
+  }
+
+  // ─── FINAL LISTEN (Outside failure blocks — Render REQUIREMENT) ──────────────
+  app.listen(PORT, "0.0.0.0", () => {
+    logger.info(`🚀 PostFeed Backend active on 0.0.0.0:${PORT}`);
+    if (!isConfigured) {
+      logger.warn("⚠️ JWT_SECRET or MONGO_URI missing from environment!");
+    }
   });
 }
+
+startServer();
 
 module.exports = app;
