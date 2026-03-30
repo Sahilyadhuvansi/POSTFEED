@@ -8,13 +8,13 @@ A professional, monorepo-structured full-stack application featuring AI-powered 
 
 ```mermaid
 graph TD
-    subgraph Frontend [React + Vite]
+    subgraph frontend [React + Vite]
         UI[User Interface]
         API_LAYER[api.js Layer]
-        SERVICES[Frontend Services]
+        SERVICES[frontend Services]
     end
 
-    subgraph Backend [Node.js + Express]
+    subgraph backend [Node.js + Express]
         ROUTES[Express Routes]
         CONTROLLERS[Feature Controllers]
         BIZ_LOGIC[Business Logic Services]
@@ -58,8 +58,8 @@ graph TD
    ```
 
 3. **Configure Environment**:
-   - Copy `Backend/.env.example` to `Backend/.env`
-   - Copy `Frontend/.env.example` to `Frontend/.env`
+   - Copy `backend/.env.example` to `backend/.env`
+   - Copy `frontend/.env.example` to `frontend/.env`
    - Fill in your API keys and configuration.
 
 4. **Run in Development**:
@@ -88,8 +88,8 @@ graph TD
 ## 🧹 Maintenance & Best Practices
 
 - **Separation of Concerns**: Business logic resides in `services/`, not `routes/`.
-- **API Strategy**: Centralized Axios instance in `Frontend/src/services/api.js`.
-- **Constants**: Shared configurations in `Backend/src/constants/`.
+- **API Strategy**: Centralized Axios instance in `frontend/src/services/api.js`.
+- **Constants**: Shared configurations in `backend/src/constants/`.
 - **Deployment**: Configured for Vercel (Frontend) and scalable Backend environments.
 
 ---
