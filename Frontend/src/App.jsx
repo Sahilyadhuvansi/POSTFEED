@@ -3,15 +3,15 @@ import { AuthProvider } from "./features/auth/AuthContext";
 import { MusicProvider } from "./features/music/MusicContext";
 
 // Pages
-import CreatePost from "./features/posts/CreatePost";
-import Feed from "./features/posts/Feed";
-import Login from "./features/auth/Login";
-import Register from "./features/auth/Register";
-import Profile from "./features/users/Profile";
-import Music from "./features/music/Music";
-import Upload from "./features/music/Upload";
-import Recommendations from "./features/ai/Recommendations";
-import PostDetail from "./features/posts/PostDetail";
+import CreatePost from "./pages/CreatePost";
+import Feed from "./pages/Feed";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Profile from "./pages/Profile";
+import Music from "./pages/Music";
+import Upload from "./pages/Upload";
+import Recommendations from "./pages/Recommendations";
+import PostDetail from "./pages/PostDetail";
 
 // Components
 import Header from "./components/Header";

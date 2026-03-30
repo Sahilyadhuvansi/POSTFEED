@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../features/auth/AuthContext";
 import { DEFAULT_AVATAR, api } from "../../config";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -212,3 +212,4 @@ const Profile = () => {
 };
 
 export default Profile;
+

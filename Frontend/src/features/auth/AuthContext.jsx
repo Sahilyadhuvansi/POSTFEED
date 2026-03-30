@@ -1,21 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
-import axios from "axios";
-import { API_URL as BASE_URL } from "../../config";
+import api from "../../services/api";
 
 const AuthContext = createContext(null);
 
-const API = axios.create({
-  baseURL: `${BASE_URL}/api/auth`,
-  withCredentials: true,
-  timeout: 15000,
-});
-
-// Attach stored token to every request
-API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
 
 const parseStoredUser = () => {
   try {
@@ -48,7 +35,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return;
     }
-    API.get("/me")
+    api.get("/auth/me")
       .then((res) => {
         const userData = res.data.user;
         setUser(userData);
@@ -65,7 +52,7 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (credentials) => {
     setLoading(true);
     try {
-      const res = await API.post("/login", credentials);
+      const res = await api.post("/auth/login", credentials);
       const userData = res.data.user;
       setUser(userData);
       persistUser(userData, res.data.token);
@@ -80,7 +67,7 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(async (formData) => {
     setLoading(true);
     try {
-      const res = await API.post("/register", formData);
+      const res = await api.post("/auth/register", formData);
       const userData = res.data.user;
       setUser(userData);
       persistUser(userData, res.data.token);
@@ -94,7 +81,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      await API.post("/logout");
+      await api.post("/auth/logout");
     } catch (err) {
       console.error("Logout error:", err.message);
     } finally {

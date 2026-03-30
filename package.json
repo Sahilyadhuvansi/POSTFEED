@@ -11,9 +11,9 @@
     "Frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
-    "backend": "npm run dev --workspace=Backend",
-    "frontend": "npm run dev --workspace=Frontend",
+    "dev": "concurrently \"cd Backend && npm run dev\" \"cd Frontend && npm run dev\"",
+    "backend": "cd Backend && npm run dev",
+    "frontend": "cd Frontend && npm run dev",
     "install:all": "npm install",
     "build": "npm run build --workspace=Frontend",
     "lint": "npm run lint --workspace=Frontend",

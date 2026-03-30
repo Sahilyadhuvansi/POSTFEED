@@ -6,7 +6,8 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { api, IMAGEKIT_UPLOAD_URL } from "../../config";
+import { IMAGEKIT_UPLOAD_URL } from "../../config";
+import api from "../../services/api";
 
 import { parseBlob } from "music-metadata-browser";
 
@@ -461,3 +462,4 @@ const Upload = () => {
 };
 
 export default Upload;
+

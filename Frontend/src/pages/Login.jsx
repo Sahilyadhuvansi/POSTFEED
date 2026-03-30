@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "./AuthContext";
-import { useToast } from "../../components/ui/Toast";
+import { useAuth } from "../features/auth/AuthContext";
+import { useToast } from "../components/ui/Toast";
 import { User, Lock, Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
 
 const Login = () => {
@@ -131,3 +131,4 @@ const Login = () => {
 };
 
 export default Login;
+

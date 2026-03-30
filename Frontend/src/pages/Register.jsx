@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "./AuthContext";
-import { useToast } from "../../components/ui/Toast";
+import { useAuth } from "../features/auth/AuthContext";
+import { useToast } from "../components/ui/Toast";
 import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, Sparkles } from "lucide-react";
 
 const Register = () => {
@@ -185,3 +185,4 @@ const Register = () => {
 };
 
 export default Register;
+

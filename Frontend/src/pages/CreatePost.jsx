@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../../config";
+import api from "../../services/api";
 import { useToast } from "../../components/ui/Toast";
 import { Image, Type, Lock, Unlock, ArrowRight, X, Sparkles } from "lucide-react";
 import CaptionGenerator from "../ai/CaptionGenerator";
@@ -184,3 +184,4 @@ const CreatePost = () => {
 };
 
 export default CreatePost;
+

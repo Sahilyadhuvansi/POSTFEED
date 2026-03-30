@@ -1,40 +1,61 @@
-# ─── Commit: Professional Security & Monorepo Ignores ───
-# What this does: Protects your Groq keys and prevents 100MB+ node_modules from uploading.
-# Interview insight: This shows a high level of "Operational Discipline" and security awareness.
-
-# Standard Node Ignores
+# ─────────────────────────────────────────────
+# 🚀 Node.js & Build Outputs
+# ─────────────────────────────────────────────
 node_modules/
 dist/
 build/
+dist-ssr/
 .next/
 .vercel/
 
-# Environment Secrets (CRITICAL SECURITY)
-.env
-.env.local
-.env.*.local
-*.env
-! .env.example
-
-# Service Specific Ignores
-Backend/node_modules/
+# Monorepo-specific
 Frontend/node_modules/
 Frontend/dist/
 Frontend/build/
+Backend/node_modules/
 
-# Media & Storage
+# ─────────────────────────────────────────────
+# 🔐 Environment & Secrets (CRITICAL)
+# ─────────────────────────────────────────────
+.env
+.env.*
+*.env
+!.env.example
+
+# ─────────────────────────────────────────────
+# 📦 Logs & Debug Files
+# ─────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+
+# ─────────────────────────────────────────────
+# 📁 Uploads, Temp & Storage
+# ─────────────────────────────────────────────
 uploads/
 temp/
-*.log
 
-# IDE & OS Files
+# ─────────────────────────────────────────────
+# 🧹 System & OS Files
+# ─────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/
-.project
-.settings
 
-# Extraction Folders (Leftovers from migration/backup)
+# ─────────────────────────────────────────────
+# 🛠️ IDE & Editor Files
+# ─────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.sw?
+
+# ─────────────────────────────────────────────
+# 📂 Migration / Backup Artifacts
+# ─────────────────────────────────────────────
 extracted_final/
 extracted_temp/
+
+# ─────────────────────────────────────────────
+# 🌐 Local Config
+# ─────────────────────────────────────────────
+*.local

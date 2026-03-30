@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useMusic } from "./MusicContext";
 import { useLocation } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../features/auth/AuthContext";
 import { useToast } from "../../components/ui/Toast";
 import {
   Play,
@@ -14,7 +14,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { api } from "../../config";
+import api from "../../services/api";
 import { MusicSkeleton } from "../../components/SkeletonLoader";
 import { useApiCache } from "../../hooks/useApiCache";
 
@@ -343,3 +343,4 @@ const Music = () => {
 };
 
 export default Music;
+

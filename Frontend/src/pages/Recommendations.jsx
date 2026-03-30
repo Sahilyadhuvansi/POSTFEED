@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { api } from "../../config";
 import { useToast } from "../../components/ui/Toast";
-import { useMusic } from "../music/MusicContext";
+import { useMusic } from "../features/music/MusicContext";
 
 const AINexus = () => {
   const [recommendations, setRecommendations] = useState([]);
@@ -212,3 +212,4 @@ const AINexus = () => {
 };
 
 export default AINexus;
+

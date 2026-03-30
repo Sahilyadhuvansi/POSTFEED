@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import { DEFAULT_AVATAR, api } from "../../config";
+import { useAuth } from "../features/auth/AuthContext";
+import { DEFAULT_AVATAR } from "../../config";
+import api from "../../services/api";
 import { PostSkeletonLoader } from "../../components/SkeletonLoader";
 import { useApiCache } from "../../hooks/useApiCache";
 import { useToast } from "../../components/ui/Toast";
@@ -396,3 +397,4 @@ const Feed = () => {
 };
 
 export default Feed;
+
