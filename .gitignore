@@ -1,26 +1,50 @@
+# 🚀 Node & Build
 node_modules/
 dist/
 build/
-.output/
-.vercel/
 .next/
-*.local
+.vercel/
+
+# Monorepo
+Frontend/node_modules/
+Backend/node_modules/
+Frontend/dist/
+Frontend/build/
+
+# 🔐 Environment
 .env*
 !.env.example
+
+# 📦 Logs
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-coverage/
+
+# 📁 Storage
 uploads/
 temp/
-!uploads/.gitkeep
-!temp/.gitkeep
-.vscode/
-.idea/
+.cache/
+*.tmp
+
+# 🧪 Testing
+coverage/
+
+# 🐳 Docker / Redis
+dump.rdb
+docker-data/
+
+# 🧹 System
 .DS_Store
-*.swp
-*.bak
 Thumbs.db
+
+# 🛠️ IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 🌐 Local configs
+*.local
