@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Professional Full-Stack AI Social Music Platform",
   "engines": {
-    "node": ">=18.x"
+    "node": ">=20.x"
   },
   "private": true,
   "workspaces": [

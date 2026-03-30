@@ -9,12 +9,15 @@
 const Groq = require("groq-sdk");
 const crypto = require("crypto");
 const aiConfig = require("../config/ai.config");
+const { getRedisClient } = require("../utils/redis");
+
 const { analytics } = require("./ai.performance-analytics");
 
 const DAILY_COST_LIMIT = 5.0; 
 const MAX_CACHE_SIZE = 100;    
 const MAX_PAYLOAD_SIZE = 50000; 
-const CACHE_TTL = 10 * 60 * 1000; 
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 const SUSPICIOUS_PATTERNS = [
   /ignore\s+previous\s+instructions/i,
   /system\s+prompt/i,
@@ -44,6 +47,11 @@ class AIService {
     this.cache = new Map();
     this.hits = 0;
     this.misses = 0;
+    this._initRedis();
+  }
+
+  async _initRedis() {
+    this.redis = await getRedisClient();
   }
 
   async chat(messages, options = {}) {
@@ -58,13 +66,24 @@ class AIService {
       const cacheKey = this._generateCacheKey({ messages, systemPrompt, temperature, responseSchema });
 
       try {
-        const cachedEntry = this.cache.get(cacheKey);
-        if (cachedEntry) {
-          if (Date.now() - cachedEntry.timestamp < CACHE_TTL) {
+        // --- CACHE LAYER (Redis -> Map -> Fetch) ---
+        let cachedEntry = null;
+
+        if (this.redis) {
+          const redisData = await this.redis.get(`ai_cache:${cacheKey}`);
+          if (redisData) {
             this.recordHit();
-            return cachedEntry.value;
+            return JSON.parse(redisData);
           }
-          this.cache.delete(cacheKey);
+        } else {
+          cachedEntry = this.cache.get(cacheKey);
+          if (cachedEntry) {
+            if (Date.now() - cachedEntry.timestamp < CACHE_TTL) {
+              this.recordHit();
+              return cachedEntry.value;
+            }
+            this.cache.delete(cacheKey);
+          }
         }
         this.recordMiss();
 
@@ -273,8 +292,19 @@ class AIService {
       .digest("hex");
   }
 
-  _setCache(key, value) {
+  async _setCache(key, value) {
     if (JSON.stringify(value).length > MAX_PAYLOAD_SIZE) return;
+
+    if (this.redis) {
+      try {
+        await this.redis.set(`ai_cache:${key}`, JSON.stringify(value), {
+          EX: Math.floor(CACHE_TTL / 1000)
+        });
+      } catch (err) {
+        // Silently fail Redis set and use Map fallback
+      }
+    } 
+
     if (this.cache.size >= MAX_CACHE_SIZE) {
       const firstKey = this.cache.keys().next().value;
       this.cache.delete(firstKey);

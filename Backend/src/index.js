@@ -42,7 +42,11 @@ if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
  */
 const corsOptions = {
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
+    if (!origin) {
+      // In development, we allow Postman/Curl. In production, we restrict it.
+      if (process.env.NODE_ENV === "development") return cb(null, true);
+      return cb(null, false);
+    }
 
     const isAllowed = allowedOrigins.some((allowed) => {
       if (allowed instanceof RegExp) return allowed.test(origin);
