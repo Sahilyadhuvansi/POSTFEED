@@ -1,16 +1,8 @@
 "use strict";
 
 const Music = require("../features/music/music.model");
-<<<<<<< HEAD
-const User = require("../features/user/user.model");
-const aiService = require("../common/services/ai.service");
-const aiConfig = require("../common/config/ai.config");
-const cacheService = require("../common/services/cache.service");
-const logger = require("../common/utils/logger");
-=======
 const aiService = require("./ai.service");
 const aiConfig = require("../config/ai.config");
->>>>>>> main
 
 /**
  * AI Music Recommendation Engine (Powered by Groq)
@@ -18,9 +10,6 @@ const aiConfig = require("../config/ai.config");
  */
 class MusicRecommendationService {
   constructor() {
-<<<<<<< HEAD
-    this.cacheTTL = aiConfig.cache.ttl.recommendations;
-=======
     this.cache = new Map();
     this.cacheLimit = 100; // LRU limit
     this.cacheTTL = (aiConfig.cache.ttl.recommendations || 3600) * 1000;
@@ -28,32 +17,14 @@ class MusicRecommendationService {
     // v5: atomic stats
     this.hits = 0;
     this.misses = 0;
->>>>>>> main
   }
 
   /**
    * Get personalized recommendations for a user
    */
-<<<<<<< HEAD
-  // ─── Commit: Core Recommendation Logic ───
-  // How it works: 
-  // 1. Scans user history for genre/mood preferences.
-  // 2. Scores every track based on popularity (plays/likes) and preference match.
-  // 3. Passes top results to AI for a "personalized explanation".
-  async getRecommendations(userId, options = {}) {
-    // ─── Step 1: Cache Check (Shared Across Workers) ───
-    const { limit = 10, mood = null, similarTo = null } = options;
-    const cacheKey = `rec_${userId}_${limit}_${mood}_${similarTo}`;
-    const cached = await cacheService.get(cacheKey);
-    if (cached) {
-      logger.info({ userId, cacheKey }, "💡 [CACHE_HIT] Recommendations retrieved from Shared Cache");
-      return cached;
-    }
-=======
   getRecommendations(userId, options = {}) {
     const { limit = 10, _mood = null, _similarTo = null } = options;
     const cacheKey = `rec_${userId}_${limit}_${_mood}_${_similarTo}`;
->>>>>>> main
 
     // ─── Step 1: LRU Promise Cache Check ───
     if (this.cache.has(cacheKey)) {
@@ -79,11 +50,6 @@ class MusicRecommendationService {
       }
     }
 
-<<<<<<< HEAD
-    await cacheService.set(cacheKey, recommendations, this.cacheTTL);
-    logger.info({ userId, cacheKey }, "💾 [CACHE_SET] New recommendations stored in Shared Cache");
-    return recommendations;
-=======
     this.recordMiss();
 
     // ─── Step 2: Immediate Cache Setting (Race Prevention) ───
@@ -141,7 +107,6 @@ class MusicRecommendationService {
     }
 
     return recommendationPromise;
->>>>>>> main
   }
 
   /**
@@ -313,20 +278,7 @@ ${recTitles}`;
     };
   }
 
-<<<<<<< HEAD
-  _parseJSON(text) {
-    if (!text) return [];
-    try {
-      const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
-      return JSON.parse(cleaned);
-    } catch (e) {
-      logger.error({ error: e.message, raw: text }, "JSON Parsing Failed");
-      return [];
-    }
-  }
-=======
   // Internal caching helpers removed in favor of inline LRU logic
->>>>>>> main
 }
 
 module.exports = new MusicRecommendationService();

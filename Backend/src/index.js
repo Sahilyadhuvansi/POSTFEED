@@ -10,7 +10,6 @@ const cookieParser = require("cookie-parser");
 const compression = require("compression");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
-const mongoSanitize = require("express-mongo-sanitize");
 const connectDB = require("./config/db");
 const authRoutes = require("./features/auth/auth.routes");
 const postRoutes = require("./features/posts/posts.routes");
@@ -22,42 +21,20 @@ const requestId = require("./middlewares/request-id.middleware");
 const errorHandler = require("./middlewares/error-handler.middleware");
 const { analyticsMiddleware } = require("./services/ai.performance-analytics");
 
-<<<<<<< HEAD
-// ─── Commit: Environment Hardening (Security Layer) ──────────────────────────
-// What this does: Uses 'envalid' to strictly validate required environment vars.
-// Why it exists: If the server starts with a missing JWT_SECRET or MONGO_URI, it's a security hole.
-// Implementation: 'envalid' prevents the app from booting if types are incorrect.
-const { cleanEnv, str, port, url } = require("envalid");
-const env = cleanEnv(process.env, {
-  JWT_SECRET: str(),
-  MONGO_URI: str(),
-  PORT: port({ default: 3001 }),
-  FRONTEND_URL: url({ default: "http://localhost:5173" }),
-  GROQ_API_KEY: str({ default: "" }),
-  NODE_ENV: str({ choices: ["development", "test", "production"], default: "development" }),
-});
-
-// ─── App Initialization ───────────────────────────────────────────────────────
-const app = express();
-=======
 // ─── Env Status (Informational) ────────────────────────────────────────────────
 const isConfigured = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
 // Failure-resistant startup: Allow process to load for diagnostic /health endpoint
->>>>>>> main
 
+// ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
-<<<<<<< HEAD
-  env.FRONTEND_URL,
-  ...(process.env.CORS_ORIGINS || "").split(",").map((o) => o.trim()).filter(Boolean),
-=======
   "https://postfeeds-xi.vercel.app", // Definitive Production Origin
   /\.vercel\.app$/,                 // Any Vercel subdomain (Production/Preview)
   ...(process.env.CORS_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean),
->>>>>>> main
 ];
+if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
 
 /**
  * CORS POLICY - Post Music AI (Production Refactor)
@@ -66,10 +43,6 @@ const allowedOrigins = [
 const corsOptions = {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
-<<<<<<< HEAD
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    if (!env.isProduction && origin.startsWith("http://localhost")) {
-=======
 
     const isAllowed = allowedOrigins.some((allowed) => {
       if (allowed instanceof RegExp) return allowed.test(origin);
@@ -90,7 +63,6 @@ const corsOptions = {
       process.env.NODE_ENV !== "production" &&
       (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1"))
     ) {
->>>>>>> main
       return cb(null, true);
     }
 
@@ -109,14 +81,10 @@ const corsOptions = {
   maxAge: 86400 // Senior: Cache preflight results for 24 hours to reduce latency and console noise
 };
 
-<<<<<<< HEAD
-app.set("trust proxy", 1);
-=======
 // ─── App ──────────────────────────────────────────────────────────────────────
 const app = express();
 
 app.set("trust proxy", true); // Fully trust Vercel's proxy chain for IPv4/IPv6 client identification
->>>>>>> main
 
 // Connect DB (non-blocking for serverless)
 let dbError = null;
@@ -155,24 +123,6 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(analyticsMiddleware); // Track AI performance post-parsing
-
-// ─── HTTP Caching Middleware ──────────────────────────────────────────────────
-// What this does: Sets Cache-Control headers for specific GET requests.
-// Why it exists: To instruct the browser to store data, making navigations "Instant".
-app.use((req, res, next) => {
-  // Only cache GET requests that are likely to have stable content
-  if (req.method === "GET" && 
-      (req.url.includes("/api/posts/feed") || 
-       req.url.includes("/api/music") || 
-       req.url.includes("/api/ai/stats"))) {
-    
-    // Cache for 60 seconds (1 minute), allowing stale revalidation
-    res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=30");
-  }
-  next();
-});
-
-app.use(mongoSanitize());
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
 /**

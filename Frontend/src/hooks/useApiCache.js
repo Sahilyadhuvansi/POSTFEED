@@ -1,26 +1,21 @@
-import { useCallback } from "react";
-
-/**
- * Global API Cache Singleton
- * Prevents refetching data across page navigations within a session
- */
-const globalCacheStore = new Map();
+import { useRef, useCallback } from "react";
 
 /**
  * Hook to cache API responses with TTL (time-to-live)
- * This enhanced version uses a global singleton to persist data between re-mounts
+ * Prevents refetching same data within a time window
  */
 export function useApiCache(ttl = 5 * 60 * 1000) {
   // ttl = 5 minutes default
-  
+  const cacheRef = useRef(new Map());
+
   const getFromCache = useCallback(
     (key) => {
-      const cached = globalCacheStore.get(key);
+      const cached = cacheRef.current.get(key);
       if (!cached) return null;
 
       // Check if cache is expired
       if (Date.now() - cached.timestamp > ttl) {
-        globalCacheStore.delete(key);
+        cacheRef.current.delete(key);
         return null;
       }
 
@@ -30,7 +25,7 @@ export function useApiCache(ttl = 5 * 60 * 1000) {
   );
 
   const setCache = useCallback((key, data) => {
-    globalCacheStore.set(key, {
+    cacheRef.current.set(key, {
       data,
       timestamp: Date.now(),
     });
@@ -38,9 +33,9 @@ export function useApiCache(ttl = 5 * 60 * 1000) {
 
   const clearCache = useCallback((key) => {
     if (key) {
-      globalCacheStore.delete(key);
+      cacheRef.current.delete(key);
     } else {
-      globalCacheStore.clear();
+      cacheRef.current.clear();
     }
   }, []);
 

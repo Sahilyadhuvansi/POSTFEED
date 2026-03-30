@@ -20,17 +20,6 @@ import {
 
 const POSTS_PER_PAGE = 12;
 
-// ─── Commit: Dynamic Post Feed ───
-// What this does: Renders a responsive, infinite-scrolling grid of social posts.
-// Why it exists: Central hub for content discovery and user interaction.
-// How it works: 
-//   - Uses Intersection Observer for infinite scroll triggers.
-//   - Implements a global API cache to prevent "jank" during navigation.
-//   - Dynamic Modal system for detailed post viewing.
-// Performance impact: loading="lazy" on images + API pagination + Mem-Cache.
-// Security considerations: Conditional rendering of delete buttons (ownership check).
-// Beginner note: 'useCallback' memoizes 'loadMorePosts' to prevent observer flickers.
-// Interview insight: State-based pagination (page numbers) vs Cursor-based (timestamps).
 const Feed = () => {
   const { user } = useAuth();
   const { getFromCache, setCache } = useApiCache();
@@ -38,9 +27,6 @@ const Feed = () => {
   const observerTarget = useRef(null);
   const postMenuRef = useRef(null);
 
-  // ─── Commit: Hybrid Caching Strategy ───
-  // What this does: Checks the global singleton cache before hitting the network.
-  // Why it exists: React state is volatile; CacheContext persists data across routes (Feed -> Music -> Feed).
   const initialCached = getFromCache("feed_page_1");
 
   const [posts, setPosts] = useState(initialCached?.posts || []);
@@ -50,8 +36,7 @@ const Feed = () => {
   const [page, setPage] = useState(1);
   const [activeMenu, setActiveMenu] = useState(null);
 
-  // ─── Commit: Data Fetching Lifecycle ───
-  // Pattern: 'Stale-While-Revalidate' pattern in the frontend.
+  // ─── Initial Load ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (initialCached) return;
     api
@@ -72,9 +57,7 @@ const Feed = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Commit: Infinite Scroll Engine ───
-  // How it works: Detects when the 'observerTarget' div enters the viewport.
-  // Performance: Prevents multiple redundant API calls via !loading guard.
+  // ─── Load More (Infinite Scroll) ───────────────────────────────────────────
   const loadMorePosts = useCallback(() => {
     const nextPage = page + 1;
     const cacheKey = `feed_page_${nextPage}`;
@@ -99,6 +82,7 @@ const Feed = () => {
       .catch((err) => console.error("Expansion error:", err.message));
   }, [page, getFromCache, setCache]);
 
+  // ─── Intersection Observer ─────────────────────────────────────────────────
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -110,7 +94,7 @@ const Feed = () => {
     return () => observer.disconnect();
   }, [hasMore, loading, loadMorePosts]);
 
-  // Handle outside clicks for context menus
+  // ─── Close menu on outside click ───────────────────────────────────────────
   useEffect(() => {
     const handler = (e) => {
       if (postMenuRef.current && !postMenuRef.current.contains(e.target)) {
@@ -121,6 +105,7 @@ const Feed = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // ─── Delete Post ───────────────────────────────────────────────────────────
   const handleDeletePost = async (e, postId) => {
     e.stopPropagation();
     if (!window.confirm("Broadcast deletion? This cannot be undone.")) return;
@@ -289,11 +274,7 @@ const Feed = () => {
         )}
       </div>
 
-<<<<<<< HEAD
-      {/* ── Post Modal (Detail View) ── */}
-=======
       {/* ── Neural Post Modal ── */}
->>>>>>> main
       {selectedPost && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-2xl sm:p-8"
@@ -313,13 +294,8 @@ const Feed = () => {
               <X className="w-6 h-6" />
             </button>
 
-<<<<<<< HEAD
-            {/* Image Stage */}
-            <div className="relative flex items-center justify-center bg-black/40 overflow-hidden">
-=======
             {/* Visual Focus */}
             <div className="relative flex items-center justify-center bg-neutral-900/40 p-1">
->>>>>>> main
               {selectedPost.image ? (
                 <img
                   src={selectedPost.image}
@@ -335,13 +311,6 @@ const Feed = () => {
               )}
             </div>
 
-<<<<<<< HEAD
-            {/* Action Sidebar */}
-            <div className="flex flex-col h-full bg-neutral-900 border-l border-white/5">
-              <div className="flex items-center justify-between p-6 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                  <img src={selectedPost.user?.profilePic || DEFAULT_AVATAR} alt="" className="h-10 w-10 rounded-full object-cover border-2 border-indigo-500" />
-=======
             {/* Intel Sidebar */}
             <div className="flex flex-col h-full bg-black border-l border-white/5">
               <div className="flex items-center justify-between p-8 border-b border-white/5">
@@ -353,7 +322,6 @@ const Feed = () => {
                       className="h-full w-full rounded-xl object-cover"
                     />
                   </div>
->>>>>>> main
                   <div>
                     <p className="text-sm font-black text-white tracking-widest uppercase italic">
                       @{selectedPost.user?.username || "Identity Unknown"}

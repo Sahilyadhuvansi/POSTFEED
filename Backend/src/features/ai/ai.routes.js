@@ -79,13 +79,6 @@ router.post("/chat", aiRateLimiter, validation.validateChatInput, aiController.c
  */
 router.post("/suggest-hashtags", ...aiMiddleware, validation.validateHashtagInput, aiController.suggestHashtags);
 
-/**
- * @route   POST /api/ai/chat
- * @desc    General-purpose chat (Groq-powered, Floating Button)
- * @access  Public
- */
-router.post("/chat", aiController.chat);
-
 // ═══════════════════════════════════════════════════════════════
 // Statistics
 // ═══════════════════════════════════════════════════════════════

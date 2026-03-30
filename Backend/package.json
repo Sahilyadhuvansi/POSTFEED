@@ -3,16 +3,10 @@
   "version": "1.0.0",
   "main": "src/index.js",
   "scripts": {
-<<<<<<< HEAD
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-=======
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "lint": "eslint src/**",
     "test": "mocha src/tests/ai.test.js --timeout 20000"
->>>>>>> main
   },
   "keywords": [],
   "author": "",
@@ -39,15 +33,7 @@
     "morgan": "^1.10.1",
     "multer": "^1.4.5-lts.1",
     "sentiment": "^5.0.2",
-<<<<<<< HEAD
-    "natural": "^6.12.0",
-    "pino": "^9.6.0",
-    "pino-pretty": "^13.0.0",
-    "redis": "^4.7.0",
-    "express-mongo-sanitize": "^2.2.0"
-=======
     "uuid": "^11.0.0"
->>>>>>> main
   },
   "description": "",
   "devDependencies": {
