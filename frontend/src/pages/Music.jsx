@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useMusic } from "../features/music/MusicContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "../components/ui/Toast";
-import { api } from "../services/api";
 import {
   Play,
   Pause,
@@ -13,28 +12,66 @@ import {
   Search,
   ExternalLink,
   Zap,
+  AlertCircle,
 } from "lucide-react";
 import { MusicSkeleton } from "../components/SkeletonLoader";
 
 const GENRES = [
-  { label: "Trending", term: "latest popular music songs 2024" },
-  { label: "Pop", term: "pop hits playlist" },
-  { label: "Hip-Hop", term: "hip hop rap best songs" },
-  { label: "Electronic", term: "electronic dance music hits" },
-  { label: "Rock", term: "rock hits highlights" },
-  { label: "Indie", term: "indie alternative songs" },
-  { label: "Jazz", term: "jazz chill relax" },
-  { label: "R&B", term: "rnb soul hits" },
+  { label: "Trending",   term: "trending music hits 2024" },
+  { label: "Bollywood",  term: "bollywood songs 2024 new" },
+  { label: "Pop",        term: "pop hits songs" },
+  { label: "Hip-Hop",    term: "hip hop rap hits" },
+  { label: "Electronic", term: "electronic dance music edm" },
+  { label: "Rock",       term: "rock hits songs" },
+  { label: "Indie",      term: "indie alternative music" },
+  { label: "Jazz",       term: "jazz music smooth" },
+  { label: "R&B",        term: "rnb soul hits" },
+  { label: "Classical",  term: "classical music relaxing" },
 ];
 
-const fetchFromYouTube = async (term, signal) => {
-  try {
-    const res = await api.get(`/music/yt/search?q=${encodeURIComponent(term)}`, { signal });
-    return res.data.tracks || [];
-  } catch (err) {
-    if (err.name === "CanceledError" || err.code === "ECONNABORTED") throw err;
-    return [];
+// Direct YouTube Data API v3 call — no backend, no cold start, no scraper
+const searchYouTube = async (term, signal) => {
+  const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("VITE_YOUTUBE_API_KEY is not set in your Vercel environment variables.");
   }
+
+  const params = new URLSearchParams({
+    part: "snippet",
+    q: term,
+    type: "video",
+    videoCategoryId: "10", // Music category only — no shorts, no vlogs
+    maxResults: "30",
+    key: apiKey,
+  });
+
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/search?${params}`,
+    { signal }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    // Quota exceeded — give a clear message
+    if (res.status === 403) throw new Error("quota");
+    throw new Error(err?.error?.message || `YouTube API error ${res.status}`);
+  }
+
+  const data = await res.json();
+
+  return (data.items || [])
+    .filter((item) => item.id?.videoId)
+    .map((item) => ({
+      _id: item.id.videoId,
+      title: item.snippet.title,
+      artist: { username: item.snippet.channelTitle },
+      thumbnail:
+        item.snippet.thumbnails?.high?.url ||
+        item.snippet.thumbnails?.medium?.url ||
+        item.snippet.thumbnails?.default?.url,
+      youtubeUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+    }));
 };
 
 const Music = () => {
@@ -47,65 +84,56 @@ const Music = () => {
   const [activeGenre, setActiveGenre] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
 
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
 
-  const loadGenre = useCallback(async (genreIndex) => {
+  const runSearch = useCallback(async (term) => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setLoading(true);
     setTracks([]);
     try {
-      const results = await fetchFromYouTube(
-        GENRES[genreIndex].term,
-        abortRef.current.signal
-      );
+      const results = await searchYouTube(term, abortRef.current.signal);
       setTracks(results);
+      if (results.length === 0) {
+        addToast("No results found. Try a different search.", "info");
+      }
     } catch (err) {
-      if (err.name !== "AbortError") {
-        addToast("Audio uplink failed. Frequencies offline.", "error");
+      if (err.name === "AbortError" || err.name === "CanceledError") return;
+      if (err.message === "quota") {
+        addToast("YouTube daily quota reached. Try again tomorrow.", "error");
+      } else if (err.message?.includes("VITE_YOUTUBE_API_KEY")) {
+        setApiKeyMissing(true);
+      } else {
+        addToast("Search failed. Check your connection.", "error");
       }
     } finally {
       setLoading(false);
     }
   }, [addToast]);
 
+  // Load default genre on mount
   useEffect(() => {
-    loadGenre(0);
+    runSearch(GENRES[0].term);
     return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Debounced live search
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setIsSearching(false);
-      loadGenre(activeGenre);
+      if (isSearching) {
+        setIsSearching(false);
+        runSearch(GENRES[activeGenre].term);
+      }
       return;
     }
     setIsSearching(true);
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      if (abortRef.current) abortRef.current.abort();
-      abortRef.current = new AbortController();
-      setLoading(true);
-      setTracks([]);
-      try {
-        const results = await fetchFromYouTube(
-          searchQuery.trim(),
-          abortRef.current.signal
-        );
-        setTracks(results);
-        if (results.length === 0) {
-          addToast("No tracks found. Try a different search.", "info");
-        }
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          addToast("Search failed. Check your connection.", "error");
-        }
-      } finally {
-        setLoading(false);
-      }
+    debounceRef.current = setTimeout(() => {
+      runSearch(searchQuery.trim());
     }, 500);
     return () => clearTimeout(debounceRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,9 +143,10 @@ const Music = () => {
     setActiveGenre(idx);
     setSearchQuery("");
     setIsSearching(false);
-    loadGenre(idx);
+    runSearch(GENRES[idx].term);
   };
 
+  // Deep link support
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const playId = params.get("play");
@@ -126,6 +155,37 @@ const Music = () => {
       if (track) playTrack(track, tracks);
     }
   }, [location.search, tracks, playTrack]);
+
+  // API key missing — show setup instructions
+  if (apiKeyMissing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="max-w-lg w-full glass rounded-[40px] border border-white/5 p-12 text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-8 h-8 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-black text-white mb-3 uppercase tracking-tight">
+            YouTube API Key Required
+          </h2>
+          <p className="text-sm text-neutral-400 leading-relaxed mb-6">
+            Add your free YouTube Data API v3 key to Vercel environment variables to enable full music search.
+          </p>
+          <div className="text-left space-y-3 text-xs font-mono text-neutral-500 glass-dark rounded-2xl p-5 border border-white/5">
+            <p className="text-neutral-300 font-sans font-black uppercase tracking-widest text-[10px] mb-3">Setup (2 minutes, free)</p>
+            <p>1. Go to console.cloud.google.com</p>
+            <p>2. New project → Enable YouTube Data API v3</p>
+            <p>3. APIs &amp; Services → Credentials → Create API Key</p>
+            <p>4. Vercel → Project Settings → Environment Variables</p>
+            <p className="text-indigo-400">5. Add: VITE_YOUTUBE_API_KEY = your_key</p>
+            <p>6. Redeploy</p>
+          </div>
+          <p className="text-[10px] text-neutral-600 mt-4 uppercase tracking-widest">
+            Free · 10,000 requests/day · No credit card
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-32">
@@ -136,10 +196,10 @@ const Music = () => {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl glass border-white/10">
-                <MusicIcon className="w-4 h-4 text-indigo-400" />
+                <MusicIcon className="w-4 h-4 text-red-500" />
               </div>
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-neutral-500">
-                YouTube · Full Tracks
+                YouTube · Full Length
               </p>
             </div>
             <h1 className="text-5xl font-black text-white italic tracking-tighter">
@@ -149,7 +209,7 @@ const Music = () => {
               </span>
             </h1>
             <p className="text-xs font-black text-neutral-500 uppercase tracking-[0.2em] opacity-60">
-              100M+ tracks · no upload needed
+              Bollywood · International · Indie · Everything
             </p>
           </div>
           <div className="glass px-8 py-5 rounded-[32px] border-white/5 text-center min-w-[140px]">
@@ -172,7 +232,7 @@ const Music = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search any artist, song, or album…"
+            placeholder="Search Bollywood, pop, artist, song name…"
             className="w-full glass rounded-[24px] border border-white/5 bg-white/[0.03] pl-14 pr-6 py-5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
           />
           {searchQuery && (
@@ -258,6 +318,7 @@ const Music = () => {
                       </div>
                     )}
 
+                    {/* Play overlay */}
                     <div
                       className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${
                         isActive
@@ -274,6 +335,7 @@ const Music = () => {
                       </div>
                     </div>
 
+                    {/* Waveform animation */}
                     {isActive && isPlaying && (
                       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-end gap-[3px] h-6">
                         <div className="w-1 bg-white rounded-full animate-[bounce_0.6s_infinite]" />
@@ -282,12 +344,6 @@ const Music = () => {
                         <div className="w-1 bg-white rounded-full animate-[bounce_0.7s_infinite] delay-100" />
                       </div>
                     )}
-
-                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-xl bg-black/70 backdrop-blur-sm border border-white/10">
-                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                        YT
-                      </p>
-                    </div>
                   </div>
 
                   {/* Info */}
@@ -303,13 +359,7 @@ const Music = () => {
                             {track.artist?.username}
                           </p>
                         </div>
-                        {track.album && (
-                          <p className="text-[9px] text-neutral-600 font-medium tracking-wide truncate mt-1 italic">
-                            {track.album}
-                          </p>
-                        )}
                       </div>
-
                       {track.youtubeUrl && (
                         <a
                           href={track.youtubeUrl}
@@ -317,7 +367,7 @@ const Music = () => {
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
                           className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors text-neutral-600 hover:text-red-500 flex-shrink-0"
-                          title="Full track on YouTube"
+                          title="Watch on YouTube"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
@@ -332,7 +382,7 @@ const Music = () => {
               <div className="flex items-center gap-3">
                 <Sparkles className="w-4 h-4 text-neutral-700" />
                 <p className="text-[10px] text-neutral-700 font-black uppercase tracking-[0.5em]">
-                  Powered by YouTube · Experimental
+                  Powered by YouTube · Full Length Tracks
                 </p>
                 <Sparkles className="w-4 h-4 text-neutral-700" />
               </div>

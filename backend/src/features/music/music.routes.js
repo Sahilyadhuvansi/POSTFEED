@@ -10,6 +10,5 @@ router.get("/imagekit-auth", auth, musicController.getImageKitAuth);
 router.post("/", auth, musicController.createMusic);
 router.delete("/:musicId", auth, musicController.deleteMusic);
 router.get("/", musicController.getAllMusics);
-router.get("/yt/search", musicController.searchYouTube);
 
 module.exports = router;

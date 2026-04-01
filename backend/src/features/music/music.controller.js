@@ -3,7 +3,6 @@
 const musicModel = require("./music.model");
 const storageService = require("../../services/storage.service");
 const ErrorResponse = require("../../utils/ErrorResponse");
-const ytSearch = require("yt-search");
 
 /**
  * MUSIC CONTROLLER - Post Music AI (Production Refactor)
@@ -126,29 +125,4 @@ const deleteMusic = async (req, res, next) => {
   }
 };
 
-// ─── Search YouTube ────────────────────────────────────────────────────────
-const searchYouTube = async (req, res, next) => {
-  try {
-    const term = req.query.q;
-    if (!term) return next(new ErrorResponse("Search term is required", 400));
-    
-    // Perform yt search
-    const results = await ytSearch(term);
-    
-    // Return video results mapping to track format
-    const videos = results.videos.slice(0, 30).map((v) => ({
-      _id: String(v.videoId),
-      title: v.title,
-      artist: { username: v.author?.name || "YouTube Artist" },
-      thumbnail: v.thumbnail || v.image,
-      durationMs: (v.seconds || 0) * 1000,
-      youtubeUrl: v.url
-    }));
-
-    return res.status(200).json({ success: true, tracks: videos });
-  } catch (err) {
-    next(err);
-  }
-};
-
-module.exports = { getImageKitAuth, createMusic, getAllMusics, deleteMusic, searchYouTube };
+module.exports = { getImageKitAuth, createMusic, getAllMusics, deleteMusic };
