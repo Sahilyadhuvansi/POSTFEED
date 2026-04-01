@@ -70,7 +70,7 @@ const MusicCard = ({
           {track.title}
         </h3>
         <p className="mt-1 text-xs text-neutral-400 truncate">
-          {isAlbum ? "Open album tracks" : track.artist?.username}
+          {isAlbum ? "Open album tracks" : "Track"}
         </p>
       </div>
 

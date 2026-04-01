@@ -109,9 +109,6 @@ const MusicBrowseControls = ({
             <h3 className="text-sm text-white font-black truncate mt-1">
               {playlistMeta.title}
             </h3>
-            <p className="text-[10px] text-neutral-500 uppercase tracking-widest truncate mt-1">
-              {playlistMeta.artist}
-            </p>
           </div>
           <button
             onClick={() => {
