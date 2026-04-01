@@ -3,145 +3,20 @@ import { useMusic } from "../features/music/MusicContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "../components/ui/Toast";
 import {
-  Play,
-  Pause,
   Music as MusicIcon,
-  ListMusic,
   ArrowLeft,
   Disc,
-  Volume2,
-  Sparkles,
   Search,
-  Zap,
   AlertCircle,
-  Heart,
 } from "lucide-react";
 import api from "../services/api";
 import { MusicSkeleton } from "../components/SkeletonLoader";
-
-const GENRES = [
-  { label: "Trending", term: "trending music hits 2024" },
-  { label: "Bollywood", term: "bollywood songs 2024 new" },
-  { label: "Pop", term: "pop hits songs" },
-  { label: "Hip-Hop", term: "hip hop rap hits" },
-  { label: "Electronic", term: "electronic dance music edm" },
-  { label: "Rock", term: "rock hits songs" },
-  { label: "Indie", term: "indie alternative music" },
-  { label: "Jazz", term: "jazz music smooth" },
-  { label: "R&B", term: "rnb soul hits" },
-  { label: "Classical", term: "classical music relaxing" },
-];
-
-// Direct YouTube Data API v3 call — no backend, no cold start, no scraper
-const searchYouTubeContent = async (term, signal, options = {}) => {
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-  const {
-    type = "video,playlist",
-    maxResults = "30",
-    order,
-    videoCategoryId,
-  } = options;
-
-  if (!API_KEY) {
-    throw new Error(
-      "VITE_YOUTUBE_API_KEY is not set in your Vercel environment variables.",
-    );
-  }
-
-  const params = new URLSearchParams({
-    part: "snippet",
-    q: term,
-    type,
-    maxResults,
-    key: API_KEY,
-  });
-
-  if (order) params.set("order", order);
-  if (videoCategoryId) params.set("videoCategoryId", videoCategoryId);
-
-  const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?${params}`,
-    { signal },
-  );
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    // Quota exceeded — give a clear message
-    if (res.status === 403) throw new Error("quota");
-    throw new Error(err?.error?.message || `YouTube API error ${res.status}`);
-  }
-
-  const data = await res.json();
-
-  return (data.items || [])
-    .filter((item) => item.id?.videoId || item.id?.playlistId)
-    .map((item) => {
-      const thumbnail =
-        item.snippet.thumbnails?.high?.url ||
-        item.snippet.thumbnails?.medium?.url ||
-        item.snippet.thumbnails?.default?.url;
-
-      if (item.id?.playlistId) {
-        return {
-          _id: `playlist_${item.id.playlistId}`,
-          title: item.snippet.title,
-          artist: { username: item.snippet.channelTitle },
-          thumbnail,
-          playlistId: item.id.playlistId,
-          isPlaylist: true,
-        };
-      }
-
-      return {
-        _id: item.id.videoId,
-        title: item.snippet.title,
-        artist: { username: item.snippet.channelTitle },
-        thumbnail,
-        youtubeUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-        isPlaylist: false,
-      };
-    });
-};
-
-const fetchPlaylistTracks = async (playlist, signal) => {
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-  const params = new URLSearchParams({
-    part: "snippet,contentDetails",
-    playlistId: playlist.playlistId,
-    maxResults: "50",
-    key: API_KEY,
-  });
-
-  const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/playlistItems?${params}`,
-    { signal },
-  );
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    if (res.status === 403) throw new Error("quota");
-    throw new Error(err?.error?.message || `YouTube API error ${res.status}`);
-  }
-
-  const data = await res.json();
-  return (data.items || [])
-    .filter((item) => item.contentDetails?.videoId && item.snippet?.title)
-    .filter((item) => item.snippet.title.toLowerCase() !== "deleted video")
-    .map((item) => ({
-      _id: item.contentDetails.videoId,
-      title: item.snippet.title,
-      artist: {
-        username:
-          item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle,
-      },
-      thumbnail:
-        item.snippet.thumbnails?.high?.url ||
-        item.snippet.thumbnails?.medium?.url ||
-        item.snippet.thumbnails?.default?.url,
-      youtubeUrl: `https://www.youtube.com/watch?v=${item.contentDetails.videoId}`,
-      isPlaylist: false,
-    }));
-};
+import { GENRES } from "./music/constants";
+import {
+  searchYouTubeContent,
+  fetchPlaylistTracks,
+} from "./music/youtube.service";
+import MusicCard from "./music/MusicCard";
 
 const Music = () => {
   const { currentTrack, playTrack, isPlaying } = useMusic();
@@ -366,99 +241,6 @@ const Music = () => {
     !isSearching && GENRES[activeGenre]?.label === "Bollywood" && !playlistMeta;
   const activeGenreLabel = GENRES[activeGenre]?.label || "Discover";
 
-  const renderMusicCard = (track, options = {}) => {
-    const { forceAlbum = false, accent = "indigo" } = options;
-    const isActive = currentTrack?._id === track._id;
-    const isAlbum = forceAlbum || !!track.isPlaylist;
-    const isSaved = !!savedByUrl[track.youtubeUrl];
-
-    const accentClass =
-      accent === "pink"
-        ? "group-hover:text-pink-400"
-        : "group-hover:text-indigo-400";
-
-    return (
-      <article
-        key={track._id}
-        className={`group rounded-2xl border p-3 transition-all duration-300 ${
-          isActive
-            ? "border-indigo-500/50 bg-indigo-500/10 shadow-[0_18px_40px_rgba(79,70,229,0.22)]"
-            : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20"
-        }`}
-      >
-        <button
-          onClick={() => {
-            if (isAlbum) {
-              handleOpenPlaylist(track);
-              return;
-            }
-            playTrack(track, playableTracks);
-          }}
-          className="relative w-full aspect-square overflow-hidden rounded-xl bg-neutral-900"
-        >
-          {track.thumbnail ? (
-            <img
-              src={track.thumbnail}
-              alt={track.title}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-neutral-800 to-black">
-              <Zap className="w-10 h-10 text-neutral-700" />
-            </div>
-          )}
-
-          <span className="absolute right-3 bottom-3 h-10 w-10 rounded-full bg-black/70 border border-white/25 flex items-center justify-center opacity-0 translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
-            {isActive && isPlaying ? (
-              <Pause className="w-4 h-4 text-white fill-white" />
-            ) : isAlbum ? (
-              <ListMusic className="w-4 h-4 text-white" />
-            ) : (
-              <Play className="w-4 h-4 text-white fill-white ml-[1px]" />
-            )}
-          </span>
-        </button>
-
-        <div className="pt-3 px-1">
-          <h3
-            className={`text-sm font-bold text-white truncate transition-colors ${accentClass}`}
-          >
-            {track.title}
-          </h3>
-          <p className="mt-1 text-xs text-neutral-400 truncate">
-            {isAlbum ? "Open album tracks" : track.artist?.username}
-          </p>
-        </div>
-
-        {!isAlbum && (
-          <div className="pt-3 px-1 flex justify-end">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(track);
-              }}
-              disabled={savingId === track._id}
-              className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all disabled:opacity-50 ${
-                isSaved
-                  ? "border-pink-500/50 bg-pink-500/20 text-pink-400"
-                  : "border-white/15 bg-white/5 text-neutral-500 hover:text-indigo-300 hover:border-indigo-400/40"
-              }`}
-              title={isSaved ? "Remove from favorites" : "Add to favorites"}
-            >
-              {savingId === track._id ? (
-                <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Heart
-                  className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`}
-                />
-              )}
-            </button>
-          </div>
-        )}
-      </article>
-    );
-  };
-
   // Deep link support
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -515,9 +297,6 @@ const Music = () => {
               <div className="p-2 rounded-xl glass border-white/10">
                 <MusicIcon className="w-4 h-4 text-red-500" />
               </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-neutral-500">
-                YouTube · Full Length
-              </p>
             </div>
             <h1 className="text-5xl font-black text-white italic tracking-tighter">
               Sonic
@@ -525,13 +304,10 @@ const Music = () => {
                 Universe
               </span>
             </h1>
-            <p className="text-xs font-black text-neutral-500 uppercase tracking-[0.2em] opacity-60">
-              Bollywood · International · Indie · Everything
-            </p>
           </div>
           <div className="glass px-8 py-5 rounded-[32px] border-white/5 text-center min-w-[140px]">
             <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest mb-1">
-              Tracks Loaded
+              Items
             </p>
             <p className="text-2xl font-black text-white">
               {tracks.length}
@@ -583,7 +359,7 @@ const Music = () => {
 
         {isSearching && (
           <p className="text-[10px] font-black text-neutral-600 uppercase tracking-[0.3em] mb-8">
-            Results for &quot;{searchQuery}&quot;
+            Search: &quot;{searchQuery}&quot;
           </p>
         )}
 
@@ -625,10 +401,10 @@ const Music = () => {
               <div className="absolute inset-0 bg-pink-500/10 blur-3xl rounded-full" />
             </div>
             <h2 className="text-2xl font-black text-white mb-2 italic">
-              Silence detected
+              No results
             </h2>
             <p className="text-sm font-medium text-neutral-500 uppercase tracking-widest text-center">
-              Try a different search or genre
+              Try another search
             </p>
           </div>
         ) : (
@@ -639,11 +415,6 @@ const Music = () => {
                   <h2 className="text-2xl font-black text-white tracking-tight">
                     {isSearching ? `Search · ${searchQuery}` : activeGenreLabel}
                   </h2>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    {isBollywoodView
-                      ? "Top songs first, then albums — Spotify-style discovery."
-                      : "Handpicked full-length tracks and playable collections."}
-                  </p>
                 </div>
                 <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 font-black">
                   {tracks.length} items
@@ -658,7 +429,20 @@ const Music = () => {
             )}
 
             <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-              {tracks.map((track) => renderMusicCard(track))}
+              {tracks.map((track) => (
+                <MusicCard
+                  key={track._id}
+                  track={track}
+                  currentTrack={currentTrack}
+                  isPlaying={isPlaying}
+                  playTrack={playTrack}
+                  playableTracks={playableTracks}
+                  handleOpenPlaylist={handleOpenPlaylist}
+                  savedByUrl={savedByUrl}
+                  savingId={savingId}
+                  toggleFavorite={toggleFavorite}
+                />
+              ))}
             </section>
 
             {isBollywoodView && bollywoodAlbums.length > 0 && (
@@ -673,25 +457,25 @@ const Music = () => {
                 </div>
 
                 <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-                  {bollywoodAlbums.map((track) =>
-                    renderMusicCard(track, {
-                      forceAlbum: true,
-                      accent: "pink",
-                    }),
-                  )}
+                  {bollywoodAlbums.map((track) => (
+                    <MusicCard
+                      key={track._id}
+                      track={track}
+                      currentTrack={currentTrack}
+                      isPlaying={isPlaying}
+                      playTrack={playTrack}
+                      playableTracks={playableTracks}
+                      handleOpenPlaylist={handleOpenPlaylist}
+                      savedByUrl={savedByUrl}
+                      savingId={savingId}
+                      toggleFavorite={toggleFavorite}
+                      forceAlbum
+                      accent="pink"
+                    />
+                  ))}
                 </section>
               </>
             )}
-
-            <div className="col-span-full py-12 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-4 h-4 text-neutral-700" />
-                <p className="text-[10px] text-neutral-700 font-black uppercase tracking-[0.5em]">
-                  Powered by YouTube · Full Length Tracks
-                </p>
-                <Sparkles className="w-4 h-4 text-neutral-700" />
-              </div>
-            </div>
           </>
         )}
       </div>
