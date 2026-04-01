@@ -31,7 +31,7 @@ const isPlaceholderEnv =
 
 const PRODUCTION_API_FALLBACKS = {
   // Empty string = use Vercel's /api rewrite proxy (no CORS needed)
-  "postfeeds-xi.vercel.app": "",
+  "postfeeds-xi.vercel.app": "https://post-music.onrender.com",
 };
 
 const FALLBACK_API_URL = LOCAL_HOSTS.has(FRONTEND_HOST)

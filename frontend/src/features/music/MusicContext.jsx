@@ -116,12 +116,14 @@ export const MusicProvider = ({ children }) => {
         <div
           style={{
             position: "fixed",
-            bottom: -9999,
-            left: -9999,
-            width: 1,
-            height: 1,
-            overflow: "hidden",
-            pointerEvents: "none",
+            top: 0,
+            right: 0,
+            width: "10px",
+            height: "10px",
+            opacity: 0.1,
+            pointerEvents: "auto",
+            zIndex: -1,
+            overflow: "hidden"
           }}
         >
           <ReactPlayer
@@ -130,14 +132,15 @@ export const MusicProvider = ({ children }) => {
             playing={isPlaying}
             volume={volume}
             controls={false}
-            width="1px"
-            height="1px"
+            width="100%"
+            height="100%"
             onProgress={({ played }) => setProgress(played * 100)}
             onDuration={(d) => setDuration(d)}
             onEnded={playNext}
-            onError={() => {
+            onReady={() => console.log("Player ready for track:", currentTrack?.title)}
+            onError={(e) => {
               // This video is blocked/unavailable — silently skip to next
-              console.warn("Track unavailable, skipping:", currentTrack?.title);
+              console.error("Player error:", e);
               playNext();
             }}
             config={{
@@ -146,6 +149,7 @@ export const MusicProvider = ({ children }) => {
                   modestbranding: 1,
                   rel: 0,
                   iv_load_policy: 3,
+                  origin: window.location.origin
                 },
               },
             }}
