@@ -4,31 +4,23 @@ const mongoose = require("mongoose");
 
 const musicSchema = new mongoose.Schema(
   {
-    audioUrl: {
+    youtubeUrl: {
       type: String,
-      required: [true, "Audio URL is required"],
+      required: [true, "YouTube URL is required"],
     },
     title: {
       type: String,
       required: [true, "Title is required"],
       trim: true,
-      maxlength: [120, "Title cannot exceed 120 characters"],
+      maxlength: [180, "Title cannot exceed 180 characters"],
     },
     artist: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Corrected case (must match "User" in users.model.js)
+      ref: "User",
       required: [true, "Artist reference is required"],
       index: true,
     },
     thumbnailUrl: {
-      type: String,
-      default: null,
-    },
-    audioFileId: {
-      type: String,
-      required: [true, "Audio file ID is required"],
-    },
-    thumbnailFileId: {
       type: String,
       default: null,
     },

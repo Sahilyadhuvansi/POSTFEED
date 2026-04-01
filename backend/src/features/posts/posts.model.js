@@ -16,6 +16,9 @@ const postSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    youtubeUrl: String,
+    youtubeTitle: String,
+    youtubeThumb: String,
   },
   { timestamps: true },
 );

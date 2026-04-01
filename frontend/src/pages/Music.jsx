@@ -13,7 +13,10 @@ import {
   ExternalLink,
   Zap,
   AlertCircle,
+  Plus,
+  Check,
 } from "lucide-react";
+import api from "../services/api";
 import { MusicSkeleton } from "../components/SkeletonLoader";
 
 const GENRES = [
@@ -85,9 +88,26 @@ const Music = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [savingId, setSavingId] = useState(null);
 
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
+
+  const saveTrack = async (track) => {
+    setSavingId(track._id);
+    try {
+      await api.post("/music", {
+        title: track.title,
+        youtubeUrl: track.youtubeUrl,
+        thumbnailUrl: track.thumbnail,
+      });
+      addToast("Track saved to your universe", "success");
+    } catch (err) {
+      addToast(err.response?.data?.error || "Failed to save track", "error");
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const runSearch = useCallback(async (term) => {
     if (abortRef.current) abortRef.current.abort();
@@ -346,37 +366,54 @@ const Music = () => {
                     )}
                   </div>
 
-                  {/* Info */}
-                  <div className="px-7 pb-7 pt-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-black text-white truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight italic">
-                          {track.title}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1.5 opacity-60">
-                          <Volume2 className="w-3 h-3 text-neutral-500 flex-shrink-0" />
-                          <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-[0.2em] truncate">
-                            {track.artist?.username}
-                          </p>
-                        </div>
-                      </div>
-                      {track.youtubeUrl && (
-                        <a
-                          href={track.youtubeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors text-neutral-600 hover:text-red-500 flex-shrink-0"
-                          title="Watch on YouTube"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                   {/* Info */}
+                   <div className="px-7 pb-7 pt-2">
+                     <div className="flex items-start justify-between gap-3">
+                       <div className="flex-1 min-w-0">
+                         <h3 className="text-sm font-black text-white truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight italic">
+                           {track.title}
+                         </h3>
+                         <div className="flex items-center gap-2 mt-1.5 opacity-60">
+                           <Volume2 className="w-3 h-3 text-neutral-500 flex-shrink-0" />
+                           <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-[0.2em] truncate">
+                             {track.artist?.username}
+                           </p>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             saveTrack(track);
+                           }}
+                           disabled={savingId === track._id}
+                           className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all text-neutral-600 hover:text-indigo-400 flex-shrink-0 disabled:opacity-50"
+                           title="Save to your Universe"
+                         >
+                           {savingId === track._id ? (
+                             <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                           ) : (
+                             <Plus className="w-3.5 h-3.5" />
+                           )}
+                         </button>
+                         {track.youtubeUrl && (
+                           <a
+                             href={track.youtubeUrl}
+                             target="_blank"
+                             rel="noopener noreferrer"
+                             onClick={(e) => e.stopPropagation()}
+                             className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors text-neutral-600 hover:text-red-500 flex-shrink-0"
+                             title="Watch on YouTube"
+                           >
+                             <ExternalLink className="w-3.5 h-3.5" />
+                           </a>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               );
+             })}
 
             <div className="col-span-full py-12 flex flex-col items-center gap-4">
               <div className="flex items-center gap-3">

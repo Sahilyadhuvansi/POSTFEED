@@ -9,7 +9,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Music from "./pages/Music";
-import Upload from "./pages/Upload";
 import Recommendations from "./pages/Recommendations";
 import PostDetail from "./pages/PostDetail";
 
@@ -32,14 +31,6 @@ const AppRouter = () => {
         element={
           <ProtectedRoute>
             <CreatePost />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/upload"
-        element={
-          <ProtectedRoute>
-            <Upload />
           </ProtectedRoute>
         }
       />

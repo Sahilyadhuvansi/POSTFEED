@@ -17,12 +17,17 @@ import {
   LayoutGrid,
   Sparkles,
   Send,
+  Music,
+  Play,
+  Pause,
 } from "lucide-react";
+import { useMusic } from "../features/music/MusicContext";
 
 const POSTS_PER_PAGE = 12;
 
 const Feed = () => {
   const { user } = useAuth();
+  const { playTrack, currentTrack, isPlaying, togglePlay } = useMusic();
   const { getFromCache, setCache } = useApiCache();
   const { addToast } = useToast();
   const observerTarget = useRef(null);
@@ -232,17 +237,24 @@ const Feed = () => {
                 {/* Overlay Context */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
                   <div className="translate-y-8 group-hover:translate-y-0 transition-transform duration-700 delay-75 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full border-2 border-white/20 overflow-hidden">
-                        <img
-                          src={post.user?.profilePic || DEFAULT_AVATAR}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full border-2 border-white/20 overflow-hidden">
+                          <img
+                            src={post.user?.profilePic || DEFAULT_AVATAR}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <p className="text-[10px] font-black text-white tracking-widest uppercase italic">
+                          @{post.user?.username || "unknown-user"}
+                        </p>
                       </div>
-                      <p className="text-[10px] font-black text-white tracking-widest uppercase italic">
-                        @{post.user?.username || "unknown-user"}
-                      </p>
+                      {post.youtubeUrl && (
+                        <div className="flex h-7 w-7 items-center justify-center rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400">
+                          <Music className="h-3 w-3" />
+                        </div>
+                      )}
                     </div>
                     <p className="text-[11px] text-neutral-400 font-medium line-clamp-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-200 lowercase italic tracking-tight">
                       {post.caption}
@@ -373,6 +385,55 @@ const Feed = () => {
                 <p className="text-[13px] text-neutral-400 font-medium leading-loose whitespace-pre-wrap lowercase tracking-tight italic select-text">
                   {selectedPost.caption}
                 </p>
+
+                {selectedPost.youtubeUrl && (
+                  <div className="mt-8 p-6 rounded-[28px] border border-white/5 bg-white/5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+                          <Music className="w-3.5 h-3.5" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">
+                          Musical Vibe Attached
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <img
+                        src={selectedPost.youtubeThumb}
+                        alt=""
+                        className="w-14 h-14 rounded-2xl object-cover shadow-2xl"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-[11px] font-black text-white uppercase italic truncate tracking-tight">
+                          {selectedPost.youtubeTitle}
+                        </h4>
+                        <button
+                          onClick={() => {
+                            if (currentTrack?.youtubeUrl === selectedPost.youtubeUrl) {
+                              togglePlay();
+                            } else {
+                              playTrack({
+                                _id: selectedPost._id + "_vibe",
+                                title: selectedPost.youtubeTitle,
+                                youtubeUrl: selectedPost.youtubeUrl,
+                                thumbnail: selectedPost.youtubeThumb,
+                              });
+                            }
+                          }}
+                          className="mt-2 flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors"
+                        >
+                          {isPlaying && currentTrack?.youtubeUrl === selectedPost.youtubeUrl ? (
+                            <><Pause className="w-3 h-3 fill-indigo-400" /> Silence Frequency</>
+                          ) : (
+                            <><Play className="w-3 h-3 fill-indigo-400" /> Tune In Now</>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Interaction Cluster */}

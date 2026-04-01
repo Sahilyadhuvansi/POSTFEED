@@ -3,12 +3,26 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { DEFAULT_AVATAR } from "../config";
 import api from "../services/api";
+import {
+  Settings,
+  LogOut,
+  Camera,
+  CheckCircle2,
+  AlertCircle,
+  Music,
+  Trash2,
+  Play,
+  Pause,
+  Disc,
+} from "lucide-react";
+import { useMusic } from "../features/music/MusicContext";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_SIZE_MB = 5;
 
 const Profile = () => {
   const { user, logout, updateUser } = useAuth();
+  const { playTrack, currentTrack, isPlaying } = useMusic();
   const [form, setForm] = useState({ username: "", bio: "" });
   const [newProfilePic, setNewProfilePic] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -16,6 +30,8 @@ const Profile = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [universe, setUniverse] = useState([]);
+  const [loadingUniverse, setLoadingUniverse] = useState(true);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -23,8 +39,34 @@ const Profile = () => {
     if (user) {
       setForm({ username: user.username || "", bio: user.bio || "" });
       setPreview(user.profilePic || null);
+      fetchUniverse();
     }
   }, [user]);
+
+  const fetchUniverse = async () => {
+    try {
+      setLoadingUniverse(true);
+      const res = await api.get("/music");
+      // Filter musics to show only ones belonging to the user
+      // (The backend currently returns everything in getAllMusics, 
+      // so we filter on frontend for now, or improve backend later)
+      setUniverse(res.data.musics.filter(m => m.artist?._id === user?._id));
+    } catch (err) {
+      console.error("Universe sync failed:", err);
+    } finally {
+      setLoadingUniverse(false);
+    }
+  };
+
+  const handleDeleteTrack = async (trackId) => {
+    if (!window.confirm("Remove this vibe from your universe?")) return;
+    try {
+      await api.delete(`/music/${trackId}`);
+      setUniverse((prev) => prev.filter((t) => t._id !== trackId));
+    } catch (err) {
+      setError("Failed to remove track.");
+    }
+  };
 
   // Auto-clear success message
   useEffect(() => {
@@ -266,6 +308,92 @@ const Profile = () => {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* Saved Vibrations (Universe) */}
+        {!isEditing && (
+          <div className="mt-16 sm:mt-24">
+            <div className="flex items-center justify-between mb-8 px-2">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-2xl glass border-white/10 text-indigo-400 shadow-xl">
+                  <Music className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white italic tracking-tighter">
+                    Nexus Universe
+                  </h2>
+                  <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mt-1">
+                    Your personal resonance frequency
+                  </p>
+                </div>
+              </div>
+              <p className="text-[10px] font-black text-neutral-600 uppercase tracking-[0.3em]">
+                {universe.length} Saved
+              </p>
+            </div>
+
+            {loadingUniverse ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="h-28 rounded-[32px] glass-dark animate-pulse border border-white/5" />
+                ))}
+              </div>
+            ) : universe.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 rounded-[40px] glass border-white/5 border-dashed">
+                <Disc className="w-10 h-10 text-neutral-800 mb-4 animate-spin-slow" />
+                <p className="text-sm font-bold text-neutral-500 italic">
+                  Universe is silent. Catch a vibe in the stream.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {universe.map((track) => (
+                  <div
+                    key={track._id}
+                    className={`group relative p-4 rounded-[32px] border transition-all duration-500 ${
+                      currentTrack?._id === track._id
+                        ? "bg-indigo-500/10 border-indigo-500/30"
+                        : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-white/10"
+                    }`}
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className="relative h-14 w-14 rounded-2xl overflow-hidden shadow-2xl shrink-0">
+                        <img
+                          src={track.thumbnailUrl}
+                          alt=""
+                          className="h-full w-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700"
+                        />
+                        <button
+                          onClick={() => playTrack(track, universe)}
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          {currentTrack?._id === track._id && isPlaying ? (
+                            <Pause className="w-5 h-5 text-white fill-white" />
+                          ) : (
+                            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xs font-black text-white truncate uppercase italic tracking-tight mb-1">
+                          {track.title}
+                        </h3>
+                        <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">
+                          Captured Vibe
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteTrack(track._id)}
+                        className="p-3 rounded-2xl border border-white/5 bg-white/5 hover:bg-red-500/20 text-neutral-600 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

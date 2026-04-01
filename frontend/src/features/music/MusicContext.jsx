@@ -110,7 +110,7 @@ export const MusicProvider = ({ children }) => {
         <div style={{ position: "fixed", bottom: -9999, left: -9999, width: 1, height: 1, overflow: "hidden", pointerEvents: "none" }}>
           <ReactPlayer
             ref={playerRef}
-            url={currentTrack.youtubeUrl || currentTrack.audioUrl}
+            url={currentTrack.youtubeUrl}
             playing={isPlaying}
             volume={volume}
             controls={false}

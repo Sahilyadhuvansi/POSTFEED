@@ -7,10 +7,10 @@ const ErrorResponse = require("../../utils/ErrorResponse");
 // ─── Create Post ──────────────────────────────────────────────────────────────
 const createPost = async (req, res, next) => {
   try {
-    const { caption, isSecret } = req.body;
+    const { caption, isSecret, youtubeUrl, youtubeTitle, youtubeThumb } = req.body;
 
-    if (!req.file && (!caption || !caption.trim())) {
-      return next(new ErrorResponse("Post must have either an image or a caption", 400));
+    if (!req.file && (!caption || !caption.trim()) && !youtubeUrl) {
+      return next(new ErrorResponse("Post must have an image, a caption, or a song", 400));
     }
 
     let imageUrl;
@@ -28,6 +28,9 @@ const createPost = async (req, res, next) => {
       user: req.user.id,
       isSecret: isSecret === "true" || isSecret === true,
       ...(imageUrl && { image: imageUrl }),
+      youtubeUrl,
+      youtubeTitle,
+      youtubeThumb,
     });
 
     return res.status(201).json({ 
@@ -56,7 +59,7 @@ const getFeed = async (req, res, next) => {
     const [posts, total] = await Promise.all([
       postsModel
         .find({ isSecret: { $ne: true } })
-        .select("image caption user createdAt")
+        .select("image caption user youtubeUrl youtubeTitle youtubeThumb createdAt")
         .populate("user", "username profilePic")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -83,7 +86,7 @@ const getPostById = async (req, res, next) => {
   try {
     const post = await postsModel
       .findById(req.params.postId)
-      .select("image caption user createdAt")
+      .select("image caption user youtubeUrl youtubeTitle youtubeThumb createdAt")
       .populate("user", "username profilePic")
       .lean();
 

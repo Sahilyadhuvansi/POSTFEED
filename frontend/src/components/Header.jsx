@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
-import { Music, Upload, Plus, User, LogOut, LayoutGrid, Menu, X, Sparkles, Send } from "lucide-react";
+import { Music, Plus, User, LogOut, LayoutGrid, Menu, X, Sparkles, Send } from "lucide-react";
 import { DEFAULT_AVATAR } from "../config";
 
 const Header = () => {
