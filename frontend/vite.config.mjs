@@ -6,7 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    port: 5001,
+    port: 5173,
   },
   build: {
     sourcemap: false, // Disable sourcemaps in production to avoid eval() in CSP

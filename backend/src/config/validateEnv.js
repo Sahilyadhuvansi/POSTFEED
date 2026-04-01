@@ -8,10 +8,10 @@ const env = cleanEnv(process.env, {
   PORT: num({ default: 3001 }),
 
   // Optional values with sensible defaults
-  frontend_URL: str({ default: "http://localhost:5001" }),
+  frontend_URL: str({ default: "http://localhost:5173" }),
   CORS_ORIGINS: str({ default: "http://localhost:5173" }),
-  MONGO_URI: str({ default: "" }),  // Handle missing vars in db service
-  JWT_SECRET: str({ default: "dev_fallback_not_secure_change_me" }), 
+  MONGO_URI: str({ default: "" }), // Handle missing vars in db service
+  JWT_SECRET: str({ default: "dev_fallback_not_secure_change_me" }),
   DEFAULT_AVATAR: url({
     default: "https://www.gravatar.com/avatar/?d=mp&f=y&s=200",
   }),

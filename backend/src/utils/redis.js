@@ -12,7 +12,12 @@ let redisClient = null;
 const getRedisClient = async () => {
   if (redisClient) return redisClient;
 
-  const url = process.env.REDIS_URL || "redis://localhost:6379";
+  const url = (process.env.REDIS_URL || "").trim();
+
+  if (!url) {
+    logger.info("Redis disabled (REDIS_URL not set)");
+    return null;
+  }
 
   try {
     const client = createClient({ url });
@@ -30,7 +35,9 @@ const getRedisClient = async () => {
     redisClient = client;
     return redisClient;
   } catch (err) {
-    logger.warn("Redis Connection Failed. Falling back to in-memory cache.", { error: err.message });
+    logger.warn("Redis Connection Failed. Falling back to in-memory cache.", {
+      error: err.message,
+    });
     return null;
   }
 };

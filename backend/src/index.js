@@ -29,7 +29,7 @@ const isConfigured = !!process.env.JWT_SECRET && !!process.env.MONGO_URI;
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   "https://postfeeds-xi.vercel.app", // Definitive Production Origin
-  /\.vercel\.app$/,                 // Any Vercel subdomain (Production/Preview)
+  /\.vercel\.app$/, // Any Vercel subdomain (Production/Preview)
   ...(process.env.CORS_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
@@ -66,7 +66,8 @@ const corsOptions = {
     // Development fallback for local loopback
     if (
       process.env.NODE_ENV !== "production" &&
-      (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1"))
+      (origin.startsWith("http://localhost") ||
+        origin.startsWith("http://127.0.0.1"))
     ) {
       return cb(null, true);
     }
@@ -76,14 +77,14 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "X-Requested-With", 
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
     "Accept",
-    "X-Request-Id" // Ensure our new production tracing header is allowed
+    "X-Request-Id", // Ensure our new production tracing header is allowed
   ],
   exposedHeaders: ["X-Request-Id"], // Expose tracing header to the frontend
-  maxAge: 86400 // Senior: Cache preflight results for 24 hours to reduce latency and console noise
+  maxAge: 86400, // Senior: Cache preflight results for 24 hours to reduce latency and console noise
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -210,11 +211,14 @@ async function startServer() {
     logger.info("✅ Database connected successfully");
 
     // 2. Redis Connection (Optional layer — don't block server boot)
-    if (process.env.REDIS_URL || process.env.NODE_ENV === "development") {
+    const redisUrl = (process.env.REDIS_URL || "").trim();
+    if (redisUrl) {
       const { getRedisClient } = require("./utils/redis");
       getRedisClient()
         .then(() => logger.info("✅ Redis connected (or fallback active)"))
         .catch((err) => logger.warn(`⚠️ Redis failed: ${err.message}`));
+    } else {
+      logger.info("ℹ️ Redis disabled (REDIS_URL not set)");
     }
   } catch (err) {
     logger.error(`❌ Startup critical failure: ${err.message}`);
