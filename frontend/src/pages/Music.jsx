@@ -31,9 +31,9 @@ const GENRES = [
 
 // Direct YouTube Data API v3 call — no backend, no cold start, no scraper
 const searchYouTube = async (term, signal) => {
-  const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
-  if (!apiKey) {
+  if (!API_KEY) {
     throw new Error("VITE_YOUTUBE_API_KEY is not set in your Vercel environment variables.");
   }
 
@@ -43,7 +43,7 @@ const searchYouTube = async (term, signal) => {
     type: "video",
     videoCategoryId: "10", // Music category only — no shorts, no vlogs
     maxResults: "30",
-    key: apiKey,
+    key: API_KEY,
   });
 
   const res = await fetch(
