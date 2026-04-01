@@ -26,16 +26,21 @@ const isEnvPointingToFrontend =
     normalizedEnvApiBase === `https://${FRONTEND_HOST}` ||
     normalizedEnvApiBase === `http://${FRONTEND_HOST}`);
 
+const isPlaceholderEnv =
+  !!normalizedEnvApiBase && normalizedEnvApiBase.includes("your-backend-name");
+
 const PRODUCTION_API_FALLBACKS = {
-  // Primary production frontend domain
-  "postfeeds-xi.vercel.app": "https://post-music.onrender.com",
+  // Empty string = use Vercel's /api rewrite proxy (no CORS needed)
+  "postfeeds-xi.vercel.app": "",
 };
 
 const FALLBACK_API_URL = LOCAL_HOSTS.has(FRONTEND_HOST)
   ? "http://localhost:3001"
   : PRODUCTION_API_FALLBACKS[FRONTEND_HOST] || "";
 
-const effectiveEnvApiBase = isEnvPointingToFrontend ? "" : normalizedEnvApiBase;
+const effectiveEnvApiBase = (isEnvPointingToFrontend || isPlaceholderEnv)
+  ? ""
+  : normalizedEnvApiBase;
 
 export const API_URL = normalizeApiBase(
   effectiveEnvApiBase || FALLBACK_API_URL,
@@ -48,6 +53,10 @@ if (!API_URL) {
 } else if (isEnvPointingToFrontend) {
   console.warn(
     `[config] Ignoring VITE_API_URL (${ENV_API_URL}) because it points to the frontend domain. Falling back to ${API_URL}.`,
+  );
+} else if (isPlaceholderEnv) {
+  console.warn(
+    `[config] Ignoring VITE_API_URL (${ENV_API_URL}) because it is a placeholder. Falling back to ${API_URL}.`,
   );
 }
 

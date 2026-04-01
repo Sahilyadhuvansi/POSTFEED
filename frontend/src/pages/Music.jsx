@@ -50,10 +50,13 @@ const Music = () => {
         setHasMore(newMusics.length === MUSIC_PER_PAGE);
         setCache("music_tracks_page_1", { musics: newMusics, page: 1 });
       } catch (error) {
+        // Render free tier cold starts can take 50s. If it's a timeout/network error, show a softer message
+        const isTimeout = error.code === "ECONNABORTED" || error.message?.includes("timeout");
         addToast(
-          error.response?.data?.error ||
-            "Audio uplink failed. Frequencies offline.",
-          "error",
+          isTimeout
+            ? "Server is waking up… refresh in 30 seconds."
+            : error.response?.data?.error || "Audio uplink failed. Frequencies offline.",
+          isTimeout ? "info" : "error",
         );
       } finally {
         setLoading(false);

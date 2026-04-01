@@ -10,8 +10,8 @@ import { API_URL } from "../config";
 
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
-  withCredentials: true,
-  timeout: 15000,
+  withCredentials: false,  // ← Change: JWT is in header, not cookie. Cross-origin cookies were causing CORS preflight failures
+  timeout: 60000,          // ← Change: was 15000. Render free tier cold-start takes 50s+
 });
 
 // Request Interceptor: Attach JWT Token

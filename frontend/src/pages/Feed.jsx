@@ -49,9 +49,13 @@ const Feed = () => {
         setCache("feed_page_1", { posts: newPosts });
       })
       .catch((err) => {
+        // Render free tier cold starts can take 50s. If it's a timeout/network error, show a softer message
+        const isTimeout = err.code === "ECONNABORTED" || err.message?.includes("timeout");
         addToast(
-          err.response?.data?.error || "Neural link failed. Feed offline.",
-          "error",
+          isTimeout
+            ? "Server is waking up… refresh in 30 seconds."
+            : err.response?.data?.error || "Neural link failed. Feed offline.",
+          isTimeout ? "info" : "error",
         );
       })
       .finally(() => setLoading(false));
