@@ -1,6 +1,7 @@
 import {
   HARD_EXCLUDE_KEYWORDS,
   MIN_TRACK_DURATION_SECONDS,
+  MUSIC_INTENT_KEYWORDS,
   PREFERRED_CHANNEL_HINTS,
   SHORT_FORM_KEYWORDS,
   SOFT_QUALITY_PENALTY_KEYWORDS,
@@ -43,6 +44,28 @@ export const isHardExcluded = (title = "") => {
   return hasKeyword(title, HARD_EXCLUDE_KEYWORDS);
 };
 
+export const hasMusicIntent = (text = "") => {
+  return hasKeyword(text, MUSIC_INTENT_KEYWORDS);
+};
+
+export const buildMusicSearchQuery = (term = "") => {
+  const normalized = term.trim();
+  if (!normalized) return normalized;
+  if (hasMusicIntent(normalized)) return normalized;
+  return `${normalized} song music official video lyrics audio`;
+};
+
+export const isLikelyMusicContent = ({
+  title = "",
+  channelTitle = "",
+  categoryId = "",
+}) => {
+  if (categoryId === "10") return true;
+  if (hasMusicIntent(title)) return true;
+  if (hasMusicIntent(channelTitle)) return true;
+  return false;
+};
+
 export const isLiveOrUpcoming = (liveBroadcastContent = "none") => {
   return liveBroadcastContent === "live" || liveBroadcastContent === "upcoming";
 };
@@ -59,6 +82,8 @@ export const getMusicRelevanceScore = ({
   else if (durationSeconds >= MIN_TRACK_DURATION_SECONDS) score += 2;
 
   if (categoryId === "10") score += 4;
+  if (hasMusicIntent(title)) score += 2;
+  if (hasMusicIntent(channelTitle)) score += 1;
 
   const normalizedChannel = channelTitle.toLowerCase();
   if (

@@ -46,3 +46,19 @@ export const PREFERRED_CHANNEL_HINTS = [
   "tips",
   "yrf",
 ];
+
+export const MUSIC_INTENT_KEYWORDS = [
+  "song",
+  "songs",
+  "music",
+  "video",
+  "lyrics",
+  "lyrical",
+  "audio",
+  "official",
+  "ost",
+  "soundtrack",
+  "mv",
+  "jukebox",
+  "album",
+];

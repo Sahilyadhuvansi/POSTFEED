@@ -1,8 +1,10 @@
 import {
+  buildMusicSearchQuery,
   chunk,
   getMusicRelevanceScore,
   isHardExcluded,
   isLikelyShortForm,
+  isLikelyMusicContent,
   isLiveOrUpcoming,
   parseIso8601DurationToSeconds,
 } from "./youtube.helpers";
@@ -52,10 +54,12 @@ const fetchVideoDetailsByIds = async (videoIds, apiKey, signal) => {
 export const searchYouTubeContent = async (term, signal, options = {}) => {
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
   const {
-    type = "video,playlist",
+    type = "video",
     maxResults = "30",
     order,
     videoCategoryId,
+    strictMusicOnly = true,
+    enhanceMusicQuery = true,
   } = options;
 
   if (!API_KEY) {
@@ -64,16 +68,22 @@ export const searchYouTubeContent = async (term, signal, options = {}) => {
     );
   }
 
+  const effectiveQuery = enhanceMusicQuery ? buildMusicSearchQuery(term) : term;
+
   const params = new URLSearchParams({
     part: "snippet",
-    q: term,
+    q: effectiveQuery,
     type,
     maxResults,
     key: API_KEY,
   });
 
   if (order) params.set("order", order);
-  if (videoCategoryId) params.set("videoCategoryId", videoCategoryId);
+  if (videoCategoryId) {
+    params.set("videoCategoryId", videoCategoryId);
+  } else if (strictMusicOnly && type === "video") {
+    params.set("videoCategoryId", "10");
+  }
 
   const res = await fetch(
     `https://www.googleapis.com/youtube/v3/search?${params}`,
@@ -124,6 +134,16 @@ export const searchYouTubeContent = async (term, signal, options = {}) => {
       if (isLikelyShortForm(title, details.durationSeconds)) return null;
       if (isHardExcluded(title)) return null;
       if (isLiveOrUpcoming(details.liveBroadcastContent)) return null;
+      if (
+        strictMusicOnly &&
+        !isLikelyMusicContent({
+          title,
+          channelTitle: details.channelTitle || item.snippet.channelTitle || "",
+          categoryId: details.categoryId,
+        })
+      ) {
+        return null;
+      }
 
       const thumbnail =
         item.snippet.thumbnails?.high?.url ||
@@ -205,6 +225,15 @@ export const fetchPlaylistTracks = async (playlist, signal) => {
     if (isLikelyShortForm(title, details.durationSeconds)) return false;
     if (isHardExcluded(title)) return false;
     if (isLiveOrUpcoming(details.liveBroadcastContent)) return false;
+    if (
+      !isLikelyMusicContent({
+        title,
+        channelTitle: details.channelTitle || "",
+        categoryId: details.categoryId,
+      })
+    ) {
+      return false;
+    }
 
     return true;
   });
