@@ -337,7 +337,10 @@ const Profile = () => {
             {loadingUniverse ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[...Array(2)].map((_, i) => (
-                  <div key={i} className="h-28 rounded-[32px] glass-dark animate-pulse border border-white/5" />
+                  <div
+                    key={i}
+                    className="h-28 rounded-[32px] glass-dark animate-pulse border border-white/5"
+                  />
                 ))}
               </div>
             ) : universe.length === 0 ? (

@@ -268,7 +268,8 @@ const CreatePost = () => {
                   }}
                   className="p-3 rounded-2xl bg-white/5 text-white hover:bg-white/10 transition-all shadow-xl"
                 >
-                  {isPlaying && currentTrack?.youtubeUrl === attachedTrack.youtubeUrl ? (
+                  {isPlaying &&
+                  currentTrack?.youtubeUrl === attachedTrack.youtubeUrl ? (
                     <Pause className="w-4 h-4 fill-white" />
                   ) : (
                     <Play className="w-4 h-4 fill-white ml-0.5" />
