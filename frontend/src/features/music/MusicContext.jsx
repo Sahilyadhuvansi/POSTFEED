@@ -22,6 +22,29 @@ export const MusicProvider = ({ children }) => {
   const playerRef = useRef(null);
   const currentTrack = playlist[currentIndex] || null;
 
+  const getCurrentTime = useCallback(() => {
+    const player = playerRef.current;
+    if (!player) return 0;
+    if (typeof player.currentTime === "number") return player.currentTime;
+    if (typeof player.getCurrentTime === "function")
+      return player.getCurrentTime();
+    return 0;
+  }, []);
+
+  const setCurrentTime = useCallback((seconds) => {
+    const player = playerRef.current;
+    if (!player || !Number.isFinite(seconds)) return;
+
+    if (typeof player.currentTime === "number") {
+      player.currentTime = seconds;
+      return;
+    }
+
+    if (typeof player.seekTo === "function") {
+      player.seekTo(seconds, "seconds");
+    }
+  }, []);
+
   // ─── Toggle Play/Pause ────────────────────────────────────────────────────
   const togglePlay = useCallback(() => {
     if (!currentTrack) return;
@@ -66,8 +89,8 @@ export const MusicProvider = ({ children }) => {
   const playPrevious = useCallback(() => {
     if (!playlist.length) return;
     // If more than 3 seconds in — restart current track
-    if (playerRef.current && playerRef.current.getCurrentTime() > 3) {
-      playerRef.current.seekTo(0);
+    if (getCurrentTime() > 3) {
+      setCurrentTime(0);
       return;
     }
     const prev = (currentIndex - 1 + playlist.length) % playlist.length;
@@ -75,15 +98,19 @@ export const MusicProvider = ({ children }) => {
     setProgress(0);
     setDuration(0);
     setIsPlaying(true);
-  }, [currentIndex, playlist]);
+  }, [currentIndex, getCurrentTime, playlist, setCurrentTime]);
 
   // ─── Seek ─────────────────────────────────────────────────────────────────
-  const seek = useCallback((value) => {
-    if (playerRef.current) {
-      playerRef.current.seekTo(value / 100, "fraction");
-      setProgress(value);
-    }
-  }, []);
+  const seek = useCallback(
+    (value) => {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric) || duration <= 0) return;
+      const nextTime = (numeric / 100) * duration;
+      setCurrentTime(nextTime);
+      setProgress(numeric);
+    },
+    [duration, setCurrentTime],
+  );
 
   // ─── Volume persist ───────────────────────────────────────────────────────
   const handleVolumeChange = useCallback((v) => {
@@ -123,20 +150,31 @@ export const MusicProvider = ({ children }) => {
             opacity: 0,
             pointerEvents: "none",
             zIndex: -1,
-            overflow: "hidden"
+            overflow: "hidden",
           }}
         >
           <ReactPlayer
             ref={playerRef}
-            url={currentTrack.youtubeUrl}
+            src={currentTrack.youtubeUrl}
             playing={isPlaying}
             volume={volume}
             muted={false}
             controls={false}
             width="100%"
             height="100%"
-            onProgress={({ played }) => setProgress(played * 100)}
-            onDuration={(d) => setDuration(d)}
+            onTimeUpdate={(e) => {
+              const media = e.currentTarget;
+              const d = Number(media?.duration) || duration;
+              const t = Number(media?.currentTime) || 0;
+              if (d > 0) {
+                setDuration(d);
+                setProgress((t / d) * 100);
+              }
+            }}
+            onDurationChange={(e) => {
+              const d = Number(e.currentTarget?.duration) || 0;
+              if (d > 0) setDuration(d);
+            }}
             onEnded={playNext}
             onError={() => playNext()}
             config={{
@@ -147,7 +185,7 @@ export const MusicProvider = ({ children }) => {
                   rel: 0,
                   iv_load_policy: 3,
                   origin: window.location.origin,
-                  enablejsapi: 1
+                  enablejsapi: 1,
                 },
               },
             }}
