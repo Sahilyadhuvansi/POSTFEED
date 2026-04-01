@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { DEFAULT_AVATAR } from "../config";
@@ -35,35 +35,36 @@ const Profile = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
+  const fetchUniverse = useCallback(async () => {
+    if (!user?._id) return;
+    try {
+      setLoadingUniverse(true);
+      const res = await api.get("/music");
+      // Filter musics to show only ones belonging to the user
+      // (The backend currently returns everything in getAllMusics,
+      // so we filter on frontend for now, or improve backend later)
+      setUniverse(res.data.musics.filter((m) => m.artist?._id === user?._id));
+    } catch (err) {
+      console.error("Universe sync failed:", err);
+    } finally {
+      setLoadingUniverse(false);
+    }
+  }, [user?._id]);
+
   useEffect(() => {
     if (user) {
       setForm({ username: user.username || "", bio: user.bio || "" });
       setPreview(user.profilePic || null);
       fetchUniverse();
     }
-  }, [user]);
-
-  const fetchUniverse = async () => {
-    try {
-      setLoadingUniverse(true);
-      const res = await api.get("/music");
-      // Filter musics to show only ones belonging to the user
-      // (The backend currently returns everything in getAllMusics, 
-      // so we filter on frontend for now, or improve backend later)
-      setUniverse(res.data.musics.filter(m => m.artist?._id === user?._id));
-    } catch (err) {
-      console.error("Universe sync failed:", err);
-    } finally {
-      setLoadingUniverse(false);
-    }
-  };
+  }, [user, fetchUniverse]);
 
   const handleDeleteTrack = async (trackId) => {
     if (!window.confirm("Remove this vibe from your universe?")) return;
     try {
       await api.delete(`/music/${trackId}`);
       setUniverse((prev) => prev.filter((t) => t._id !== trackId));
-    } catch (err) {
+    } catch {
       setError("Failed to remove track.");
     }
   };

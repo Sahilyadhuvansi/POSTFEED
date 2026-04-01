@@ -52,7 +52,7 @@ const CreatePost = () => {
         artist: { username: item.snippet.channelTitle },
       }));
       setMusicResults(tracks);
-    } catch (err) {
+    } catch {
       addToast("Search failed. Check your API key.", "error");
     } finally {
       setIsSearchingMusic(false);

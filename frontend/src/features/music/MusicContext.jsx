@@ -1,5 +1,11 @@
-import { createContext, useContext, useState, useRef, useCallback } from "react";
-import ReactPlayer from "react-player/youtube";
+import {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
+import ReactPlayer from "react-player";
 
 const MusicContext = createContext(null);
 
@@ -8,7 +14,7 @@ export const MusicProvider = ({ children }) => {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(() =>
-    parseFloat(localStorage.getItem("playerVolume") || "0.7")
+    parseFloat(localStorage.getItem("playerVolume") || "0.7"),
   );
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -43,7 +49,7 @@ export const MusicProvider = ({ children }) => {
       setIsPlaying(true);
       localStorage.setItem("playerVolume", String(volume));
     },
-    [currentIndex, playlist, togglePlay, volume]
+    [currentIndex, playlist, togglePlay, volume],
   );
 
   // ─── Skip Next ────────────────────────────────────────────────────────────
@@ -107,7 +113,17 @@ export const MusicProvider = ({ children }) => {
 
       {/* Hidden YouTube player — audio only, no visible UI */}
       {currentTrack && (
-        <div style={{ position: "fixed", bottom: -9999, left: -9999, width: 1, height: 1, overflow: "hidden", pointerEvents: "none" }}>
+        <div
+          style={{
+            position: "fixed",
+            bottom: -9999,
+            left: -9999,
+            width: 1,
+            height: 1,
+            overflow: "hidden",
+            pointerEvents: "none",
+          }}
+        >
           <ReactPlayer
             ref={playerRef}
             url={currentTrack.youtubeUrl}

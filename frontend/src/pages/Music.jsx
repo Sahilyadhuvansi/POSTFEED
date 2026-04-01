@@ -10,26 +10,24 @@ import {
   Volume2,
   Sparkles,
   Search,
-  ExternalLink,
   Zap,
   AlertCircle,
   Plus,
-  Check,
 } from "lucide-react";
 import api from "../services/api";
 import { MusicSkeleton } from "../components/SkeletonLoader";
 
 const GENRES = [
-  { label: "Trending",   term: "trending music hits 2024" },
-  { label: "Bollywood",  term: "bollywood songs 2024 new" },
-  { label: "Pop",        term: "pop hits songs" },
-  { label: "Hip-Hop",    term: "hip hop rap hits" },
+  { label: "Trending", term: "trending music hits 2024" },
+  { label: "Bollywood", term: "bollywood songs 2024 new" },
+  { label: "Pop", term: "pop hits songs" },
+  { label: "Hip-Hop", term: "hip hop rap hits" },
   { label: "Electronic", term: "electronic dance music edm" },
-  { label: "Rock",       term: "rock hits songs" },
-  { label: "Indie",      term: "indie alternative music" },
-  { label: "Jazz",       term: "jazz music smooth" },
-  { label: "R&B",        term: "rnb soul hits" },
-  { label: "Classical",  term: "classical music relaxing" },
+  { label: "Rock", term: "rock hits songs" },
+  { label: "Indie", term: "indie alternative music" },
+  { label: "Jazz", term: "jazz music smooth" },
+  { label: "R&B", term: "rnb soul hits" },
+  { label: "Classical", term: "classical music relaxing" },
 ];
 
 // Direct YouTube Data API v3 call — no backend, no cold start, no scraper
@@ -37,7 +35,9 @@ const searchYouTube = async (term, signal) => {
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
   if (!API_KEY) {
-    throw new Error("VITE_YOUTUBE_API_KEY is not set in your Vercel environment variables.");
+    throw new Error(
+      "VITE_YOUTUBE_API_KEY is not set in your Vercel environment variables.",
+    );
   }
 
   const params = new URLSearchParams({
@@ -51,7 +51,7 @@ const searchYouTube = async (term, signal) => {
 
   const res = await fetch(
     `https://www.googleapis.com/youtube/v3/search?${params}`,
-    { signal }
+    { signal },
   );
 
   if (!res.ok) {
@@ -109,30 +109,33 @@ const Music = () => {
     }
   };
 
-  const runSearch = useCallback(async (term) => {
-    if (abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
-    setLoading(true);
-    setTracks([]);
-    try {
-      const results = await searchYouTube(term, abortRef.current.signal);
-      setTracks(results);
-      if (results.length === 0) {
-        addToast("No results found. Try a different search.", "info");
+  const runSearch = useCallback(
+    async (term) => {
+      if (abortRef.current) abortRef.current.abort();
+      abortRef.current = new AbortController();
+      setLoading(true);
+      setTracks([]);
+      try {
+        const results = await searchYouTube(term, abortRef.current.signal);
+        setTracks(results);
+        if (results.length === 0) {
+          addToast("No results found. Try a different search.", "info");
+        }
+      } catch (err) {
+        if (err.name === "AbortError" || err.name === "CanceledError") return;
+        if (err.message === "quota") {
+          addToast("YouTube daily quota reached. Try again tomorrow.", "error");
+        } else if (err.message?.includes("VITE_YOUTUBE_API_KEY")) {
+          setApiKeyMissing(true);
+        } else {
+          addToast("Search failed. Check your connection.", "error");
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      if (err.name === "AbortError" || err.name === "CanceledError") return;
-      if (err.message === "quota") {
-        addToast("YouTube daily quota reached. Try again tomorrow.", "error");
-      } else if (err.message?.includes("VITE_YOUTUBE_API_KEY")) {
-        setApiKeyMissing(true);
-      } else {
-        addToast("Search failed. Check your connection.", "error");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
+    },
+    [addToast],
+  );
 
   // Load default genre on mount
   useEffect(() => {
@@ -188,15 +191,20 @@ const Music = () => {
             YouTube API Key Required
           </h2>
           <p className="text-sm text-neutral-400 leading-relaxed mb-6">
-            Add your free YouTube Data API v3 key to Vercel environment variables to enable full music search.
+            Add your free YouTube Data API v3 key to Vercel environment
+            variables to enable full music search.
           </p>
           <div className="text-left space-y-3 text-xs font-mono text-neutral-500 glass-dark rounded-2xl p-5 border border-white/5">
-            <p className="text-neutral-300 font-sans font-black uppercase tracking-widest text-[10px] mb-3">Setup (2 minutes, free)</p>
+            <p className="text-neutral-300 font-sans font-black uppercase tracking-widest text-[10px] mb-3">
+              Setup (2 minutes, free)
+            </p>
             <p>1. Go to console.cloud.google.com</p>
             <p>2. New project → Enable YouTube Data API v3</p>
             <p>3. APIs &amp; Services → Credentials → Create API Key</p>
             <p>4. Vercel → Project Settings → Environment Variables</p>
-            <p className="text-indigo-400">5. Add: VITE_YOUTUBE_API_KEY = your_key</p>
+            <p className="text-indigo-400">
+              5. Add: VITE_YOUTUBE_API_KEY = your_key
+            </p>
             <p>6. Redeploy</p>
           </div>
           <p className="text-[10px] text-neutral-600 mt-4 uppercase tracking-widest">
@@ -210,7 +218,6 @@ const Music = () => {
   return (
     <div className="min-h-screen pb-32">
       <div className="mx-auto max-w-[1400px] px-6 pt-16">
-
         {/* Header */}
         <div className="mb-10 border-b border-white/5 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-3">
@@ -366,54 +373,42 @@ const Music = () => {
                     )}
                   </div>
 
-                   {/* Info */}
-                   <div className="px-7 pb-7 pt-2">
-                     <div className="flex items-start justify-between gap-3">
-                       <div className="flex-1 min-w-0">
-                         <h3 className="text-sm font-black text-white truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight italic">
-                           {track.title}
-                         </h3>
-                         <div className="flex items-center gap-2 mt-1.5 opacity-60">
-                           <Volume2 className="w-3 h-3 text-neutral-500 flex-shrink-0" />
-                           <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-[0.2em] truncate">
-                             {track.artist?.username}
-                           </p>
-                         </div>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <button
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             saveTrack(track);
-                           }}
-                           disabled={savingId === track._id}
-                           className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all text-neutral-600 hover:text-indigo-400 flex-shrink-0 disabled:opacity-50"
-                           title="Save to your Universe"
-                         >
-                           {savingId === track._id ? (
-                             <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                           ) : (
-                             <Plus className="w-3.5 h-3.5" />
-                           )}
-                         </button>
-                         {track.youtubeUrl && (
-                           <a
-                             href={track.youtubeUrl}
-                             target="_blank"
-                             rel="noopener noreferrer"
-                             onClick={(e) => e.stopPropagation()}
-                             className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors text-neutral-600 hover:text-red-500 flex-shrink-0"
-                             title="Watch on YouTube"
-                           >
-                             <ExternalLink className="w-3.5 h-3.5" />
-                           </a>
-                         )}
-                       </div>
-                     </div>
-                   </div>
-                 </div>
-               );
-             })}
+                  {/* Info */}
+                  <div className="px-7 pb-7 pt-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-black text-white truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight italic">
+                          {track.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1.5 opacity-60">
+                          <Volume2 className="w-3 h-3 text-neutral-500 flex-shrink-0" />
+                          <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-[0.2em] truncate">
+                            {track.artist?.username}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            saveTrack(track);
+                          }}
+                          disabled={savingId === track._id}
+                          className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all text-neutral-600 hover:text-indigo-400 flex-shrink-0 disabled:opacity-50"
+                          title="Save to your Universe"
+                        >
+                          {savingId === track._id ? (
+                            <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Plus className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
 
             <div className="col-span-full py-12 flex flex-col items-center gap-4">
               <div className="flex items-center gap-3">

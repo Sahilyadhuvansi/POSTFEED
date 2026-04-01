@@ -11,7 +11,7 @@ export const ToastProvider = ({ children }) => {
     setToasts((prev) => {
       const isDuplicate = prev.some((t) => t.message === message);
       if (isDuplicate) return prev;
-      
+
       const id = Date.now();
       return [...prev, { id, message, type, duration }];
     });
@@ -26,7 +26,11 @@ export const ToastProvider = ({ children }) => {
       {children}
       <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
         {toasts.map((toast) => (
-          <ToastItem key={toast.id} {...toast} onClose={() => removeToast(toast.id)} />
+          <ToastItem
+            key={toast.id}
+            {...toast}
+            onClose={() => removeToast(toast.id)}
+          />
         ))}
       </div>
     </ToastContext.Provider>
@@ -52,16 +56,24 @@ const ToastItem = ({ message, type, duration, onClose }) => {
   };
 
   return (
-    <div className={`pointer-events-auto flex items-center gap-4 min-w-[320px] max-w-md p-4 rounded-2xl glass border ${colors[type]} animate-float shadow-2xl transition-all`}>
+    <div
+      className={`pointer-events-auto flex items-center gap-4 min-w-[320px] max-w-md p-4 rounded-2xl glass border ${colors[type]} animate-float shadow-2xl transition-all`}
+    >
       <div className="flex-shrink-0">{icons[type]}</div>
-      <p className="flex-grow text-sm font-bold text-white/90 leading-tight">{message}</p>
-      <button onClick={onClose} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
+      <p className="flex-grow text-sm font-bold text-white/90 leading-tight">
+        {message}
+      </p>
+      <button
+        onClick={onClose}
+        className="p-1 hover:bg-white/5 rounded-lg transition-colors"
+      >
         <X className="w-4 h-4 text-white/40" />
       </button>
     </div>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) throw new Error("useToast must be used within ToastProvider");
