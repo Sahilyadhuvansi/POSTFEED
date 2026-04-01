@@ -1,4 +1,5 @@
 import {
+  BAD_KEYWORDS,
   HARD_EXCLUDE_KEYWORDS,
   MIN_TRACK_DURATION_SECONDS,
   MUSIC_INTENT_KEYWORDS,
@@ -75,11 +76,15 @@ export const getMusicRelevanceScore = ({
   channelTitle = "",
   durationSeconds = 0,
   categoryId = "",
+  viewCount = 0,
+  subscriberCount = 0,
 }) => {
   let score = 0;
 
-  if (durationSeconds >= 150 && durationSeconds <= 420) score += 4;
-  else if (durationSeconds >= MIN_TRACK_DURATION_SECONDS) score += 2;
+  // duration preference: 3-8 min ideal
+  if (durationSeconds >= 180 && durationSeconds <= 480) score += 5;
+  else if (durationSeconds >= 150 && durationSeconds <= 540) score += 3;
+  else if (durationSeconds >= MIN_TRACK_DURATION_SECONDS) score += 1;
 
   if (categoryId === "10") score += 4;
   if (hasMusicIntent(title)) score += 2;
@@ -92,8 +97,44 @@ export const getMusicRelevanceScore = ({
     score += 3;
   }
 
+  // prefer high views
+  if (viewCount >= 10_000_000) score += 4;
+  else if (viewCount >= 1_000_000) score += 3;
+  else if (viewCount >= 100_000) score += 2;
+  else if (viewCount >= 10_000) score += 1;
+
+  // channel trust proxy (verified-like preference)
+  if (subscriberCount >= 1_000_000) score += 4;
+  else if (subscriberCount >= 100_000) score += 2;
+  else if (subscriberCount >= 10_000) score += 1;
+
+  if (hasKeyword(title, BAD_KEYWORDS)) {
+    score -= 5;
+  }
+
   if (hasKeyword(title, SOFT_QUALITY_PENALTY_KEYWORDS)) {
     score -= 3;
+  }
+
+  return score;
+};
+
+export const scoreVideo = ({ title = "", channelTitle = "" }) => {
+  const normalizedTitle = title.toLowerCase();
+  const normalizedChannel = channelTitle.toLowerCase();
+
+  let score = 0;
+
+  if (PREFERRED_CHANNEL_HINTS.some((k) => normalizedChannel.includes(k))) {
+    score += 3;
+  }
+
+  if (MUSIC_INTENT_KEYWORDS.some((k) => normalizedTitle.includes(k))) {
+    score += 2;
+  }
+
+  if (BAD_KEYWORDS.some((k) => normalizedTitle.includes(k))) {
+    score -= 5;
   }
 
   return score;
