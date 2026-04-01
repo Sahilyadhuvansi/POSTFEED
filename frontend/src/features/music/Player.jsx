@@ -58,8 +58,8 @@ const Player = () => {
             <h4 className="text-sm font-black text-white uppercase tracking-tight truncate leading-tight">
               {currentTrack.title}
             </h4>
-            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mt-1">
-              Active Transmission
+            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mt-1 truncate">
+              {currentTrack.artist?.username || "Unknown Artist"}
             </p>
           </div>
         </div>
