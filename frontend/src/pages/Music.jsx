@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useMusic } from "../features/music/MusicContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "../components/ui/Toast";
+import { api } from "../services/api";
 import {
   Play,
   Pause,
@@ -16,34 +17,24 @@ import {
 import { MusicSkeleton } from "../components/SkeletonLoader";
 
 const GENRES = [
-  { label: "Trending", term: "top hits 2024" },
-  { label: "Pop", term: "pop hits" },
-  { label: "Hip-Hop", term: "hip hop rap" },
-  { label: "Electronic", term: "electronic dance music" },
-  { label: "Rock", term: "rock hits" },
-  { label: "Indie", term: "indie alternative" },
-  { label: "Jazz", term: "jazz chill" },
-  { label: "R&B", term: "rnb soul" },
+  { label: "Trending", term: "latest popular music songs 2024" },
+  { label: "Pop", term: "pop hits playlist" },
+  { label: "Hip-Hop", term: "hip hop rap best songs" },
+  { label: "Electronic", term: "electronic dance music hits" },
+  { label: "Rock", term: "rock hits highlights" },
+  { label: "Indie", term: "indie alternative songs" },
+  { label: "Jazz", term: "jazz chill relax" },
+  { label: "R&B", term: "rnb soul hits" },
 ];
 
-const normalizeTrack = (r) => ({
-  _id: String(r.trackId),
-  title: r.trackName,
-  artist: { username: r.artistName },
-  album: r.collectionName,
-  audioUrl: r.previewUrl,
-  thumbnail: r.artworkUrl100?.replace("100x100bb", "400x400bb"),
-  appleMusicUrl: r.trackViewUrl,
-  durationMs: r.trackTimeMillis,
-});
-
-const fetchFromItunes = async (term, signal) => {
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=50`;
-  const res = await fetch(url, { signal });
-  const data = await res.json();
-  return (data.results || [])
-    .filter((r) => r.previewUrl && r.trackId)
-    .map(normalizeTrack);
+const fetchFromYouTube = async (term, signal) => {
+  try {
+    const res = await api.get(`/music/yt/search?q=${encodeURIComponent(term)}`, { signal });
+    return res.data.tracks || [];
+  } catch (err) {
+    if (err.name === "CanceledError" || err.code === "ECONNABORTED") throw err;
+    return [];
+  }
 };
 
 const Music = () => {
@@ -66,7 +57,7 @@ const Music = () => {
     setLoading(true);
     setTracks([]);
     try {
-      const results = await fetchFromItunes(
+      const results = await fetchFromYouTube(
         GENRES[genreIndex].term,
         abortRef.current.signal
       );
@@ -100,7 +91,7 @@ const Music = () => {
       setLoading(true);
       setTracks([]);
       try {
-        const results = await fetchFromItunes(
+        const results = await fetchFromYouTube(
           searchQuery.trim(),
           abortRef.current.signal
         );
@@ -148,7 +139,7 @@ const Music = () => {
                 <MusicIcon className="w-4 h-4 text-indigo-400" />
               </div>
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-neutral-500">
-                iTunes · 30s Previews
+                YouTube · Full Tracks
               </p>
             </div>
             <h1 className="text-5xl font-black text-white italic tracking-tighter">
@@ -294,7 +285,7 @@ const Music = () => {
 
                     <div className="absolute top-3 left-3 px-2.5 py-1 rounded-xl bg-black/70 backdrop-blur-sm border border-white/10">
                       <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                        30s
+                        YT
                       </p>
                     </div>
                   </div>
@@ -319,14 +310,14 @@ const Music = () => {
                         )}
                       </div>
 
-                      {track.appleMusicUrl && (
+                      {track.youtubeUrl && (
                         <a
-                          href={track.appleMusicUrl}
+                          href={track.youtubeUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors text-neutral-600 hover:text-pink-400 flex-shrink-0"
-                          title="Full track on Apple Music"
+                          className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors text-neutral-600 hover:text-red-500 flex-shrink-0"
+                          title="Full track on YouTube"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
@@ -341,7 +332,7 @@ const Music = () => {
               <div className="flex items-center gap-3">
                 <Sparkles className="w-4 h-4 text-neutral-700" />
                 <p className="text-[10px] text-neutral-700 font-black uppercase tracking-[0.5em]">
-                  Powered by iTunes · 30-second previews
+                  Powered by YouTube · Experimental
                 </p>
                 <Sparkles className="w-4 h-4 text-neutral-700" />
               </div>
