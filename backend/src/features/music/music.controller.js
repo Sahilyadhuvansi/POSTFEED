@@ -1,7 +1,6 @@
 "use strict";
 
 const musicModel = require("./music.model");
-const storageService = require("../../services/storage.service");
 const ErrorResponse = require("../../utils/ErrorResponse");
 
 /**
@@ -21,6 +20,27 @@ const createMusic = async (req, res, next) => {
       return next(new ErrorResponse("YouTube URL is required", 400));
     }
 
+    const existing = await musicModel.findOne({
+      artist: req.user.id,
+      youtubeUrl,
+    });
+
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        message: "Track already in your favorites",
+        music: {
+          _id: existing._id,
+          id: existing._id,
+          youtubeUrl: existing.youtubeUrl,
+          title: existing.title,
+          thumbnailUrl: existing.thumbnailUrl,
+          artist: existing.artist,
+        },
+        requestId: req.id,
+      });
+    }
+
     const music = await musicModel.create({
       youtubeUrl,
       title: title.trim(),
@@ -32,13 +52,34 @@ const createMusic = async (req, res, next) => {
       success: true,
       message: "Track saved to your universe",
       music: {
+        _id: music._id,
         id: music._id,
         youtubeUrl: music.youtubeUrl,
         title: music.title,
         thumbnailUrl: music.thumbnailUrl,
         artist: music.artist,
       },
-      requestId: req.id
+      requestId: req.id,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Get My Favorites ────────────────────────────────────────────────────────
+const getMyMusics = async (req, res, next) => {
+  try {
+    const musics = await musicModel
+      .find({ artist: req.user.id })
+      .select("youtubeUrl title thumbnailUrl artist createdAt")
+      .populate("artist", "username profilePic")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      musics,
+      requestId: req.id,
     });
   } catch (err) {
     next(err);
@@ -64,13 +105,13 @@ const getAllMusics = async (req, res, next) => {
       musicModel.countDocuments(),
     ]);
 
-    return res.status(200).json({ 
-      success: true, 
-      musics, 
-      total, 
-      page, 
+    return res.status(200).json({
+      success: true,
+      musics,
+      total,
+      page,
       totalPages: Math.ceil(total / limit),
-      requestId: req.id 
+      requestId: req.id,
     });
   } catch (err) {
     next(err);
@@ -85,22 +126,21 @@ const deleteMusic = async (req, res, next) => {
     if (!music) {
       return next(new ErrorResponse("Track not found", 404, "NOT_FOUND"));
     }
-    
+
     if (music.artist.toString() !== req.user.id) {
       return next(new ErrorResponse("Forbidden", 403, "NOT_AUTHORIZED"));
     }
 
     await musicModel.findByIdAndDelete(req.params.musicId);
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       message: "Track removed from your universe",
-      requestId: req.id 
+      requestId: req.id,
     });
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { createMusic, getAllMusics, deleteMusic };
-
+module.exports = { createMusic, getAllMusics, getMyMusics, deleteMusic };

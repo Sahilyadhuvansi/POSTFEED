@@ -23,8 +23,9 @@ import FloatingAIButton from "./components/FloatingAIButton";
 const AppRouter = () => {
   return (
     <Routes>
-      <Route path="/" element={<Feed />} />
+      <Route path="/" element={<Music />} />
       <Route path="/music" element={<Music />} />
+      <Route path="/feed" element={<Feed />} />
       <Route path="/ai-picks" element={<Recommendations />} />
       <Route
         path="/create-post"

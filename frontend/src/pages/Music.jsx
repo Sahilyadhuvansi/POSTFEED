@@ -6,13 +6,15 @@ import {
   Play,
   Pause,
   Music as MusicIcon,
+  ListMusic,
+  ArrowLeft,
   Disc,
   Volume2,
   Sparkles,
   Search,
   Zap,
   AlertCircle,
-  Plus,
+  Heart,
 } from "lucide-react";
 import api from "../services/api";
 import { MusicSkeleton } from "../components/SkeletonLoader";
@@ -31,7 +33,7 @@ const GENRES = [
 ];
 
 // Direct YouTube Data API v3 call — no backend, no cold start, no scraper
-const searchYouTube = async (term, signal) => {
+const searchYouTubeContent = async (term, signal) => {
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
   if (!API_KEY) {
@@ -43,8 +45,7 @@ const searchYouTube = async (term, signal) => {
   const params = new URLSearchParams({
     part: "snippet",
     q: term,
-    type: "video",
-    videoCategoryId: "10", // Music category only — no shorts, no vlogs
+    type: "video,playlist",
     maxResults: "30",
     key: API_KEY,
   });
@@ -64,16 +65,72 @@ const searchYouTube = async (term, signal) => {
   const data = await res.json();
 
   return (data.items || [])
-    .filter((item) => item.id?.videoId)
+    .filter((item) => item.id?.videoId || item.id?.playlistId)
+    .map((item) => {
+      const thumbnail =
+        item.snippet.thumbnails?.high?.url ||
+        item.snippet.thumbnails?.medium?.url ||
+        item.snippet.thumbnails?.default?.url;
+
+      if (item.id?.playlistId) {
+        return {
+          _id: `playlist_${item.id.playlistId}`,
+          title: item.snippet.title,
+          artist: { username: item.snippet.channelTitle },
+          thumbnail,
+          playlistId: item.id.playlistId,
+          isPlaylist: true,
+        };
+      }
+
+      return {
+        _id: item.id.videoId,
+        title: item.snippet.title,
+        artist: { username: item.snippet.channelTitle },
+        thumbnail,
+        youtubeUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+        isPlaylist: false,
+      };
+    });
+};
+
+const fetchPlaylistTracks = async (playlist, signal) => {
+  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+  const params = new URLSearchParams({
+    part: "snippet,contentDetails",
+    playlistId: playlist.playlistId,
+    maxResults: "50",
+    key: API_KEY,
+  });
+
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/playlistItems?${params}`,
+    { signal },
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 403) throw new Error("quota");
+    throw new Error(err?.error?.message || `YouTube API error ${res.status}`);
+  }
+
+  const data = await res.json();
+  return (data.items || [])
+    .filter((item) => item.contentDetails?.videoId && item.snippet?.title)
+    .filter((item) => item.snippet.title.toLowerCase() !== "deleted video")
     .map((item) => ({
-      _id: item.id.videoId,
+      _id: item.contentDetails.videoId,
       title: item.snippet.title,
-      artist: { username: item.snippet.channelTitle },
+      artist: {
+        username:
+          item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle,
+      },
       thumbnail:
         item.snippet.thumbnails?.high?.url ||
         item.snippet.thumbnails?.medium?.url ||
         item.snippet.thumbnails?.default?.url,
-      youtubeUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+      youtubeUrl: `https://www.youtube.com/watch?v=${item.contentDetails.videoId}`,
+      isPlaylist: false,
     }));
 };
 
@@ -89,19 +146,59 @@ const Music = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
   const [savingId, setSavingId] = useState(null);
+  const [playlistMeta, setPlaylistMeta] = useState(null);
+  const [savedByUrl, setSavedByUrl] = useState({});
 
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
 
-  const saveTrack = async (track) => {
+  const hydrateSavedMap = useCallback(async () => {
+    try {
+      const res = await api.get("/music/mine");
+      const map = (res.data?.musics || []).reduce((acc, item) => {
+        if (item.youtubeUrl) {
+          acc[item.youtubeUrl] = { ...item, _id: item._id || item.id };
+        }
+        return acc;
+      }, {});
+      setSavedByUrl(map);
+    } catch {
+      // Silent fail for guests / auth issues
+    }
+  }, []);
+
+  const toggleFavorite = async (track) => {
+    if (!track?.youtubeUrl) return;
     setSavingId(track._id);
     try {
-      await api.post("/music", {
+      const existing = savedByUrl[track.youtubeUrl];
+
+      if (existing?._id) {
+        await api.delete(`/music/${existing._id}`);
+        setSavedByUrl((prev) => {
+          const next = { ...prev };
+          delete next[track.youtubeUrl];
+          return next;
+        });
+        addToast("Removed from favorites", "info");
+        return;
+      }
+
+      const res = await api.post("/music", {
         title: track.title,
         youtubeUrl: track.youtubeUrl,
         thumbnailUrl: track.thumbnail,
       });
-      addToast("Track saved to your universe", "success");
+
+      const saved = res.data?.music;
+      if (saved?.youtubeUrl) {
+        setSavedByUrl((prev) => ({
+          ...prev,
+          [saved.youtubeUrl]: { ...saved, _id: saved._id || saved.id },
+        }));
+      }
+
+      addToast("Added to favorites", "success");
     } catch (err) {
       addToast(err.response?.data?.error || "Failed to save track", "error");
     } finally {
@@ -116,8 +213,12 @@ const Music = () => {
       setLoading(true);
       setTracks([]);
       try {
-        const results = await searchYouTube(term, abortRef.current.signal);
+        const results = await searchYouTubeContent(
+          term,
+          abortRef.current.signal,
+        );
         setTracks(results);
+        setPlaylistMeta(null);
         if (results.length === 0) {
           addToast("No results found. Try a different search.", "info");
         }
@@ -140,6 +241,7 @@ const Music = () => {
   // Load default genre on mount
   useEffect(() => {
     runSearch(GENRES[0].term);
+    hydrateSavedMap();
     return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -166,18 +268,50 @@ const Music = () => {
     setActiveGenre(idx);
     setSearchQuery("");
     setIsSearching(false);
+    setPlaylistMeta(null);
     runSearch(GENRES[idx].term);
   };
+
+  const handleOpenPlaylist = async (playlist) => {
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+    setLoading(true);
+    try {
+      const playlistTracks = await fetchPlaylistTracks(
+        playlist,
+        abortRef.current.signal,
+      );
+      setTracks(playlistTracks);
+      setPlaylistMeta({
+        title: playlist.title,
+        artist: playlist.artist?.username,
+      });
+      if (!playlistTracks.length) {
+        addToast("No playable tracks found in this album/playlist.", "info");
+      }
+    } catch (err) {
+      if (err.name === "AbortError" || err.name === "CanceledError") return;
+      if (err.message === "quota") {
+        addToast("YouTube daily quota reached. Try again tomorrow.", "error");
+      } else {
+        addToast("Could not open album right now.", "error");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const playableTracks = tracks.filter((t) => !t.isPlaylist && t.youtubeUrl);
 
   // Deep link support
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const playId = params.get("play");
-    if (playId && tracks.length > 0) {
-      const track = tracks.find((t) => t._id === playId);
-      if (track) playTrack(track, tracks);
+    if (playId && playableTracks.length > 0) {
+      const track = playableTracks.find((t) => t._id === playId);
+      if (track) playTrack(track, playableTracks);
     }
-  }, [location.search, tracks, playTrack]);
+  }, [location.search, playableTracks, playTrack]);
 
   // API key missing — show setup instructions
   if (apiKeyMissing) {
@@ -297,6 +431,32 @@ const Music = () => {
           </p>
         )}
 
+        {playlistMeta && (
+          <div className="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-white/5 glass px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-indigo-400 font-black">
+                Album / Playlist
+              </p>
+              <h3 className="text-sm text-white font-black truncate mt-1">
+                {playlistMeta.title}
+              </h3>
+              <p className="text-[10px] text-neutral-500 uppercase tracking-widest truncate mt-1">
+                {playlistMeta.artist}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setPlaylistMeta(null);
+                runSearch(searchQuery.trim() || GENRES[activeGenre].term);
+              }}
+              className="px-4 py-2 rounded-xl border border-white/10 text-neutral-300 hover:text-white hover:border-white/20 transition-colors text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back
+            </button>
+          </div>
+        )}
+
         {/* Grid */}
         {loading ? (
           <MusicSkeleton />
@@ -319,6 +479,8 @@ const Music = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {tracks.map((track) => {
               const isActive = currentTrack?._id === track._id;
+              const isAlbum = !!track.isPlaylist;
+              const isSaved = !!savedByUrl[track.youtubeUrl];
               return (
                 <div
                   key={track._id}
@@ -331,7 +493,13 @@ const Music = () => {
                   {/* Artwork */}
                   <div
                     className="relative aspect-square m-4 rounded-[32px] overflow-hidden bg-neutral-900 cursor-pointer shadow-2xl"
-                    onClick={() => playTrack(track, tracks)}
+                    onClick={() => {
+                      if (isAlbum) {
+                        handleOpenPlaylist(track);
+                        return;
+                      }
+                      playTrack(track, playableTracks);
+                    }}
                   >
                     {track.thumbnail ? (
                       <img
@@ -356,6 +524,8 @@ const Music = () => {
                       <div className="w-16 h-16 rounded-[24px] glass border-white/20 flex items-center justify-center shadow-2xl transform transition-transform duration-500 group-hover:scale-110 group-active:scale-95">
                         {isActive && isPlaying ? (
                           <Pause className="w-7 h-7 text-white fill-white animate-pulse" />
+                        ) : isAlbum ? (
+                          <ListMusic className="w-7 h-7 text-white" />
                         ) : (
                           <Play className="w-7 h-7 text-white fill-white ml-1" />
                         )}
@@ -383,26 +553,40 @@ const Music = () => {
                         <div className="flex items-center gap-2 mt-1.5 opacity-60">
                           <Volume2 className="w-3 h-3 text-neutral-500 flex-shrink-0" />
                           <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-[0.2em] truncate">
-                            {track.artist?.username}
+                            {isAlbum
+                              ? "Open album tracks"
+                              : track.artist?.username}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            saveTrack(track);
-                          }}
-                          disabled={savingId === track._id}
-                          className="p-2.5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all text-neutral-600 hover:text-indigo-400 flex-shrink-0 disabled:opacity-50"
-                          title="Save to your Universe"
-                        >
-                          {savingId === track._id ? (
-                            <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Plus className="w-3.5 h-3.5" />
-                          )}
-                        </button>
+                        {!isAlbum && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(track);
+                            }}
+                            disabled={savingId === track._id}
+                            className={`p-2.5 rounded-2xl border transition-all flex-shrink-0 disabled:opacity-50 ${
+                              isSaved
+                                ? "border-pink-500/40 bg-pink-500/15 text-pink-400 hover:bg-pink-500/20"
+                                : "border-white/5 bg-white/5 text-neutral-600 hover:text-indigo-400 hover:bg-white/10"
+                            }`}
+                            title={
+                              isSaved
+                                ? "Remove from favorites"
+                                : "Add to favorites"
+                            }
+                          >
+                            {savingId === track._id ? (
+                              <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Heart
+                                className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`}
+                              />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
