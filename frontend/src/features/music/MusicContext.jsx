@@ -114,27 +114,28 @@ export const MusicProvider = ({ children }) => {
       {/* Hidden YouTube player — audio only, no visible UI */}
       {currentTrack && (
         <div
+          className="fixed bottom-32 right-8 z-[70] overflow-hidden rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl transition-all duration-500 shadow-2xl group hover:scale-105"
           style={{
-            position: "fixed",
-            bottom: "20px",
-            right: "20px",
-            width: "320px",
-            height: "180px",
-            opacity: 0.01,
-            pointerEvents: "none",
-            zIndex: -1,
-            overflow: "hidden",
-            borderRadius: "12px",
-            background: "black"
+            width: "280px",
+            height: "157px",
+            opacity: isPlaying ? 1 : 0,
+            pointerEvents: isPlaying ? "auto" : "none",
+            transform: isPlaying ? "translateY(0)" : "translateY(20px)"
           }}
         >
+          <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/5">
+            <p className="text-[8px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              Live Visuals
+            </p>
+          </div>
           <ReactPlayer
             ref={playerRef}
             url={currentTrack.youtubeUrl}
             playing={isPlaying}
             volume={volume}
-            muted={false} // Start unmuted but with interaction
-            controls={false}
+            muted={false}
+            controls={true} // Enabled controls so you can manually 'unmute' or 'play' if the browser blocks it
             width="100%"
             height="100%"
             onProgress={({ played }) => setProgress(played * 100)}
