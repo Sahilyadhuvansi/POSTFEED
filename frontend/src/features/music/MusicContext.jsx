@@ -111,42 +111,34 @@ export const MusicProvider = ({ children }) => {
     >
       {children}
 
-      {/* Hidden YouTube player — audio only, no visible UI */}
+      {/* Hidden YouTube player — background audio only */}
       {currentTrack && (
         <div
-          className="fixed bottom-32 right-8 z-[70] overflow-hidden rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl transition-all duration-500 shadow-2xl group hover:scale-105"
           style={{
-            width: "280px",
-            height: "157px",
-            opacity: isPlaying ? 1 : 0,
-            pointerEvents: isPlaying ? "auto" : "none",
-            transform: isPlaying ? "translateY(0)" : "translateY(20px)"
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "1px",
+            height: "1px",
+            opacity: 0,
+            pointerEvents: "none",
+            zIndex: -1,
+            overflow: "hidden"
           }}
         >
-          <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/5">
-            <p className="text-[8px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              Live Visuals
-            </p>
-          </div>
           <ReactPlayer
             ref={playerRef}
             url={currentTrack.youtubeUrl}
             playing={isPlaying}
             volume={volume}
             muted={false}
-            controls={true} // Enabled controls so you can manually 'unmute' or 'play' if the browser blocks it
+            controls={false}
             width="100%"
             height="100%"
             onProgress={({ played }) => setProgress(played * 100)}
             onDuration={(d) => setDuration(d)}
             onEnded={playNext}
-            onReady={() => console.log("✅ YouTube Player Ready:", currentTrack?.title)}
-            onStart={() => console.log("▶️ Playback Started:", currentTrack?.title)}
-            onError={(e) => {
-              console.error("❌ Player Error:", e);
-              playNext();
-            }}
+            onError={() => playNext()}
             config={{
               youtube: {
                 playerVars: {
