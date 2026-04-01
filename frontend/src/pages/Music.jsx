@@ -33,8 +33,14 @@ const GENRES = [
 ];
 
 // Direct YouTube Data API v3 call — no backend, no cold start, no scraper
-const searchYouTubeContent = async (term, signal) => {
+const searchYouTubeContent = async (term, signal, options = {}) => {
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+  const {
+    type = "video,playlist",
+    maxResults = "30",
+    order,
+    videoCategoryId,
+  } = options;
 
   if (!API_KEY) {
     throw new Error(
@@ -45,10 +51,13 @@ const searchYouTubeContent = async (term, signal) => {
   const params = new URLSearchParams({
     part: "snippet",
     q: term,
-    type: "video,playlist",
-    maxResults: "30",
+    type,
+    maxResults,
     key: API_KEY,
   });
+
+  if (order) params.set("order", order);
+  if (videoCategoryId) params.set("videoCategoryId", videoCategoryId);
 
   const res = await fetch(
     `https://www.googleapis.com/youtube/v3/search?${params}`,
@@ -148,6 +157,7 @@ const Music = () => {
   const [savingId, setSavingId] = useState(null);
   const [playlistMeta, setPlaylistMeta] = useState(null);
   const [savedByUrl, setSavedByUrl] = useState({});
+  const [bollywoodAlbums, setBollywoodAlbums] = useState([]);
 
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
@@ -207,21 +217,49 @@ const Music = () => {
   };
 
   const runSearch = useCallback(
-    async (term) => {
+    async (term, options = {}) => {
+      const { showBollywoodSections = false } = options;
       if (abortRef.current) abortRef.current.abort();
       abortRef.current = new AbortController();
       setLoading(true);
       setTracks([]);
+      setBollywoodAlbums([]);
       try {
-        const results = await searchYouTubeContent(
-          term,
-          abortRef.current.signal,
-        );
-        setTracks(results);
-        setPlaylistMeta(null);
-        if (results.length === 0) {
-          addToast("No results found. Try a different search.", "info");
+        if (showBollywoodSections) {
+          const [songs, albums] = await Promise.all([
+            searchYouTubeContent(term, abortRef.current.signal, {
+              type: "video",
+              maxResults: "24",
+            }),
+            searchYouTubeContent(
+              "bollywood full album playlist jukebox",
+              abortRef.current.signal,
+              {
+                type: "playlist",
+                maxResults: "12",
+              },
+            ),
+          ]);
+
+          setTracks(songs);
+          setBollywoodAlbums(albums);
+
+          if (songs.length === 0 && albums.length === 0) {
+            addToast("No results found. Try a different search.", "info");
+          }
+        } else {
+          const results = await searchYouTubeContent(
+            term,
+            abortRef.current.signal,
+            options,
+          );
+          setTracks(results);
+          if (results.length === 0) {
+            addToast("No results found. Try a different search.", "info");
+          }
         }
+
+        setPlaylistMeta(null);
       } catch (err) {
         if (err.name === "AbortError" || err.name === "CanceledError") return;
         if (err.message === "quota") {
@@ -240,7 +278,7 @@ const Music = () => {
 
   // Load default genre on mount
   useEffect(() => {
-    runSearch(GENRES[0].term);
+    runSearch(GENRES[0].term, { type: "video", maxResults: "30" });
     hydrateSavedMap();
     return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -251,7 +289,20 @@ const Music = () => {
     if (!searchQuery.trim()) {
       if (isSearching) {
         setIsSearching(false);
-        runSearch(GENRES[activeGenre].term);
+        const activeLabel = GENRES[activeGenre]?.label;
+        const isTrending = activeLabel === "Trending";
+        const isBollywood = activeLabel === "Bollywood";
+
+        if (isBollywood) {
+          runSearch(GENRES[activeGenre].term, { showBollywoodSections: true });
+        } else if (isTrending) {
+          runSearch(GENRES[activeGenre].term, {
+            type: "video",
+            maxResults: "30",
+          });
+        } else {
+          runSearch(GENRES[activeGenre].term);
+        }
       }
       return;
     }
@@ -269,6 +320,15 @@ const Music = () => {
     setSearchQuery("");
     setIsSearching(false);
     setPlaylistMeta(null);
+    const label = GENRES[idx].label;
+    if (label === "Bollywood") {
+      runSearch(GENRES[idx].term, { showBollywoodSections: true });
+      return;
+    }
+    if (label === "Trending") {
+      runSearch(GENRES[idx].term, { type: "video", maxResults: "30" });
+      return;
+    }
     runSearch(GENRES[idx].term);
   };
 
@@ -302,6 +362,102 @@ const Music = () => {
   };
 
   const playableTracks = tracks.filter((t) => !t.isPlaylist && t.youtubeUrl);
+  const isBollywoodView =
+    !isSearching && GENRES[activeGenre]?.label === "Bollywood" && !playlistMeta;
+  const activeGenreLabel = GENRES[activeGenre]?.label || "Discover";
+
+  const renderMusicCard = (track, options = {}) => {
+    const { forceAlbum = false, accent = "indigo" } = options;
+    const isActive = currentTrack?._id === track._id;
+    const isAlbum = forceAlbum || !!track.isPlaylist;
+    const isSaved = !!savedByUrl[track.youtubeUrl];
+
+    const accentClass =
+      accent === "pink"
+        ? "group-hover:text-pink-400"
+        : "group-hover:text-indigo-400";
+
+    return (
+      <article
+        key={track._id}
+        className={`group rounded-2xl border p-3 transition-all duration-300 ${
+          isActive
+            ? "border-indigo-500/50 bg-indigo-500/10 shadow-[0_18px_40px_rgba(79,70,229,0.22)]"
+            : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20"
+        }`}
+      >
+        <button
+          onClick={() => {
+            if (isAlbum) {
+              handleOpenPlaylist(track);
+              return;
+            }
+            playTrack(track, playableTracks);
+          }}
+          className="relative w-full aspect-square overflow-hidden rounded-xl bg-neutral-900"
+        >
+          {track.thumbnail ? (
+            <img
+              src={track.thumbnail}
+              alt={track.title}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-neutral-800 to-black">
+              <Zap className="w-10 h-10 text-neutral-700" />
+            </div>
+          )}
+
+          <span className="absolute right-3 bottom-3 h-10 w-10 rounded-full bg-black/70 border border-white/25 flex items-center justify-center opacity-0 translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+            {isActive && isPlaying ? (
+              <Pause className="w-4 h-4 text-white fill-white" />
+            ) : isAlbum ? (
+              <ListMusic className="w-4 h-4 text-white" />
+            ) : (
+              <Play className="w-4 h-4 text-white fill-white ml-[1px]" />
+            )}
+          </span>
+        </button>
+
+        <div className="pt-3 px-1">
+          <h3
+            className={`text-sm font-bold text-white truncate transition-colors ${accentClass}`}
+          >
+            {track.title}
+          </h3>
+          <p className="mt-1 text-xs text-neutral-400 truncate">
+            {isAlbum ? "Open album tracks" : track.artist?.username}
+          </p>
+        </div>
+
+        {!isAlbum && (
+          <div className="pt-3 px-1 flex justify-end">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite(track);
+              }}
+              disabled={savingId === track._id}
+              className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all disabled:opacity-50 ${
+                isSaved
+                  ? "border-pink-500/50 bg-pink-500/20 text-pink-400"
+                  : "border-white/15 bg-white/5 text-neutral-500 hover:text-indigo-300 hover:border-indigo-400/40"
+              }`}
+              title={isSaved ? "Remove from favorites" : "Add to favorites"}
+            >
+              {savingId === track._id ? (
+                <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Heart
+                  className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`}
+                />
+              )}
+            </button>
+          </div>
+        )}
+      </article>
+    );
+  };
 
   // Deep link support
   useEffect(() => {
@@ -457,7 +613,7 @@ const Music = () => {
           </div>
         )}
 
-        {/* Grid */}
+        {/* Content */}
         {loading ? (
           <MusicSkeleton />
         ) : tracks.length === 0 ? (
@@ -476,123 +632,56 @@ const Music = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {tracks.map((track) => {
-              const isActive = currentTrack?._id === track._id;
-              const isAlbum = !!track.isPlaylist;
-              const isSaved = !!savedByUrl[track.youtubeUrl];
-              return (
-                <div
-                  key={track._id}
-                  className={`group relative rounded-[40px] glass-dark border transition-all duration-700 overflow-hidden ${
-                    isActive
-                      ? "border-indigo-500/40 bg-indigo-500/5 shadow-[0_32px_80px_rgba(79,70,229,0.15)] scale-[1.02]"
-                      : "border-white/5 bg-white/[0.01] hover:bg-white/[0.04] hover:border-white/10 hover:-translate-y-2"
-                  }`}
-                >
-                  {/* Artwork */}
-                  <div
-                    className="relative aspect-square m-4 rounded-[32px] overflow-hidden bg-neutral-900 cursor-pointer shadow-2xl"
-                    onClick={() => {
-                      if (isAlbum) {
-                        handleOpenPlaylist(track);
-                        return;
-                      }
-                      playTrack(track, playableTracks);
-                    }}
-                  >
-                    {track.thumbnail ? (
-                      <img
-                        src={track.thumbnail}
-                        alt={track.title}
-                        className="h-full w-full object-cover transition-all duration-1000 group-hover:scale-110 grayscale-[0.3] group-hover:grayscale-0"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-neutral-800 to-black">
-                        <Zap className="w-12 h-12 text-neutral-800" />
-                      </div>
-                    )}
-
-                    {/* Play overlay */}
-                    <div
-                      className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${
-                        isActive
-                          ? "bg-indigo-500/20 backdrop-blur-[4px] opacity-100"
-                          : "bg-black/60 opacity-0 group-hover:opacity-100"
-                      }`}
-                    >
-                      <div className="w-16 h-16 rounded-[24px] glass border-white/20 flex items-center justify-center shadow-2xl transform transition-transform duration-500 group-hover:scale-110 group-active:scale-95">
-                        {isActive && isPlaying ? (
-                          <Pause className="w-7 h-7 text-white fill-white animate-pulse" />
-                        ) : isAlbum ? (
-                          <ListMusic className="w-7 h-7 text-white" />
-                        ) : (
-                          <Play className="w-7 h-7 text-white fill-white ml-1" />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Waveform animation */}
-                    {isActive && isPlaying && (
-                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-end gap-[3px] h-6">
-                        <div className="w-1 bg-white rounded-full animate-[bounce_0.6s_infinite]" />
-                        <div className="w-1 bg-white rounded-full animate-[bounce_0.8s_infinite] delay-75" />
-                        <div className="w-1 bg-white rounded-full animate-[bounce_0.5s_infinite] delay-150" />
-                        <div className="w-1 bg-white rounded-full animate-[bounce_0.7s_infinite] delay-100" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="px-7 pb-7 pt-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-black text-white truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight italic">
-                          {track.title}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1.5 opacity-60">
-                          <Volume2 className="w-3 h-3 text-neutral-500 flex-shrink-0" />
-                          <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-[0.2em] truncate">
-                            {isAlbum
-                              ? "Open album tracks"
-                              : track.artist?.username}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!isAlbum && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(track);
-                            }}
-                            disabled={savingId === track._id}
-                            className={`p-2.5 rounded-2xl border transition-all flex-shrink-0 disabled:opacity-50 ${
-                              isSaved
-                                ? "border-pink-500/40 bg-pink-500/15 text-pink-400 hover:bg-pink-500/20"
-                                : "border-white/5 bg-white/5 text-neutral-600 hover:text-indigo-400 hover:bg-white/10"
-                            }`}
-                            title={
-                              isSaved
-                                ? "Remove from favorites"
-                                : "Add to favorites"
-                            }
-                          >
-                            {savingId === track._id ? (
-                              <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Heart
-                                className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`}
-                              />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+          <>
+            {!playlistMeta && (
+              <div className="mb-6 flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">
+                    {isSearching ? `Search · ${searchQuery}` : activeGenreLabel}
+                  </h2>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {isBollywoodView
+                      ? "Top songs first, then albums — Spotify-style discovery."
+                      : "Handpicked full-length tracks and playable collections."}
+                  </p>
                 </div>
-              );
-            })}
+                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 font-black">
+                  {tracks.length} items
+                </p>
+              </div>
+            )}
+
+            {isBollywoodView && (
+              <div className="mb-4">
+                <h3 className="text-base font-black text-white">Top Songs</h3>
+              </div>
+            )}
+
+            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+              {tracks.map((track) => renderMusicCard(track))}
+            </section>
+
+            {isBollywoodView && bollywoodAlbums.length > 0 && (
+              <>
+                <div className="mt-12 mb-4 flex items-end justify-between gap-4">
+                  <h3 className="text-base font-black text-white">
+                    Albums &amp; Playlists
+                  </h3>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 font-black">
+                    {bollywoodAlbums.length} collections
+                  </p>
+                </div>
+
+                <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                  {bollywoodAlbums.map((track) =>
+                    renderMusicCard(track, {
+                      forceAlbum: true,
+                      accent: "pink",
+                    }),
+                  )}
+                </section>
+              </>
+            )}
 
             <div className="col-span-full py-12 flex flex-col items-center gap-4">
               <div className="flex items-center gap-3">
@@ -603,7 +692,7 @@ const Music = () => {
                 <Sparkles className="w-4 h-4 text-neutral-700" />
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
