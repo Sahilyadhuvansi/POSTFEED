@@ -2,6 +2,8 @@
 
 const musicModel = require("./music.model");
 const ErrorResponse = require("../../utils/ErrorResponse");
+const MESSAGES = require("./music.messages");
+const { serializeMusic } = require("./music.serializer");
 
 /**
  * MUSIC CONTROLLER - Post Music AI (Production Refactor)
@@ -14,10 +16,10 @@ const createMusic = async (req, res, next) => {
     const { title, youtubeUrl, thumbnailUrl } = req.body;
 
     if (!title?.trim()) {
-      return next(new ErrorResponse("Title is required", 400));
+      return next(new ErrorResponse(MESSAGES.TITLE_REQUIRED, 400));
     }
     if (!youtubeUrl) {
-      return next(new ErrorResponse("YouTube URL is required", 400));
+      return next(new ErrorResponse(MESSAGES.YOUTUBE_URL_REQUIRED, 400));
     }
 
     const existing = await musicModel.findOne({
@@ -28,15 +30,8 @@ const createMusic = async (req, res, next) => {
     if (existing) {
       return res.status(200).json({
         success: true,
-        message: "Track already in your favorites",
-        music: {
-          _id: existing._id,
-          id: existing._id,
-          youtubeUrl: existing.youtubeUrl,
-          title: existing.title,
-          thumbnailUrl: existing.thumbnailUrl,
-          artist: existing.artist,
-        },
+        message: MESSAGES.TRACK_ALREADY_FAVORITE,
+        music: serializeMusic(existing),
         requestId: req.id,
       });
     }
@@ -50,15 +45,8 @@ const createMusic = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "Track saved to your universe",
-      music: {
-        _id: music._id,
-        id: music._id,
-        youtubeUrl: music.youtubeUrl,
-        title: music.title,
-        thumbnailUrl: music.thumbnailUrl,
-        artist: music.artist,
-      },
+      message: MESSAGES.TRACK_SAVED,
+      music: serializeMusic(music),
       requestId: req.id,
     });
   } catch (err) {
@@ -124,18 +112,20 @@ const deleteMusic = async (req, res, next) => {
     const music = await musicModel.findById(req.params.musicId);
 
     if (!music) {
-      return next(new ErrorResponse("Track not found", 404, "NOT_FOUND"));
+      return next(
+        new ErrorResponse(MESSAGES.TRACK_NOT_FOUND, 404, "NOT_FOUND"),
+      );
     }
 
     if (music.artist.toString() !== req.user.id) {
-      return next(new ErrorResponse("Forbidden", 403, "NOT_AUTHORIZED"));
+      return next(new ErrorResponse(MESSAGES.FORBIDDEN, 403, "NOT_AUTHORIZED"));
     }
 
     await musicModel.findByIdAndDelete(req.params.musicId);
 
     return res.status(200).json({
       success: true,
-      message: "Track removed from your universe",
+      message: MESSAGES.TRACK_REMOVED,
       requestId: req.id,
     });
   } catch (err) {
