@@ -140,6 +140,12 @@ const Register = () => {
             />
           </div>
 
+          <div className="md:col-span-2 px-2">
+            <p className="text-[9px] text-neutral-600 font-bold uppercase tracking-widest">
+              Minimum 8 characters with at least one uppercase letter required.
+            </p>
+          </div>
+
           {/* Terms */}
           <div className="md:col-span-2 flex items-center gap-4 rounded-[20px] bg-white/[0.02] border border-white/[0.06] p-4 transition-all hover:bg-white/[0.05]">
             <button

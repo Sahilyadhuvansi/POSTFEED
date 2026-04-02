@@ -12,8 +12,11 @@ const validate = (schema) => (req, _res, next) => {
     schema.parse(req.body);
     next();
   } catch (error) {
-    const message = error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ");
-    next(new ErrorResponse(message, 400, "VALIDATION_ERROR", error.errors));
+    const issues = error.errors || error.issues || [];
+    const message = Array.isArray(issues) 
+      ? issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")
+      : error.message;
+    next(new ErrorResponse(message || "Validation failed", 400, "VALIDATION_ERROR", issues));
   }
 };
 

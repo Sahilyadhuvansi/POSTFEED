@@ -111,7 +111,8 @@ export const useAuth = () => {
 
 // ─── Error Message Extractor ──────────────────────────────────────────────────
 function extractErrorMessage(err, fallback) {
-  if (err.response?.data?.error) return err.response.data.error;
+  if (err.response?.data?.error?.message) return err.response.data.error.message;
+  if (err.response?.data?.error) return err.response.data.error; // Fallback to raw error if no message field
   if (err.message?.includes("Network Error")) return "Cannot reach server. Check your internet connection.";
   if (err.code === "ECONNABORTED") return "Request timed out. Please try again.";
   return fallback;
