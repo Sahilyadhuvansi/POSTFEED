@@ -27,9 +27,6 @@ const Player = () => {
   } = useMusic();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Safety check: return if no track loaded
-  if (!currentTrack?.youtubeUrl) return null;
-
   useEffect(() => {
     const onEscape = (event) => {
       if (event.key === "Escape") setIsExpanded(false);
@@ -63,15 +60,22 @@ const Player = () => {
   const coverArt = currentTrack?.thumbnailUrl || currentTrack?.thumbnail;
   const trackTitle = currentTrack?.title || "Unknown Track";
   const trackArtist = currentTrack?.artist?.username || "Unknown Artist";
+
   const progressValue = useMemo(
     () => (Number.isFinite(progress) ? progress : 0),
     [progress],
   );
+
   const elapsedTime = useMemo(
     () => formatTime((progressValue * duration) / 100),
     [progressValue, duration],
   );
+
   const totalDuration = useMemo(() => formatTime(duration), [duration]);
+
+  // Safety check: return if no track loaded
+  if (!currentTrack?.youtubeUrl) return null;
+
 
   return (
     <>
