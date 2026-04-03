@@ -54,10 +54,14 @@ const Header = () => {
           className="flex items-center gap-3 active:scale-95 transition-transform"
         >
           <div className="relative group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all group-hover:rotate-[10deg]">
-              <Music className="h-5 w-5" fill="currentColor" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all group-hover:rotate-[15deg]">
+              <img 
+                src="/favicon.png" 
+                alt="Logo" 
+                className="h-6 w-6 object-contain"
+              />
             </div>
-            <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-0 group-hover:scale-100 transition-transform duration-500" />
+            <div className="absolute inset-0 bg-white/20 blur-2xl rounded-full scale-0 group-hover:scale-100 transition-transform duration-500" />
           </div>
           <span className="text-xl font-black tracking-tighter text-white uppercase italic">
             Music

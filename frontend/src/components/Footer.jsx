@@ -10,21 +10,13 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-16 mb-24">
           {/* Brand & Newsletter */}
           <div className="space-y-8">
-            <Link to="/" className="inline-flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-                <svg
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2.5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 12L3.27 3.13a1 1 0 01.95-1.32h15.56a1 1 0 01.95 1.32L18 12m-12 0v6a2 2 0 002 2h8a2 2 0 002-2v-6"
-                  />
-                </svg>
+            <Link to="/" className="inline-flex items-center gap-3 active:scale-95 transition-transform">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg overflow-hidden">
+                <img 
+                  src="/favicon.png" 
+                  alt="Logo" 
+                  className="h-6 w-6 object-contain"
+                />
               </div>
               <span className="text-xl font-black text-white italic tracking-tight uppercase">
                 Music
