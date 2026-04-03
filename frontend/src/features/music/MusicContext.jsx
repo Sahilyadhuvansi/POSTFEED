@@ -165,88 +165,78 @@ export const MusicProvider = ({ children }) => {
     >
       {children}
 
-      {/* Hidden YouTube player — background audio only */}
-      {currentTrack?.youtubeUrl && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            opacity: 0.001, // Nearly invisible
-            pointerEvents: "none",
-            zIndex: -1,
-            overflow: "hidden",
+      {/* Background audio engine — persistent for trust and speed */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0.05, // Slightly higher to ensure visibility to browser
+          pointerEvents: "none",
+          zIndex: -99, // Way behind
+          overflow: "hidden",
+        }}
+      >
+        <ReactPlayer
+          key="global-music-engine"
+          ref={playerRef}
+          url={currentTrack?.youtubeUrl || ""}
+          playing={isPlaying}
+          volume={volume}
+          muted={false}
+          controls={false}
+          width="100%"
+          height="100%"
+          onReady={() => {
+            if (currentTrack) console.log("✅ Engine ready:", currentTrack.title);
           }}
-        >
-          <ReactPlayer
-            key="youtube-audio-engine"
-            ref={playerRef}
-            url={normalizeYoutubeUrl(currentTrack.youtubeUrl)}
-            playing={isPlaying}
-            volume={volume}
-            muted={false}
-            controls={false}
-            width="100%"
-            height="100%"
-            onReady={() => {
-              console.log("✅ Player ready:", currentTrack.title);
-            }}
-            onPlay={() => {
-              console.log("▶️ Playing:", currentTrack?.title);
+          onPlay={() => {
+            if (currentTrack) {
+              console.log("▶️ Playing:", currentTrack.title);
               setIsPlaying(true);
-            }}
-            onPause={() => {
-              console.log("⏸️ Paused:", currentTrack?.title);
-              setIsPlaying(false);
-            }}
-            onBuffer={() => console.log("⏳ Buffering...")}
-            onBufferEnd={() => console.log("✅ Buffer end")}
-            onProgress={(state) => {
-              // Standardizing progress capture
-              if (state.playedSeconds > 0 || state.played > 0) {
-                setProgress(state.played * 100);
-              }
-            }}
-            onDuration={(d) => {
-              console.log("✅ Duration set:", d);
-              setDuration(d);
-            }}
-            onEnded={() => {
-              console.log("✅ Track ended, playing next");
+            }
+          }}
+          onPause={() => setIsPlaying(false)}
+          onBuffer={() => console.log("⏳ Buffering...")}
+          onBufferEnd={() => console.log("✅ Buffer end")}
+          onProgress={(state) => {
+            if (state.playedSeconds > 0 || state.played > 0) {
+              setProgress(state.played * 100);
+            }
+          }}
+          onDuration={(d) => {
+            console.log("✅ Duration set:", d);
+            setDuration(d);
+          }}
+          onEnded={playNext}
+          onError={(err) => {
+            if (currentTrack) {
+              console.error("❌ Player error:", err);
               playNext();
-            }}
-            onError={(err) => {
-              console.error(
-                "❌ Player error:",
-                err,
-                "Current track:",
-                currentTrack,
-              );
-              playNext();
-            }}
-            config={{
-              youtube: {
-                playerVars: {
-                  autoplay: 1,
-                  modestbranding: 1,
-                  rel: 0,
-                  iv_load_policy: 3,
-                  origin: window.location.origin,
-                  enablejsapi: 1,
-                  widget_referrer: window.location.origin,
-                  playsinline: 1,
-                  controls: 0,
-                },
-                embedOptions: {
-                  host: "https://www.youtube.com",
-                },
+            }
+          }}
+          config={{
+            youtube: {
+              playerVars: {
+                autoplay: 1,
+                modestbranding: 1,
+                rel: 0,
+                iv_load_policy: 3,
+                origin: window.location.origin,
+                enablejsapi: 1,
+                widget_referrer: window.location.origin,
+                playsinline: 1,
+                controls: 0,
               },
-            }}
-          />
-        </div>
-      )}
+              embedOptions: {
+                host: "https://www.youtube-nocookie.com",
+              },
+            },
+          }}
+        />
+      </div>
     </MusicContext.Provider>
   );
 };

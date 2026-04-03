@@ -40,13 +40,19 @@ const Player = () => {
       "has-mini-player",
       !!currentTrack && !isExpanded,
     );
-    document.body.classList.toggle(
-      "has-expanded-player",
-      !!currentTrack && isExpanded,
-    );
+    if (!!currentTrack && isExpanded) {
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    }
+
     return () => {
       document.body.classList.remove("has-mini-player");
       document.body.classList.remove("has-expanded-player");
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     };
   }, [currentTrack, isExpanded]);
 
