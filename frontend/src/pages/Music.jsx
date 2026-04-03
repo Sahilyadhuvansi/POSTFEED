@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useMusic } from "../features/music/MusicContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "../components/ui/Toast";
