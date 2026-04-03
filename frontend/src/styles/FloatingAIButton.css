@@ -3,8 +3,8 @@
 /* Floating Action Button (FAB) - Bottom Right */
 .floating-fab {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  right: max(1rem, env(safe-area-inset-right));
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -151,7 +151,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -260,7 +261,9 @@
 }
 
 @keyframes pulse {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     opacity: 0.5;
     transform: scale(0.8);
   }
@@ -352,7 +355,26 @@
     border-radius: 0;
   }
   .floating-fab {
-    bottom: 1rem;
-    right: 1rem;
+    width: 48px;
+    height: 48px;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  .fab-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .chat-header {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .messages-container {
+    padding: 0.85rem;
+  }
+
+  .chat-input-area {
+    padding: 0.7rem;
   }
 }

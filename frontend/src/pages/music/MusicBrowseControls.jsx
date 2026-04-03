@@ -16,21 +16,20 @@ const MusicBrowseControls = ({
 }) => {
   return (
     <>
-      <div className="mb-10 border-b border-white/5 pb-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
-        <div className="space-y-3">
-
-          <h1 className="text-5xl font-black text-white italic tracking-tighter">
-            Sonic
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
+      <div className="mb-10 border-b border-white/5 pb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-3 min-w-0 max-w-full">
+          <h1 className="max-w-full text-[clamp(2.65rem,8vw,4.9rem)] font-black italic tracking-tighter leading-[0.88] text-white break-words">
+            <span className="block sm:inline">Sonic</span>
+            <span className="block sm:inline text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 sm:ml-2">
               Universe
             </span>
           </h1>
         </div>
-        <div className="glass px-8 py-5 rounded-[32px] border-white/5 text-center min-w-[140px]">
+        <div className="glass px-6 py-4 sm:px-8 sm:py-5 rounded-[28px] border-white/5 text-center w-full md:w-auto min-w-0 md:min-w-[140px]">
           <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest mb-1">
             Items
           </p>
-          <p className="text-2xl font-black text-white">
+          <p className="text-2xl font-black text-white leading-none">
             {tracksCount}
             <span className="text-xs text-indigo-400 ml-1">+</span>
           </p>
