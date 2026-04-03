@@ -27,7 +27,7 @@ const Footer = () => {
                 </svg>
               </div>
               <span className="text-xl font-black text-white italic tracking-tight uppercase">
-                Post
+                Music
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
                   Feed
                 </span>
@@ -122,7 +122,7 @@ const Footer = () => {
           <div className="flex items-center gap-2">
             <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
             <p className="text-[10px] font-black text-neutral-700 uppercase tracking-widest leading-none">
-              &copy; {currentYear} PF. Studio Division.
+              &copy; {currentYear} MusicFeed.
             </p>
           </div>
           <div className="flex items-center gap-6">

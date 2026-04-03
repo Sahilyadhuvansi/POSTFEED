@@ -33,7 +33,7 @@ const Register = () => {
 
     const result = await register({ username, email, password });
     if (result.success) {
-      addToast("Welcome to the PostFeed Universe!", "success");
+      addToast("Welcome to the MusicFeed Universe!", "success");
       navigate("/");
     } else {
       addToast(result.message || "Registration failed. Frequency sync unstable.", "error");
@@ -59,7 +59,7 @@ const Register = () => {
             </div>
           </div>
           <h2 className="text-3xl font-black text-white tracking-tight italic">
-            Join <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">PostFeed</span>
+            Join <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">MusicFeed</span>
           </h2>
           <p className="mt-3 text-sm text-neutral-500 font-medium uppercase tracking-widest">
             Create your digital hub

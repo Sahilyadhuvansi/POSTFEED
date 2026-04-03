@@ -1,8 +1,10 @@
 "use strict";
 
+const mongoose = require("mongoose");
 const postsModel = require("./posts.model");
 const storageService = require("../../services/storage.service");
 const ErrorResponse = require("../../utils/ErrorResponse");
+const logger = require("../../utils/logger");
 
 // ─── Create Post ──────────────────────────────────────────────────────────────
 const createPost = async (req, res, next) => {
@@ -129,4 +131,78 @@ const deletePost = async (req, res, next) => {
   }
 };
 
-module.exports = { createPost, getFeed, getPostById, deletePost };
+const toggleLike = async (req, res, next) => {
+  const { postId } = req.params;
+  const userId = req.user.id;
+  const start = Date.now();
+
+  try {
+    // Senior: Use an atomic aggregation pipeline inside findOneAndUpdate to prevent race conditions
+    // This handles the "toggle" logic (add if not present, remove if present) in a single DB round-trip
+    const updatedPost = await postsModel.findOneAndUpdate(
+      { _id: postId },
+      [
+        {
+          $set: {
+            isCurrentlyLiked: { $in: [new mongoose.Types.ObjectId(userId), "$likes"] }
+          }
+        },
+        {
+          $set: {
+            likes: {
+              $cond: [
+                "$isCurrentlyLiked",
+                { $filter: { input: "$likes", as: "l", cond: { $ne: ["$$l", new mongoose.Types.ObjectId(userId)] } } },
+                { $concatArrays: ["$likes", [new mongoose.Types.ObjectId(userId)]] }
+              ]
+            },
+            likeCount: {
+              $cond: [
+                "$isCurrentlyLiked",
+                { $max: [0, { $subtract: ["$likeCount", 1] }] },
+                { $add: ["$likeCount", 1] }
+              ]
+            }
+          }
+        },
+        { $unset: "isCurrentlyLiked" }
+      ],
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedPost) {
+      return next(new ErrorResponse("Post not found in the stream.", 404, "POST_NOT_FOUND"));
+    }
+
+    const isLiked = updatedPost.likes.some(id => id.toString() === userId);
+
+    // Full observability: Log the atomic operation details
+    logger.info({
+      event: "post_like_toggle",
+      postId,
+      userId,
+      isLiked,
+      likeCount: updatedPost.likeCount,
+      duration: Date.now() - start,
+      requestId: req.id
+    });
+
+    return res.status(200).json({
+      success: true,
+      isLiked,
+      likeCount: updatedPost.likeCount,
+      requestId: req.id,
+    });
+  } catch (err) {
+    logger.error({
+      event: "post_like_error",
+      postId,
+      userId,
+      error: err.message,
+      requestId: req.id
+    });
+    next(err);
+  }
+};
+
+module.exports = { createPost, getFeed, getPostById, deletePost, toggleLike };

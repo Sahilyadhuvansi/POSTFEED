@@ -29,6 +29,7 @@ router.post(
 );
 router.delete("/:postId", auth, postsController.deletePost);
 router.get("/feed", postsController.getFeed);
+router.post("/:postId/like", auth, postsController.toggleLike);
 router.get("/:postId", postsController.getPostById);
 
 module.exports = router;

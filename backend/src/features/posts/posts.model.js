@@ -19,9 +19,21 @@ const postSchema = new mongoose.Schema(
     youtubeUrl: String,
     youtubeTitle: String,
     youtubeThumb: String,
+    likes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    likeCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );
+
+postSchema.index({ likeCount: -1 }); // Index for trending posts
 
 // Index for sorting the feed; compound index supports per-user feeds too
 postSchema.index({ createdAt: -1 });

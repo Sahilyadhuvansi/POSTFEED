@@ -70,9 +70,32 @@ body {
 }
 
 .shimmer {
-  animation: shimmer 2s infinite;
-  background: linear-gradient(90deg, #121215 25%, #1f1f23 50%, #121215 75%);
-  background-size: 1000px 100%;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  animation: shimmer-swipe 2s infinite;
+}
+
+@keyframes shimmer-swipe {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes float {
@@ -102,4 +125,39 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);
+}
+
+/* Premium Visual Enhancements */
+.text-glow {
+  text-shadow: 0 0 10px var(--color-primary-glow), 0 0 20px var(--color-primary-glow);
+}
+
+.bg-mesh {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, rgba(236, 72, 153, 0.1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.15) 0, transparent 50%);
+}
+
+.primary-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+}
+
+.card-border {
+  position: relative;
+}
+
+.card-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: inherit;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.card-border:hover::before {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  opacity: 0.5;
 }

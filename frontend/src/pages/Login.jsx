@@ -50,7 +50,7 @@ const Login = () => {
             </div>
           </div>
           <h2 className="text-3xl font-black text-white tracking-tight italic">
-            Access <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">PostFeed</span>
+            Access <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">MusicFeed</span>
           </h2>
           <p className="mt-3 text-sm text-neutral-500 font-medium uppercase tracking-widest">
             Enter your credentials

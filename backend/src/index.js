@@ -18,6 +18,7 @@ const musicRoutes = require("./features/music/music.routes");
 const aiRoutes = require("./features/ai/ai.routes");
 const ErrorResponse = require("./utils/ErrorResponse");
 const requestId = require("./middlewares/request-id.middleware");
+const performanceMiddleware = require("./middlewares/performance.middleware");
 const errorHandler = require("./middlewares/error-handler.middleware");
 const { analyticsMiddleware } = require("./services/ai.performance-analytics");
 const logger = require("./utils/logger");
@@ -128,6 +129,7 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(performanceMiddleware); // Track latency for EVERY request
 app.use(analyticsMiddleware); // Track AI performance post-parsing
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────

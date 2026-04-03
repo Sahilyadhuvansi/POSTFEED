@@ -22,6 +22,8 @@ import {
   Pause,
 } from "lucide-react";
 import { useMusic } from "../features/music/MusicContext";
+import { optimizeImageUrl, IMAGE_SIZES } from "../utils/image-optimization";
+import analytics from "../services/analytics";
 
 const POSTS_PER_PAGE = 12;
 
@@ -33,50 +35,66 @@ const Feed = () => {
   const observerTarget = useRef(null);
   const postMenuRef = useRef(null);
 
-  const initialCached = getFromCache("feed_page_1");
-
-  const [posts, setPosts] = useState(initialCached?.posts || []);
+  const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [loading, setLoading] = useState(!initialCached);
+  const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [activeMenu, setActiveMenu] = useState(null);
+  const [likeLock, setLikeLock] = useState(new Set());
 
-  // ─── Initial Load ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (initialCached) return;
+  const fetchFeed = useCallback((isRetry = false) => {
+    const { data: cachedPosts, isStale } = getFromCache("feed_page_1");
+
+    if (cachedPosts && !isRetry) {
+      setPosts(cachedPosts);
+      setLoading(false);
+      if (isStale) {
+        api.get(`/posts/feed?page=1&limit=${POSTS_PER_PAGE}`).then((res) => {
+          const newPosts = res.data.posts || [];
+          setPosts(newPosts);
+          setCache("feed_page_1", newPosts);
+        });
+      }
+      return;
+    }
+
+    setLoading(true);
     api
       .get(`/posts/feed?page=1&limit=${POSTS_PER_PAGE}`)
       .then((res) => {
         const newPosts = res.data.posts || [];
         setPosts(newPosts);
         setHasMore(newPosts.length === POSTS_PER_PAGE);
-        setCache("feed_page_1", { posts: newPosts });
+        setCache("feed_page_1", newPosts);
+        analytics.track("feed_loaded", { page: 1, count: newPosts.length });
       })
       .catch((err) => {
-        // Render free tier cold starts can take 50s. If it's a timeout/network error, show a softer message
         const isTimeout = err.code === "ECONNABORTED" || err.message?.includes("timeout");
         addToast(
           isTimeout
-            ? "Server is waking up… refresh in 30 seconds."
+            ? "The cloud is still waking up... system sync pending."
             : err.response?.data?.error || "Neural link failed. Feed offline.",
           isTimeout ? "info" : "error",
         );
+        analytics.track("feed_error", { type: isTimeout ? "timeout" : "error", message: err.message });
       })
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [getFromCache, setCache, addToast]);
 
-  // ─── Load More (Infinite Scroll) ───────────────────────────────────────────
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
+
   const loadMorePosts = useCallback(() => {
     const nextPage = page + 1;
     const cacheKey = `feed_page_${nextPage}`;
-    const cached = getFromCache(cacheKey);
+    const { data: cached } = getFromCache(cacheKey);
 
     if (cached) {
-      setPosts((prev) => [...prev, ...cached.posts]);
+      setPosts((prev) => [...prev, ...cached]);
       setPage(nextPage);
-      setHasMore(cached.posts.length === POSTS_PER_PAGE);
+      setHasMore(cached.length === POSTS_PER_PAGE);
       return;
     }
 
@@ -87,12 +105,65 @@ const Feed = () => {
         setPosts((prev) => [...prev, ...newPosts]);
         setPage(nextPage);
         setHasMore(newPosts.length === POSTS_PER_PAGE);
-        setCache(cacheKey, { posts: newPosts });
+        setCache(cacheKey, newPosts);
       })
       .catch((err) => console.error("Expansion error:", err.message));
   }, [page, getFromCache, setCache]);
 
-  // ─── Intersection Observer ─────────────────────────────────────────────────
+  const handleLike = async (e, postId) => {
+    e.stopPropagation();
+    if (!user) {
+      addToast("Identity verification required to resonate.", "info");
+      return;
+    }
+    
+    // 2. Precise Concurrency Locking: Prevent double-taps while request is in flight
+    if (likeLock.has(postId)) return;
+
+    setLikeLock((prev) => new Set(prev).add(postId));
+
+    // 1. O(1) Optimistic Update with precise rollback state
+    const prevPosts = [...posts]; // Snapshot for rollback
+    
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p._id === postId) {
+          const isLiked = p.likes?.includes(user._id);
+          const newLikes = isLiked
+            ? p.likes.filter((id) => id !== user._id)
+            : [...(p.likes || []), user._id];
+          return { ...p, likes: newLikes, likeCount: newLikes.length };
+        }
+        return p;
+      }),
+    );
+
+    try {
+      const res = await api.post(`/posts/${postId}/like`);
+      
+      // Update with server truth (Sync)
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? { ...p, likeCount: res.data.likeCount, likes: res.data.isLiked ? [...(p.likes || []), user._id] : (p.likes || []).filter(id => id !== user._id) } : p,
+        ),
+      );
+      
+      analytics.userAction("like_toggle", { postId, isLiked: res.data.isLiked });
+    } catch (err) {
+      // 1. Precise Rollback: Instead of refetching everything (O(n)), we just revert to snippet state (O(1))
+      setPosts(prevPosts);
+      addToast("Pulse sync failed. Reverting to local state.", "error");
+      analytics.reportError("like_sync_failure", err.message, { postId });
+    } finally {
+      // 2. Ensure lock release even on error to prevent Deadlock / UI freezing
+      setLikeLock((prev) => {
+        const n = new Set(prev);
+        n.delete(postId);
+        return n;
+      });
+    }
+  };
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -104,41 +175,30 @@ const Feed = () => {
     return () => observer.disconnect();
   }, [hasMore, loading, loadMorePosts]);
 
-  // ─── Close menu on outside click ───────────────────────────────────────────
-  useEffect(() => {
-    const handler = (e) => {
-      if (postMenuRef.current && !postMenuRef.current.contains(e.target)) {
-        setActiveMenu(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  // ─── Delete Post ───────────────────────────────────────────────────────────
   const handleDeletePost = async (e, postId) => {
     e.stopPropagation();
     if (!window.confirm("Broadcast deletion? This cannot be undone.")) return;
     try {
       await api.delete(`/posts/${postId}`);
       setPosts((prev) => prev.filter((p) => p._id !== postId));
+      
+      // Senior: Invalidate feed cache immediately to ensure the next SWR cycle reflects the deletion
+      setCache("feed_page_1", null); 
+      
       if (selectedPost?._id === postId) setSelectedPost(null);
       setActiveMenu(null);
       addToast("Post erased from the stream.", "success");
+      analytics.userAction("post_deleted", { postId });
     } catch (err) {
-      addToast(
-        err.response?.data?.error || "Deletion protocol failed.",
-        "error",
-      );
+      addToast(err.response?.data?.error || "Deletion protocol failed.", "error");
     }
   };
 
-  if (loading) return <PostSkeletonLoader />;
+  if (loading && posts.length === 0) return <PostSkeletonLoader />;
 
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-[1400px] px-6 pt-16 pb-24">
-        {/* Dynamic Header */}
         {user && (
           <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between border-b border-white/5 pb-10 gap-8">
             <div className="flex items-center gap-6">
@@ -161,9 +221,17 @@ const Feed = () => {
                     {user.username}
                   </span>
                 </h1>
-                <p className="mt-2 text-xs font-black text-neutral-500 tracking-[0.3em] uppercase opacity-70">
-                  Neural hub status: Operational
-                </p>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${loading ? "bg-amber-500/10 border-amber-500/20 text-amber-500" : "bg-green-500/10 border-green-500/20 text-green-500"}`}>
+                    <div className={`w-1 h-1 rounded-full ${loading ? "bg-amber-500 animate-pulse" : "bg-green-500"}`} />
+                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                      {loading ? "Syncing Grid" : "Neural Link Active"}
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-black text-neutral-500 tracking-[0.2em] uppercase opacity-70">
+                    MF-V.PROD
+                  </p>
+                </div>
               </div>
             </div>
             <div className="flex gap-4">
@@ -197,9 +265,7 @@ const Feed = () => {
               </div>
               <div className="absolute inset-0 bg-indigo-500/10 blur-3xl rounded-full" />
             </div>
-            <h2 className="text-2xl font-black text-white mb-2 italic">
-              The void is silent
-            </h2>
+            <h2 className="text-2xl font-black text-white mb-2 italic">The void is silent</h2>
             <p className="text-sm font-medium text-neutral-500 mb-8 uppercase tracking-widest">
               Start the ripple in the stream
             </p>
@@ -217,11 +283,14 @@ const Feed = () => {
               <div
                 key={post._id}
                 className="group relative cursor-pointer overflow-hidden rounded-[32px] glass-dark aspect-square border-white/5 transition-all duration-500 hover:shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
-                onClick={() => setSelectedPost(post)}
+                onClick={() => {
+                  setSelectedPost(post);
+                  analytics.userAction("view_post", { postId: post._id, hasImage: !!post.image });
+                }}
               >
                 {post.image ? (
                   <img
-                    src={post.image}
+                    src={optimizeImageUrl(post.image, IMAGE_SIZES.THUMBNAIL)}
                     alt={post.caption}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
@@ -234,7 +303,6 @@ const Feed = () => {
                   </div>
                 )}
 
-                {/* Overlay Context */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
                   <div className="translate-y-8 group-hover:translate-y-0 transition-transform duration-700 delay-75 space-y-3">
                     <div className="flex items-center justify-between gap-3">
@@ -250,11 +318,23 @@ const Feed = () => {
                           @{post.user?.username || "unknown-user"}
                         </p>
                       </div>
-                      {post.youtubeUrl && (
-                        <div className="flex h-7 w-7 items-center justify-center rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400">
-                          <Music className="h-3 w-3" />
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleLike(e, post._id)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all ${
+                            post.likes?.includes(user?._id)
+                              ? "bg-pink-500/20 border-pink-500/30 text-pink-500"
+                              : "glass border-white/10 text-neutral-400 hover:text-white"
+                          }`}
+                        >
+                          <Heart
+                            className={`w-3.5 h-3.5 ${
+                              post.likes?.includes(user?._id) ? "fill-pink-500" : ""
+                            }`}
+                          />
+                          <span className="text-[10px] font-black">{post.likeCount || 0}</span>
+                        </button>
+                      </div>
                     </div>
                     <p className="text-[11px] text-neutral-400 font-medium line-clamp-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-200 lowercase italic tracking-tight">
                       {post.caption}
@@ -262,7 +342,6 @@ const Feed = () => {
                   </div>
                 </div>
 
-                {/* Quick Action Float */}
                 <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
                   <div className="glass p-2.5 rounded-2xl border-white/10 backdrop-blur-3xl">
                     <Eye className="w-4 h-4 text-white" />
@@ -272,10 +351,7 @@ const Feed = () => {
             ))}
 
             {hasMore && (
-              <div
-                ref={observerTarget}
-                className="col-span-full py-24 flex flex-col items-center gap-6"
-              >
+              <div ref={observerTarget} className="col-span-full py-24 flex flex-col items-center gap-6">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center">
                     <div className="w-8 h-8 rounded-full border-t-2 border-indigo-500 animate-spin" />
@@ -291,7 +367,6 @@ const Feed = () => {
         )}
       </div>
 
-      {/* ── Neural Post Modal ── */}
       {selectedPost && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-2xl sm:p-8"
@@ -311,7 +386,6 @@ const Feed = () => {
               <X className="w-6 h-6" />
             </button>
 
-            {/* Visual Focus */}
             <div className="relative flex items-center justify-center bg-neutral-900/40 p-1">
               {selectedPost.image ? (
                 <img
@@ -328,7 +402,6 @@ const Feed = () => {
               )}
             </div>
 
-            {/* Intel Sidebar */}
             <div className="flex flex-col h-full bg-black border-l border-white/5">
               <div className="flex items-center justify-between p-8 border-b border-white/5">
                 <div className="flex items-center gap-4">
@@ -351,36 +424,32 @@ const Feed = () => {
                     </div>
                   </div>
                 </div>
-                {user &&
-                  String(user._id) === String(selectedPost.user?._id) && (
-                    <div className="relative" ref={postMenuRef}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveMenu(activeMenu ? null : selectedPost._id);
-                        }}
-                        className="p-3 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors text-neutral-400"
-                      >
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
-                      {activeMenu === selectedPost._id && (
-                        <div className="absolute right-0 top-full mt-3 w-56 rounded-3xl glass-dark border-white/10 shadow-2xl p-2.5 z-10 animate-fade-in-down">
-                          <button
-                            onClick={(e) =>
-                              handleDeletePost(e, selectedPost._id)
-                            }
-                            className="w-full flex items-center gap-4 px-5 py-4 text-xs font-black uppercase tracking-widest text-red-400 hover:bg-red-400/5 rounded-2xl transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete Entry
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                {user && String(user._id) === String(selectedPost.user?._id) && (
+                  <div className="relative" ref={postMenuRef}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenu(activeMenu ? null : selectedPost._id);
+                      }}
+                      className="p-3 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors text-neutral-400"
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                    {activeMenu === selectedPost._id && (
+                      <div className="absolute right-0 top-full mt-3 w-56 rounded-3xl glass-dark border-white/10 shadow-2xl p-2.5 z-10 animate-fade-in-down">
+                        <button
+                          onClick={(e) => handleDeletePost(e, selectedPost._id)}
+                          className="w-full flex items-center gap-4 px-5 py-4 text-xs font-black uppercase tracking-widest text-red-400 hover:bg-red-400/5 rounded-2xl transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Entry
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Data Space */}
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                 <p className="text-[13px] text-neutral-400 font-medium leading-loose whitespace-pre-wrap lowercase tracking-tight italic select-text">
                   {selectedPost.caption}
@@ -398,7 +467,7 @@ const Feed = () => {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-4">
                       <img
                         src={selectedPost.youtubeThumb}
@@ -425,9 +494,13 @@ const Feed = () => {
                           className="mt-2 flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors"
                         >
                           {isPlaying && currentTrack?.youtubeUrl === selectedPost.youtubeUrl ? (
-                            <><Pause className="w-3 h-3 fill-indigo-400" /> Silence Frequency</>
+                            <>
+                              <Pause className="w-3 h-3 fill-indigo-400" /> Silence Frequency
+                            </>
                           ) : (
-                            <><Play className="w-3 h-3 fill-indigo-400" /> Tune In Now</>
+                            <>
+                              <Play className="w-3 h-3 fill-indigo-400" /> Tune In Now
+                            </>
                           )}
                         </button>
                       </div>
@@ -436,21 +509,30 @@ const Feed = () => {
                 )}
               </div>
 
-              {/* Interaction Cluster */}
               <div className="p-8 glass border-t border-white/5">
                 <div className="flex items-center gap-6 mb-8">
-                  <button className="text-neutral-500 hover:text-white transition-all transform hover:scale-125 active:scale-90">
-                    <Heart className="w-6 h-6" />
+                  <button
+                    onClick={(e) => handleLike(e, selectedPost._id)}
+                    className={`transition-all transform hover:scale-125 active:scale-90 ${
+                      selectedPost.likes?.includes(user?._id) ? "text-pink-500" : "text-neutral-500 hover:text-white"
+                    }`}
+                  >
+                    <Heart
+                      className={`w-7 h-7 ${selectedPost.likes?.includes(user?._id) ? "fill-pink-500" : ""}`}
+                    />
                   </button>
                   <button className="text-neutral-500 hover:text-white transition-all transform hover:scale-125 active:scale-90">
-                    <MessageCircle className="w-6 h-6" />
+                    <MessageCircle className="w-7 h-7" />
                   </button>
                   <button className="text-neutral-500 hover:text-white transition-all transform hover:scale-125 active:scale-90">
-                    <Share2 className="w-6 h-6" />
+                    <Share2 className="w-7 h-7" />
                   </button>
                 </div>
-                <div className="bg-white/5 border border-white/5 rounded-3xl px-6 py-4 text-[10px] font-black text-neutral-600 uppercase tracking-widest text-center glass">
-                  Feedback frequency locked
+                <div className="bg-white/5 border border-white/5 rounded-3xl px-6 py-4 text-[10px] font-black text-white uppercase tracking-widest text-center glass flex justify-between items-center">
+                  <span>Feedback frequency locked</span>
+                  <span className="text-indigo-400">
+                    {selectedPost.likeCount || 0} Pulse Resonances
+                  </span>
                 </div>
               </div>
             </div>
@@ -462,3 +544,4 @@ const Feed = () => {
 };
 
 export default Feed;
+

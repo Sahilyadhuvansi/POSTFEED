@@ -1,27 +1,29 @@
 import { useRef, useCallback } from "react";
 
 /**
- * Hook to cache API responses with TTL (time-to-live)
- * Prevents refetching same data within a time window
+ * Advanced React Query / SWR style caching hook.
+ * Features: TTL, Stale-While-Revalidate, and Background Revalidation support.
  */
-export function useApiCache(ttl = 5 * 60 * 1000) {
-  // ttl = 5 minutes default
+export function useApiCache(options = { ttl: 5 * 60 * 1000, staleTime: 30 * 1000 }) {
   const cacheRef = useRef(new Map());
 
   const getFromCache = useCallback(
     (key) => {
       const cached = cacheRef.current.get(key);
-      if (!cached) return null;
+      if (!cached) return { data: null, isStale: true };
 
-      // Check if cache is expired
-      if (Date.now() - cached.timestamp > ttl) {
+      const age = Date.now() - cached.timestamp;
+      const isExpired = age > options.ttl;
+      const isStale = age > options.staleTime;
+
+      if (isExpired) {
         cacheRef.current.delete(key);
-        return null;
+        return { data: null, isStale: true };
       }
 
-      return cached.data;
+      return { data: cached.data, isStale };
     },
-    [ttl],
+    [options.ttl, options.staleTime],
   );
 
   const setCache = useCallback((key, data) => {
