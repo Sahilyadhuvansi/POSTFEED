@@ -27,7 +27,8 @@ const Player = () => {
   } = useMusic();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (!currentTrack) return null;
+  // Safety check: return if no track loaded
+  if (!currentTrack?.youtubeUrl) return null;
 
   useEffect(() => {
     const onEscape = (event) => {
@@ -59,7 +60,9 @@ const Player = () => {
     return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  const coverArt = currentTrack.thumbnailUrl || currentTrack.thumbnail;
+  const coverArt = currentTrack?.thumbnailUrl || currentTrack?.thumbnail;
+  const trackTitle = currentTrack?.title || "Unknown Track";
+  const trackArtist = currentTrack?.artist?.username || "Unknown Artist";
   const progressValue = useMemo(
     () => (Number.isFinite(progress) ? progress : 0),
     [progress],
@@ -117,7 +120,7 @@ const Player = () => {
                       {coverArt ? (
                         <img
                           src={coverArt}
-                          alt={currentTrack.title}
+                          alt={trackTitle}
                           className={`h-full w-full object-cover transition-transform duration-[12s] ease-out ${isPlaying ? "scale-110" : "scale-100"}`}
                         />
                       ) : (
@@ -132,11 +135,9 @@ const Player = () => {
 
                     <div className="mt-7 space-y-1.5 text-center">
                       <h3 className="text-2xl font-black tracking-tight text-white sm:text-4xl">
-                        {currentTrack.title}
+                        {trackTitle}
                       </h3>
-                      <p className="text-sm text-neutral-400">
-                        {currentTrack.artist?.username || "Unknown Artist"}
-                      </p>
+                      <p className="text-sm text-neutral-400">{trackArtist}</p>
                     </div>
                   </div>
                 </div>
@@ -242,7 +243,7 @@ const Player = () => {
                 {coverArt ? (
                   <img
                     src={coverArt}
-                    alt={currentTrack.title}
+                    alt={trackTitle}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -257,11 +258,10 @@ const Player = () => {
                 className="relative min-w-0 flex-1 text-left"
               >
                 <p className="truncate text-sm font-semibold text-white">
-                  {currentTrack.title}
+                  {trackTitle}
                 </p>
                 <p className="truncate text-xs text-neutral-500">
-                  {currentTrack.artist?.username || "Unknown Artist"} ·{" "}
-                  {elapsedTime}
+                  {trackArtist} · {elapsedTime}
                 </p>
               </button>
 

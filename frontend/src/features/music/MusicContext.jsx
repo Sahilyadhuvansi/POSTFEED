@@ -54,11 +54,19 @@ export const MusicProvider = ({ children }) => {
   // ─── Play a Track ─────────────────────────────────────────────────────────
   const playTrack = useCallback(
     (track, newPlaylist) => {
+      if (!track?._id) {
+        console.error("❌ Track missing _id:", track);
+        return;
+      }
+
       const targetPlaylist = newPlaylist || playlist;
       if (newPlaylist) setPlaylist(newPlaylist);
 
       const idx = targetPlaylist.findIndex((t) => t._id === track._id);
-      if (idx === -1) return;
+      if (idx === -1) {
+        console.error("❌ Track not found in playlist:", track._id);
+        return;
+      }
 
       // Same track already loaded → just toggle play/pause
       if (currentIndex === idx && !newPlaylist) {
@@ -66,6 +74,7 @@ export const MusicProvider = ({ children }) => {
         return;
       }
 
+      console.log("✅ Playing track:", track.title, "Index:", idx);
       setCurrentIndex(idx);
       setProgress(0);
       setDuration(0);
@@ -139,7 +148,7 @@ export const MusicProvider = ({ children }) => {
       {children}
 
       {/* Hidden YouTube player — background audio only */}
-      {currentTrack && (
+      {currentTrack?.youtubeUrl && (
         <div
           style={{
             position: "fixed",
@@ -154,29 +163,41 @@ export const MusicProvider = ({ children }) => {
           }}
         >
           <ReactPlayer
+            key={currentTrack._id}
             ref={playerRef}
-            src={currentTrack.youtubeUrl}
+            url={currentTrack.youtubeUrl}
             playing={isPlaying}
             volume={volume}
             muted={false}
             controls={false}
             width="100%"
             height="100%"
-            onTimeUpdate={(e) => {
-              const media = e.currentTarget;
-              const d = Number(media?.duration) || duration;
-              const t = Number(media?.currentTime) || 0;
-              if (d > 0) {
-                setDuration(d);
-                setProgress((t / d) * 100);
+            onReady={() => {
+              console.log("✅ Player ready:", currentTrack.title);
+            }}
+            onProgress={(state) => {
+              if (state.duration > 0) {
+                setDuration(state.duration);
+                setProgress(state.played * 100 || 0);
               }
             }}
-            onDurationChange={(e) => {
-              const d = Number(e.currentTarget?.duration) || 0;
-              if (d > 0) setDuration(d);
+            onDuration={(d) => {
+              console.log("✅ Duration set:", d);
+              setDuration(d);
             }}
-            onEnded={playNext}
-            onError={() => playNext()}
+            onEnded={() => {
+              console.log("✅ Track ended, playing next");
+              playNext();
+            }}
+            onError={(err) => {
+              console.error(
+                "❌ Player error:",
+                err,
+                "Current track:",
+                currentTrack,
+              );
+              playNext();
+            }}
             config={{
               youtube: {
                 playerVars: {
@@ -186,6 +207,7 @@ export const MusicProvider = ({ children }) => {
                   iv_load_policy: 3,
                   origin: window.location.origin,
                   enablejsapi: 1,
+                  controls: 0,
                 },
               },
             }}

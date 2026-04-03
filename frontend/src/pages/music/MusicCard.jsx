@@ -36,6 +36,7 @@ const MusicCard = ({
             handleOpenPlaylist(track);
             return;
           }
+          console.log("🎵 Track clicked:", track);
           playTrack(track, playableTracks);
         }}
         className="micro-feedback relative w-full aspect-square overflow-hidden rounded-[20px] bg-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/45"
