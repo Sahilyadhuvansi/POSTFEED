@@ -170,14 +170,15 @@ export const MusicProvider = ({ children }) => {
         <div
           style={{
             position: "fixed",
-            top: "-1000px",
-            left: "-1000px",
-            width: "200px",
-            height: "200px",
-            opacity: 0,
+            bottom: "20px",
+            right: "20px",
+            width: "160px",
+            height: "90px",
+            opacity: 0.02, // Just above 0 to satisfy some visibility checks
             pointerEvents: "none",
             zIndex: -1,
             overflow: "hidden",
+            borderRadius: "8px",
           }}
         >
           <ReactPlayer
@@ -236,7 +237,11 @@ export const MusicProvider = ({ children }) => {
                   origin: window.location.origin,
                   enablejsapi: 1,
                   widget_referrer: window.location.origin,
+                  playsinline: 1,
                   controls: 0,
+                },
+                embedOptions: {
+                  host: "https://www.youtube.com",
                 },
               },
             }}
