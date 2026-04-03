@@ -1,4 +1,4 @@
-import { ArrowLeft, Music as MusicIcon, Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { GENRES } from "./constants";
 
 const MusicBrowseControls = ({
@@ -16,27 +16,33 @@ const MusicBrowseControls = ({
 }) => {
   return (
     <>
-      <div className="mb-10 border-b border-white/5 pb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-3 min-w-0 max-w-full">
-          <h1 className="max-w-full text-[clamp(2.65rem,8vw,4.9rem)] font-black italic tracking-tighter leading-[0.88] text-white break-words">
+      <div className="relative mb-10 border-b border-white/5 pb-8 sm:pb-10 flex flex-col gap-5 sm:gap-6 md:flex-row md:items-end md:justify-between overflow-hidden rounded-[28px] px-1">
+        <div className="pointer-events-none absolute -left-12 top-0 h-40 w-40 rounded-full bg-indigo-500/15 blur-[70px]" />
+        <div className="pointer-events-none absolute right-0 bottom-0 h-36 w-36 rounded-full bg-pink-500/12 blur-[74px]" />
+
+        <div className="relative space-y-3 min-w-0 max-w-full">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-600">
+            Music discovery
+          </p>
+          <h1 className="max-w-full text-[clamp(2.5rem,8vw,4.75rem)] font-black tracking-tight leading-[0.9] text-white break-words">
             <span className="block sm:inline">Sonic</span>
             <span className="block sm:inline text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 sm:ml-2">
               Universe
             </span>
           </h1>
         </div>
-        <div className="glass px-6 py-4 sm:px-8 sm:py-5 rounded-[28px] border-white/5 text-center w-full md:w-auto min-w-0 md:min-w-[140px]">
-          <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest mb-1">
+        <div className="relative glass px-6 py-4 sm:px-7 sm:py-4 rounded-3xl border-white/5 text-center w-full md:w-auto min-w-0 md:min-w-[160px] shadow-[0_16px_45px_rgba(0,0,0,0.24)]">
+          <p className="text-[11px] font-semibold text-neutral-600 uppercase tracking-[0.16em] mb-1">
             Items
           </p>
-          <p className="text-2xl font-black text-white leading-none">
+          <p className="text-2xl sm:text-[1.75rem] font-black text-white leading-none">
             {tracksCount}
             <span className="text-xs text-indigo-400 ml-1">+</span>
           </p>
         </div>
       </div>
 
-      <div className="relative mb-6">
+      <div className="relative mb-7">
         <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
           <Search className="w-4 h-4 text-neutral-500" />
         </div>
@@ -45,12 +51,12 @@ const MusicBrowseControls = ({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search Bollywood, pop, artist, song name…"
-          className="w-full glass rounded-[24px] border border-white/5 bg-white/[0.03] pl-14 pr-6 py-5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+          className="w-full glass rounded-3xl border border-white/5 bg-white/[0.03] pl-14 pr-6 py-4 sm:py-5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-indigo-500/50 transition-all duration-300 focus:shadow-[0_14px_40px_rgba(99,102,241,0.2)]"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute inset-y-0 right-6 flex items-center text-neutral-500 hover:text-white transition-colors text-xs font-black uppercase tracking-widest"
+            className="absolute inset-y-0 right-6 flex items-center text-neutral-600 hover:text-white transition-colors duration-300 text-xs font-black uppercase tracking-widest"
           >
             Clear
           </button>
@@ -58,39 +64,41 @@ const MusicBrowseControls = ({
       </div>
 
       {!isSearching && (
-        <div className="flex gap-2 flex-wrap mb-10">
-          <button
-            onClick={() => {
-              setShowFavoritesOnly((prev) => !prev);
-              setSearchQuery("");
-              setPlaylistMeta(null);
-            }}
-            className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              showFavoritesOnly
-                ? "bg-pink-500 text-white shadow-[0_0_24px_rgba(236,72,153,0.35)]"
-                : "glass border border-white/5 text-neutral-500 hover:text-white hover:border-white/10"
-            }`}
-          >
-            Favorites
-          </button>
-          {GENRES.map((g, idx) => (
+        <div className="mb-10 overflow-x-auto pb-1">
+          <div className="flex w-max min-w-full gap-2">
             <button
-              key={g.label}
-              onClick={() => handleGenreClick(idx)}
-              className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                activeGenre === idx
-                  ? "bg-indigo-500 text-white shadow-[0_0_24px_rgba(99,102,241,0.4)]"
-                  : "glass border border-white/5 text-neutral-500 hover:text-white hover:border-white/10"
+              onClick={() => {
+                setShowFavoritesOnly((prev) => !prev);
+                setSearchQuery("");
+                setPlaylistMeta(null);
+              }}
+              className={`micro-feedback px-4 sm:px-5 py-2.5 rounded-2xl text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                showFavoritesOnly
+                  ? "bg-pink-500 text-white shadow-[0_0_24px_rgba(236,72,153,0.35)]"
+                  : "glass border border-white/5 text-neutral-600 hover:text-white hover:border-white/10"
               }`}
             >
-              {g.label}
+              Favorites
             </button>
-          ))}
+            {GENRES.map((g, idx) => (
+              <button
+                key={g.label}
+                onClick={() => handleGenreClick(idx)}
+                className={`micro-feedback px-4 sm:px-5 py-2.5 rounded-2xl text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                  activeGenre === idx
+                    ? "bg-indigo-500 text-white shadow-[0_0_24px_rgba(99,102,241,0.4)]"
+                    : "glass border border-white/5 text-neutral-600 hover:text-white hover:border-white/10"
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
       {isSearching && (
-        <p className="text-[10px] font-black text-neutral-600 uppercase tracking-[0.3em] mb-8">
+        <p className="text-[10px] font-black text-neutral-700 uppercase tracking-[0.3em] mb-8">
           Search: &quot;{searchQuery}&quot;
         </p>
       )}
