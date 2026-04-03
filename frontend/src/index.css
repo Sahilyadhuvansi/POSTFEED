@@ -295,3 +295,9 @@ body::after {
   );
   opacity: 0.5;
 }
+
+/* Layout Utilities */
+.has-expanded-player {
+  overflow: hidden !important;
+  touch-action: none;
+}

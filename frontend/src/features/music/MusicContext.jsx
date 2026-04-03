@@ -181,7 +181,7 @@ export const MusicProvider = ({ children }) => {
           }}
         >
           <ReactPlayer
-            key={currentTrack._id}
+            key="youtube-audio-engine"
             ref={playerRef}
             url={normalizeYoutubeUrl(currentTrack.youtubeUrl)}
             playing={isPlaying}
