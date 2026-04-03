@@ -170,15 +170,14 @@ export const MusicProvider = ({ children }) => {
         <div
           style={{
             position: "fixed",
-            bottom: "20px",
-            right: "20px",
-            width: "160px",
-            height: "90px",
-            opacity: 0.02, // Just above 0 to satisfy some visibility checks
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            opacity: 0.001, // Nearly invisible
             pointerEvents: "none",
             zIndex: -1,
             overflow: "hidden",
-            borderRadius: "8px",
           }}
         >
           <ReactPlayer
