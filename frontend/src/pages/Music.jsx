@@ -258,24 +258,37 @@ const Music = () => {
     }
   };
 
-  const playableTracks = tracks.filter((t) => !t.isPlaylist && t.youtubeUrl);
-  const favoriteTracks = Object.values(savedByUrl).map((item) => ({
-    _id: item._id || `fav_${item.youtubeUrl}`,
-    title: item.title,
-    artist: {
-      username:
-        item.artist?.username ||
-        item.artist?.name ||
-        item.artistName ||
-        "Saved",
-    },
-    thumbnail: item.thumbnailUrl || item.thumbnail,
-    youtubeUrl: item.youtubeUrl,
-    isPlaylist: false,
-  }));
-  const visibleTracks = showFavoritesOnly ? favoriteTracks : tracks;
-  const playableVisibleTracks = visibleTracks.filter(
-    (t) => !t.isPlaylist && t.youtubeUrl,
+  const playableTracks = useMemo(
+    () => tracks.filter((t) => !t.isPlaylist && t.youtubeUrl),
+    [tracks],
+  );
+
+  const favoriteTracks = useMemo(
+    () =>
+      Object.values(savedByUrl).map((item) => ({
+        _id: item._id || `fav_${item.youtubeUrl}`,
+        title: item.title,
+        artist: {
+          username:
+            item.artist?.username ||
+            item.artist?.name ||
+            item.artistName ||
+            "Saved",
+        },
+        thumbnail: item.thumbnailUrl || item.thumbnail,
+        youtubeUrl: item.youtubeUrl,
+        isPlaylist: false,
+      })),
+    [savedByUrl],
+  );
+
+  const visibleTracks = useMemo(
+    () => (showFavoritesOnly ? favoriteTracks : tracks),
+    [showFavoritesOnly, favoriteTracks, tracks],
+  );
+  const playableVisibleTracks = useMemo(
+    () => visibleTracks.filter((t) => !t.isPlaylist && t.youtubeUrl),
+    [visibleTracks],
   );
   const isBollywoodView =
     !showFavoritesOnly &&
