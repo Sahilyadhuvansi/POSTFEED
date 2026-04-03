@@ -47,7 +47,7 @@ const Header = () => {
         <Link to="/" className="flex items-center gap-3 active:scale-95 transition-transform group">
           <div className="relative">
             <div className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all group-hover:rotate-[15deg]">
-              <img src="/favicon.png" alt="Logo" className="h-6 w-6 object-contain" />
+              <img src="/ff.png" alt="Logo" className="h-6 w-6 object-contain" />
             </div>
             <div className="absolute inset-0 bg-white/20 blur-2xl rounded-full scale-0 group-hover:scale-125 transition-transform duration-500" />
           </div>

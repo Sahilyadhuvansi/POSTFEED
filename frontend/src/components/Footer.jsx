@@ -44,7 +44,7 @@ const Footer = () => {
           <div className="space-y-8">
             <Link to="/" className="inline-flex items-center gap-3 active:scale-95 transition-transform group">
               <div className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-full bg-white shadow-xl transition-all group-hover:rotate-[10deg]">
-                <img src="/favicon.png" alt="Logo" className="h-6 w-6 object-contain" />
+                <img src="/footer.png" alt="Logo" className="h-6 w-6 object-contain" />
               </div>
               <span className="text-xl font-black text-white italic uppercase tracking-tighter">
                 Music<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">Feed</span>
