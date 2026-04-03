@@ -193,10 +193,20 @@ export const MusicProvider = ({ children }) => {
             onReady={() => {
               console.log("✅ Player ready:", currentTrack.title);
             }}
+            onPlay={() => {
+              console.log("▶️ Playing:", currentTrack?.title);
+              setIsPlaying(true);
+            }}
+            onPause={() => {
+              console.log("⏸️ Paused:", currentTrack?.title);
+              setIsPlaying(false);
+            }}
+            onBuffer={() => console.log("⏳ Buffering...")}
+            onBufferEnd={() => console.log("✅ Buffer end")}
             onProgress={(state) => {
-              if (state.duration > 0) {
-                setDuration(state.duration);
-                setProgress(state.played * 100 || 0);
+              // Standardizing progress capture
+              if (state.playedSeconds > 0 || state.played > 0) {
+                setProgress(state.played * 100);
               }
             }}
             onDuration={(d) => {
