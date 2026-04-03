@@ -109,7 +109,7 @@ const Player = () => {
 
               <div className="relative grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
                 <div className="relative flex min-h-[320px] items-center justify-center bg-gradient-to-br from-white/[0.06] via-neutral-950/95 to-black p-6 sm:min-h-[540px] sm:p-10">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.24),transparent_44%),radial-gradient(circle_at_bottom,rgba(236,72,153,0.16),transparent_40%)] animate-drift-glow" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.24),transparent_44%),radial-gradient(circle_at_bottom,rgba(236,72,153,0.16),transparent_40%)]" />
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_30%,rgba(0,0,0,0.14))]" />
                   {coverArt && (
                     <img
@@ -125,7 +125,7 @@ const Player = () => {
                         <img
                           src={coverArt}
                           alt={trackTitle}
-                          className={`h-full w-full object-cover transition-transform duration-[12s] ease-out ${isPlaying ? "scale-110" : "scale-100"}`}
+                          className={`h-full w-full object-cover transition-transform duration-[12s] ease-out scale-100`}
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
@@ -133,7 +133,7 @@ const Player = () => {
                         </div>
                       )}
                       {isPlaying && (
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),transparent_48%),linear-gradient(180deg,rgba(99,102,241,0.08),rgba(236,72,153,0.05))] mix-blend-screen animate-pulse" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),transparent_48%),linear-gradient(180deg,rgba(99,102,241,0.08),rgba(236,72,153,0.05))] mix-blend-screen" />
                       )}
                     </div>
 

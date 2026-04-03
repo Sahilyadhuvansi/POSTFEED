@@ -170,10 +170,10 @@ export const MusicProvider = ({ children }) => {
         <div
           style={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            width: "1px",
-            height: "1px",
+            top: "-1000px",
+            left: "-1000px",
+            width: "200px",
+            height: "200px",
             opacity: 0,
             pointerEvents: "none",
             zIndex: -1,
@@ -235,6 +235,7 @@ export const MusicProvider = ({ children }) => {
                   iv_load_policy: 3,
                   origin: window.location.origin,
                   enablejsapi: 1,
+                  widget_referrer: window.location.origin,
                   controls: 0,
                 },
               },
