@@ -1,141 +1,107 @@
 import { Link } from "react-router-dom";
-import { LayoutGrid, Music, Plus, User, Heart, Send } from "lucide-react";
+import { 
+  Music, Github, Twitter, Instagram, Youtube, Mail, MapPin, ExternalLink 
+} from "lucide-react";
 
+/**
+ * PRODUCTION FOOTER v2.5.0
+ * Deep clean & modular architecture
+ */
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
+  const FooterSection = ({ title, children }) => (
+    <div className="space-y-6">
+      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500">{title}</h4>
+      <div className="flex flex-col gap-3">
+        {children}
+      </div>
+    </div>
+  );
+
+  const FooterLink = ({ to, children, external = false }) => {
+    const base = "text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-2 group";
+    if (external) {
+      return (
+        <a href={to} target="_blank" rel="noreferrer" className={base}>
+          {children}
+          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
+      );
+    }
+    return <Link to={to} className={base}>{children}</Link>;
+  };
+
   return (
-    <footer className="border-t border-white/5 bg-black pt-24 pb-12">
+    <footer className="relative mt-32 border-t border-white/5 bg-black/40 backdrop-blur-3xl pt-24 pb-12 overflow-hidden">
+      {/* Background Polish Orbs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-pink-500/10 blur-[120px] rounded-full pointer-events-none" />
+
       <div className="mx-auto max-w-[1400px] px-6">
         <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-16 mb-24">
-          {/* Brand & Newsletter */}
+          {/* Brand Identity Hub */}
           <div className="space-y-8">
-            <Link to="/" className="inline-flex items-center gap-3 active:scale-95 transition-transform">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg overflow-hidden">
-                <img 
-                  src="/favicon.png" 
-                  alt="Logo" 
-                  className="h-6 w-6 object-contain"
-                />
+            <Link to="/" className="inline-flex items-center gap-3 active:scale-95 transition-transform group">
+              <div className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-full bg-white shadow-xl transition-all group-hover:rotate-[10deg]">
+                <img src="/favicon.png" alt="Logo" className="h-6 w-6 object-contain" />
               </div>
-              <span className="text-xl font-black text-white italic tracking-tight uppercase">
-                Music
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
-                  Feed
-                </span>
+              <span className="text-xl font-black text-white italic uppercase tracking-tighter">
+                Music<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">Feed</span>
               </span>
             </Link>
-            <p className="max-w-xs text-sm text-neutral-500 leading-relaxed font-medium">
-              A minimalist space for high-impact visual expressions and musical
-              discovery. Built for the modern creative.
+            <p className="text-neutral-400 text-sm leading-relaxed max-w-xs">
+              The next-generation terminal for music expression. Connect, broadcast, and discover the global frequency.
             </p>
-            <div className="flex items-center gap-2 max-w-sm">
-              <input
-                type="email"
-                placeholder="Updates in your inbox"
-                className="flex-1 bg-neutral-900 border border-white/5 rounded-full px-5 py-3 text-sm font-medium text-white placeholder-neutral-700 focus:outline-none focus:border-indigo-500/50"
-              />
-              <button className="p-3 bg-white text-black rounded-full hover:bg-neutral-200 transition-colors">
-                <Send className="w-5 h-5" />
-              </button>
+            <div className="flex gap-4">
+              {[Github, Twitter, Instagram, Youtube].map((Icon, i) => (
+                <a key={i} href="#" className="p-3 rounded-2xl glass-dark border-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all">
+                  <Icon className="w-5 h-5" />
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Connect */}
-          <div className="space-y-6">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">
-              Explore
-            </h3>
-            <div className="space-y-4">
-              <Link
-                to="/music"
-                className="flex items-center gap-3 text-sm font-bold text-neutral-400 hover:text-white transition-colors group"
-              >
-                <Music className="w-4 h-4 text-neutral-700 group-hover:text-pink-400 transition-colors" />{" "}
-                Music
-              </Link>
-              <Link
-                to="/feed"
-                className="flex items-center gap-3 text-sm font-bold text-neutral-400 hover:text-white transition-colors group"
-              >
-                <LayoutGrid className="w-4 h-4 text-neutral-700 group-hover:text-indigo-400 transition-colors" />{" "}
-                Feed
-              </Link>
-            </div>
-          </div>
+          <FooterSection title="Navigation">
+            <FooterLink to="/feed">Main Stream</FooterLink>
+            <FooterLink to="/music">Frequency Hub</FooterLink>
+            <FooterLink to="/trending">Rising Heat</FooterLink>
+            <FooterLink to="/artists">Creator Directory</FooterLink>
+          </FooterSection>
 
-          {/* Activity */}
-          <div className="space-y-6">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">
-              Activity
-            </h3>
-            <div className="space-y-4">
-              <Link
-                to="/create-post"
-                className="flex items-center gap-3 text-sm font-bold text-neutral-400 hover:text-white transition-colors group"
-              >
-                <Plus className="w-4 h-4 text-neutral-700 group-hover:text-indigo-400 transition-colors" />{" "}
-                Express
-              </Link>
-              <Link
-                to="/profile"
-                className="flex items-center gap-3 text-sm font-bold text-neutral-400 hover:text-white transition-colors group"
-              >
-                <User className="w-4 h-4 text-neutral-700 group-hover:text-pink-400 transition-colors" />{" "}
-                Universe
-              </Link>
-            </div>
-          </div>
+          <FooterSection title="Platform">
+            <FooterLink to="/about">Our Vision</FooterLink>
+            <FooterLink to="/guidelines">Community Protocol</FooterLink>
+            <FooterLink to="/privacy">Secure Perimeter</FooterLink>
+            <FooterLink to="/terms">Usage Contract</FooterLink>
+          </FooterSection>
 
-          {/* Community */}
-          <div className="space-y-6">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">
-              Company
-            </h3>
+          <FooterSection title="Connect">
             <div className="space-y-4">
-              <Link
-                to="#"
-                className="block text-sm font-bold text-neutral-400 hover:text-white transition-colors"
-              >
-                Manifesto
-              </Link>
-              <Link
-                to="#"
-                className="block text-sm font-bold text-neutral-400 hover:text-white transition-colors"
-              >
-                Privacy
-              </Link>
+              <div className="flex items-center gap-3 text-neutral-400">
+                <div className="p-2.5 rounded-xl bg-white/5"><Mail className="w-4 h-4" /></div>
+                <span className="text-sm">uplink@musicfeed.io</span>
+              </div>
+              <div className="flex items-center gap-3 text-neutral-400">
+                <div className="p-2.5 rounded-xl bg-white/5"><MapPin className="w-4 h-4" /></div>
+                <span className="text-sm">Global Distribution</span>
+              </div>
             </div>
-          </div>
+          </FooterSection>
         </div>
 
-        {/* Bottom */}
-        <div className="pt-12 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
-            <p className="text-[10px] font-black text-neutral-700 uppercase tracking-widest leading-none">
-              &copy; {currentYear} MusicFeed.
-            </p>
+        {/* Global Footer Base */}
+        <div className="border-t border-white/5 pt-12 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2 text-neutral-500 text-[10px] font-black uppercase tracking-widest">
+            <span>&copy; {currentYear} MusicFeed Systems</span>
+            <span className="w-1 h-1 rounded-full bg-neutral-800" />
+            <span className="text-neutral-600">v2.5.0 Production Build</span>
           </div>
-          <div className="flex items-center gap-6">
-            <a
-              href="#"
-              className="text-[10px] font-black text-neutral-600 hover:text-white uppercase tracking-widest transition-colors"
-            >
-              Instagram
-            </a>
-            <a
-              href="#"
-              className="text-[10px] font-black text-neutral-600 hover:text-white uppercase tracking-widest transition-colors"
-            >
-              Twitter
-            </a>
-            <a
-              href="#"
-              className="text-[10px] font-black text-neutral-600 hover:text-white uppercase tracking-widest transition-colors"
-            >
-              Github
-            </a>
+          <div className="flex items-center gap-8">
+            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              All Systems Operational
+            </span>
           </div>
         </div>
       </div>
