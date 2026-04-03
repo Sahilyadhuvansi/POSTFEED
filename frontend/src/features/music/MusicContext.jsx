@@ -6,6 +6,7 @@ import {
   useCallback,
 } from "react";
 import ReactPlayer from "react-player";
+import { normalizeYoutubeUrl } from "../../utils/youtube";
 
 const MusicContext = createContext(null);
 
@@ -57,6 +58,23 @@ export const MusicProvider = ({ children }) => {
       if (!track?._id) {
         console.error("❌ Track missing _id:", track);
         return;
+      }
+
+      // Validate and normalize YouTube URL
+      const normalizedUrl = normalizeYoutubeUrl(track.youtubeUrl);
+      if (!normalizedUrl) {
+        console.error(
+          "❌ Invalid YouTube URL:",
+          track.youtubeUrl,
+          "Track:",
+          track,
+        );
+        return;
+      }
+
+      // Ensure track has normalized youtubeUrl
+      if (track.youtubeUrl !== normalizedUrl) {
+        track.youtubeUrl = normalizedUrl;
       }
 
       const targetPlaylist = newPlaylist || playlist;
@@ -165,7 +183,7 @@ export const MusicProvider = ({ children }) => {
           <ReactPlayer
             key={currentTrack._id}
             ref={playerRef}
-            url={currentTrack.youtubeUrl}
+            url={normalizeYoutubeUrl(currentTrack.youtubeUrl)}
             playing={isPlaying}
             volume={volume}
             muted={false}

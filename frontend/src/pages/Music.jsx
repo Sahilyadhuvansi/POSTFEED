@@ -10,6 +10,7 @@ import {
   searchYouTubeContent,
   fetchPlaylistTracks,
 } from "./music/youtube.service";
+import { normalizeYoutubeUrl } from "../utils/youtube";
 import MusicCard from "./music/MusicCard";
 import ApiKeyRequired from "./music/ApiKeyRequired";
 import MusicBrowseControls from "./music/MusicBrowseControls";
@@ -39,7 +40,15 @@ const Music = () => {
       const res = await api.get("/music/mine");
       const map = (res.data?.musics || []).reduce((acc, item) => {
         if (item.youtubeUrl) {
-          acc[item.youtubeUrl] = { ...item, _id: item._id || item.id };
+          // Normalize URL from backend to standard format
+          const normalizedUrl = normalizeYoutubeUrl(item.youtubeUrl);
+          if (normalizedUrl) {
+            acc[normalizedUrl] = {
+              ...item,
+              youtubeUrl: normalizedUrl,
+              _id: item._id || item.id,
+            };
+          }
         }
         return acc;
       }, {});
@@ -53,13 +62,21 @@ const Music = () => {
     if (!track?.youtubeUrl) return;
     setSavingId(track._id);
     try {
-      const existing = savedByUrl[track.youtubeUrl];
+      // Normalize URL for consistent lookups
+      const normalizedUrl = normalizeYoutubeUrl(track.youtubeUrl);
+      if (!normalizedUrl) {
+        addToast("Invalid track URL", "error");
+        setSavingId(null);
+        return;
+      }
+
+      const existing = savedByUrl[normalizedUrl];
 
       if (existing?._id) {
         await api.delete(`/music/${existing._id}`);
         setSavedByUrl((prev) => {
           const next = { ...prev };
-          delete next[track.youtubeUrl];
+          delete next[normalizedUrl];
           return next;
         });
         addToast("Removed from favorites", "info");
@@ -68,16 +85,23 @@ const Music = () => {
 
       const res = await api.post("/music", {
         title: track.title,
-        youtubeUrl: track.youtubeUrl,
+        youtubeUrl: normalizedUrl,
         thumbnailUrl: track.thumbnail,
       });
 
       const saved = res.data?.music;
       if (saved?.youtubeUrl) {
-        setSavedByUrl((prev) => ({
-          ...prev,
-          [saved.youtubeUrl]: { ...saved, _id: saved._id || saved.id },
-        }));
+        const savedNormalizedUrl = normalizeYoutubeUrl(saved.youtubeUrl);
+        if (savedNormalizedUrl) {
+          setSavedByUrl((prev) => ({
+            ...prev,
+            [savedNormalizedUrl]: {
+              ...saved,
+              youtubeUrl: savedNormalizedUrl,
+              _id: saved._id || saved.id,
+            },
+          }));
+        }
       }
 
       addToast("Added to favorites", "success");
