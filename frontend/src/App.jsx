@@ -3,12 +3,12 @@ import { AuthProvider } from "./features/auth/AuthContext";
 import { MusicProvider } from "./features/music/MusicContext";
 
 // Pages
-import CreatePost from "./pages/CreatePost";
-import Feed from "./pages/Feed";
+import CreatePost from "./pages/create-post/CreatePost";
+import Feed from "./pages/feed/Feed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import Music from "./pages/Music";
+import Profile from "./pages/profile/Profile";
+import Music from "./pages/music/Music";
 import Recommendations from "./pages/Recommendations";
 import PostDetail from "./pages/PostDetail";
 
@@ -38,6 +38,12 @@ const AppRouter = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/post/:postId" element={<PostDetail />} />
+      <Route path="/trending" element={<Music />} />
+      <Route path="/artists" element={<Music />} />
+      <Route path="/about" element={<Feed />} />
+      <Route path="/guidelines" element={<Feed />} />
+      <Route path="/privacy" element={<Feed />} />
+      <Route path="/terms" element={<Feed />} />
       <Route
         path="/profile"
         element={

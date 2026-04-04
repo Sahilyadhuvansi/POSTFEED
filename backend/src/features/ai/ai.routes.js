@@ -1,15 +1,23 @@
 "use strict";
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const aiController = require('./ai.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const { aiRateLimiter } = require('../../middlewares/ai.rate-limiter');
-const { quotaCheckMiddleware, quotaDeductionMiddleware } = require('../../middlewares/quota.middleware');
-const validation = require('../../middlewares/input-validation.middleware');
+const aiController = require("./ai.controller");
+const authMiddleware = require("../../middlewares/auth.middleware");
+const { aiRateLimiter } = require("../../middlewares/ai.rate-limiter");
+const {
+  quotaCheckMiddleware,
+  quotaDeductionMiddleware,
+} = require("../../middlewares/quota.middleware");
+const validation = require("../../middlewares/input-validation.middleware");
 
 // Apply rate limiting and quotas to protected AI endpoints
-const aiMiddleware = [authMiddleware, aiRateLimiter, quotaCheckMiddleware, quotaDeductionMiddleware];
+const aiMiddleware = [
+  authMiddleware,
+  aiRateLimiter,
+  quotaCheckMiddleware,
+  quotaDeductionMiddleware,
+];
 
 // ═══════════════════════════════════════════════════════════════
 // Music Recommendation Routes
@@ -20,7 +28,11 @@ const aiMiddleware = [authMiddleware, aiRateLimiter, quotaCheckMiddleware, quota
  * @desc    Get personalized music recommendations
  * @access  Private
  */
-router.get("/recommendations", ...aiMiddleware, aiController.getRecommendations);
+router.get(
+  "/recommendations",
+  ...aiMiddleware,
+  aiController.getRecommendations,
+);
 
 /**
  * @route   GET /api/ai/similar/:musicId
@@ -63,21 +75,43 @@ router.post("/moderate-content", ...aiMiddleware, aiController.moderateContent);
  * @desc    Generate AI caption for post
  * @access  Private
  */
-router.post("/generate-caption", ...aiMiddleware, validation.validateCaptionInput, aiController.generateCaption);
+router.post(
+  "/generate-caption",
+  ...aiMiddleware,
+  validation.validateCaptionInput,
+  aiController.generateCaption,
+);
 
 /**
  * @route   POST /api/ai/chat
  * @desc    General-purpose chat interface (Groq-powered, Floating Button)
  * @access  Public
  */
-router.post("/chat", aiRateLimiter, validation.validateChatInput, aiController.chat);
+router.post(
+  "/chat",
+  aiRateLimiter,
+  validation.validateChatInput,
+  aiController.chat,
+);
+
+/**
+ * @route   GET /api/ai/tools
+ * @desc    List available AI executable tools
+ * @access  Public
+ */
+router.get("/tools", aiRateLimiter, aiController.getTools);
 
 /**
  * @route   POST /api/ai/suggest-hashtags
  * @desc    Suggest hashtags for post
  * @access  Private
  */
-router.post("/suggest-hashtags", ...aiMiddleware, validation.validateHashtagInput, aiController.suggestHashtags);
+router.post(
+  "/suggest-hashtags",
+  ...aiMiddleware,
+  validation.validateHashtagInput,
+  aiController.suggestHashtags,
+);
 
 // ═══════════════════════════════════════════════════════════════
 // Statistics

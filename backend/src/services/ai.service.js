@@ -156,7 +156,7 @@ class AIService {
         if (pattern.test(msg.content)) riskScore += 1;
       }
       if (riskScore >= 2) return { valid: false, error: "High-confidence prompt injection detected" };
-      if (msg.content.length > 500) return { valid: false, error: "Message too long (max 500 chars for AI safety)" };
+      if (msg.content.length > 1000) return { valid: false, error: "Message too long (max 1000 chars for AI safety)" };
     }
 
     return { valid: true };
