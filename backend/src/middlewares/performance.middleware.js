@@ -2,7 +2,7 @@
  * MusicFeed Performance & Observability Middleware.
  * Tracks response times, throughput, and error rates.
  */
-const logger = require("../../utils/logger"); // Assuming a logger utility exists
+const logger = require("../utils/logger");
 
 const performanceMiddleware = (req, res, next) => {
   const start = process.hrtime();
