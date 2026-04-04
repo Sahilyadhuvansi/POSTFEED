@@ -54,6 +54,54 @@ const createMusic = async (req, res, next) => {
   }
 };
 
+// ─── Create Multiple Music (Bulk Save) ──────────────────────────────────────────
+const createMultipleMusic = async (req, res, next) => {
+  try {
+    const { tracks = [] } = req.body;
+    if (!Array.isArray(tracks) || tracks.length === 0) {
+      return next(new ErrorResponse("No tracks provided", 400));
+    }
+
+    const userId = req.user.id;
+    const results = { saved: [], skipped: [], failed: [] };
+
+    for (const track of tracks) {
+      try {
+        const { title, youtubeUrl, thumbnailUrl } = track;
+        if (!title?.trim() || !youtubeUrl) {
+          results.failed.push({ title, reason: "Invalid data" });
+          continue;
+        }
+
+        const existing = await musicModel.findOne({ artist: userId, youtubeUrl });
+        if (existing) {
+          results.skipped.push(title);
+          continue;
+        }
+
+        const music = await musicModel.create({
+          youtubeUrl,
+          title: title.trim(),
+          thumbnailUrl: thumbnailUrl || null,
+          artist: userId,
+        });
+        results.saved.push(serializeMusic(music));
+      } catch (e) {
+        results.failed.push({ title: track.title, reason: e.message });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Processed ${tracks.length} tracks.`,
+      data: results,
+      requestId: req.id,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ─── Get My Favorites ────────────────────────────────────────────────────────
 const getMyMusics = async (req, res, next) => {
   try {

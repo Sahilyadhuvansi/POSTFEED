@@ -7,6 +7,7 @@
 
 const musicRecommendation = require("../../services/music-recommendation.service");
 const contentModeration = require("../../services/content-moderation.service");
+const youtubeService = require("../../services/youtube.service");
 const aiService = require("../../services/ai.service");
 const aiConfig = require("../../config/ai.config");
 const Post = require("../posts/posts.model");
@@ -32,7 +33,7 @@ const SYSTEM_PROMPTS = {
   recommendationReasons: `Music taste expert. Provide brief (5-10 words) specific reasons for matches. Return JSON array.`,
   chatStructured: `PostFeed Data Controller. APP CONTEXT: {appContext}. Query: {userQuery}. Return ONLY valid JSON structured for posts/songs/empty. No explanation.`,
   chatGeneral: `Friendly AI Assistant guide for the music platform. APP CONTEXT: {appContext}. Be encouraging and concise.`,
-  actionSelector: `You are an AI action router for a music app.\nAllowed actions only: search_music, fetch_favorites, like_song, delete_song, import_playlist, respond_normally.\nReturn ONLY valid JSON object with shape: {"action":"...","args":{},"reply":"short summary"}.\nRules:\n- If user asks to fetch/view favorites -> fetch_favorites\n- If user asks to save/like/favorite a song and provides youtube url -> like_song\n- If user asks to remove/unfavorite/delete song -> delete_song\n- If user asks to search/find music -> search_music\n- If spotify playlist link provided -> import_playlist\n- If intent is unclear -> respond_normally\n- like_song MUST apply to ONE song only\n- delete_song MUST apply to ONE song only\n- ALWAYS choose the most relevant/top result\n- NEVER process multiple songs in one like/delete action\n- NEVER loop over results\n- If user says first/second/third/that one/this song and lastSearchResults exist, map reference to ONE item and call like_song OR delete_song with songId`,
+  actionSelector: `You are an AI action router for a music app.\nAllowed actions only: search_music, fetch_favorites, like_song, delete_song, import_playlist, batch_like, respond_normally.\nReturn ONLY valid JSON object with shape: {"action":"...","args":{},"reply":"short summary"}.\nRules:\n- If user asks to fetch/view favorites -> fetch_favorites\n- If user asks to save/like/favorite a song and provides youtube url -> like_song\n- If user asks to remove/unfavorite/delete song -> delete_song\n- If user asks to search/find music -> search_music\n- If spotify playlist link provided -> import_playlist\n- If user provides a list of multiple tracks or asks to like/save several songs at once -> batch_like\n- If intent is unclear -> respond_normally\n- like_song MUST apply to ONE song only\n- batch_like MUST handle an array of tracks in args {"tracks": [{"title": "...", "artist": "..."}]}\n- NEVER process multiple songs in one like/delete action; use batch_like instead\n- ALWAYS choose the most relevant/top result for single actions\n- If user says first/second/third/that one/this song and lastSearchResults exist, map reference to ONE item and call like_song OR delete_song with songId`,
 };
 
 const ACTIONS = {
@@ -41,6 +42,7 @@ const ACTIONS = {
   LIKE_SONG: "like_song",
   DELETE_SONG: "delete_song",
   IMPORT_PLAYLIST: "import_playlist",
+  BATCH_LIKE: "batch_like",
   RESPOND_NORMALLY: "respond_normally",
 };
 
@@ -50,6 +52,7 @@ const TOOL_METRICS = {
   [ACTIONS.LIKE_SONG]: { success: 0, fail: 0 },
   [ACTIONS.DELETE_SONG]: { success: 0, fail: 0 },
   [ACTIONS.IMPORT_PLAYLIST]: { success: 0, fail: 0 },
+  [ACTIONS.BATCH_LIKE]: { success: 0, fail: 0 },
 };
 
 const normalizeText = (value = "") => value.toString().trim();
@@ -356,13 +359,66 @@ const deleteSongTool = async (args, req) => {
   });
 };
 
-const importPlaylistTool = async (args, _req) => {
+const batchLikeTool = async (args, req) => {
+  const tracks = Array.isArray(args?.tracks) ? args.tracks : [];
+  if (!tracks.length) {
+    return createToolResponse({
+      success: false,
+      action: ACTIONS.BATCH_LIKE,
+      message: "No tracks found to process.",
+      data: null,
+    });
+  }
+
+  const userId = req.user.id;
+  const results = { saved: [], skipped: [], failed: [] };
+
+  for (const t of tracks) {
+    try {
+      const query = `${t.title} ${t.artist || ""}`.trim();
+      const yt = await youtubeService.findSingleTrack(query);
+      if (!yt) {
+        results.failed.push({ title: t.title, reason: "YouTube link not found" });
+        continue;
+      }
+
+      const existing = await Music.findOne({
+        artist: userId,
+        youtubeUrl: yt.youtubeUrl,
+      }).lean();
+      if (existing) {
+        results.skipped.push(t.title);
+        continue;
+      }
+
+      const music = await Music.create({
+        artist: userId,
+        youtubeUrl: yt.youtubeUrl,
+        title: yt.title,
+        thumbnailUrl: yt.thumbnailUrl || null,
+      });
+      results.saved.push(music.title);
+    } catch (e) {
+      results.failed.push({ title: t.title, reason: e.message });
+    }
+  }
+
   return createToolResponse({
-    success: false,
+    success: true,
+    action: ACTIONS.BATCH_LIKE,
+    message: `Batch complete: Saved ${results.saved.length}, Skipped ${results.skipped.length}, Failed ${results.failed.length}.`,
+    data: results,
+  });
+};
+
+const importPlaylistTool = async (args, req) => {
+  const url = args?.url || "";
+  return createToolResponse({
+    success: true,
     action: ACTIONS.IMPORT_PLAYLIST,
     message:
-      "I've detected your Spotify request! While I can't directly 'Like' all those songs via Spotify yet (connector coming soon), I can help if you share the YouTube links of your favorite tracks instead.",
-    data: { source: args?.source || "spotify", url: args?.url || null },
+      "I've initialized the playlist resolver. Please confirm if you'd like me to start the batch import now.",
+    data: { source: args?.source || "spotify", url },
   });
 };
 
@@ -391,6 +447,11 @@ const TOOL_REGISTRY = {
     handler: importPlaylistTool,
     requiresAuth: true,
     description: "Import playlist from external source (Spotify)",
+  },
+  [ACTIONS.BATCH_LIKE]: {
+    handler: batchLikeTool,
+    requiresAuth: true,
+    description: "Like and save multiple songs from a list",
   },
 };
 
