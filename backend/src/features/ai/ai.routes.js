@@ -89,6 +89,7 @@ router.post(
  */
 router.post(
   "/chat",
+  authMiddleware,
   aiRateLimiter,
   validation.validateChatInput,
   aiController.chat,

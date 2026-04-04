@@ -78,13 +78,13 @@ const createToolResponse = ({
   success,
   action,
   data = null,
-  message = "",
+  content = "",
   requiresAuth = false,
 }) => ({
   success,
   action,
   data,
-  message,
+  content,
   requiresAuth,
 });
 
@@ -732,7 +732,7 @@ exports.chat = async (req, res, next) => {
         success: toolResult.success,
         type: "tool_result",
         action: selectedAction.action,
-        message: finalMessage,
+        content: finalMessage, // Changed from 'message' to 'content' for frontend rendering
         payload: toolResult.data,
         requestId: req.id,
       });
