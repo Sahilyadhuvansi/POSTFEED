@@ -33,6 +33,26 @@ export const SOFT_QUALITY_PENALTY_KEYWORDS = [
   "fanmade",
 ];
 
+export const QUERY_NOISE_KEYWORDS = [
+  "slowed",
+  "reverb",
+  "8d",
+  "sped up",
+  "speed up",
+  "bass boosted",
+  "slowed + reverb",
+  "slowed reverb",
+];
+
+export const TRENDING_QUERY_KEYWORDS = [
+  "trending",
+  "latest",
+  "new",
+  "recent",
+  "popular",
+  "top",
+];
+
 export const PREFERRED_CHANNEL_HINTS = [
   // existing
   "topic",

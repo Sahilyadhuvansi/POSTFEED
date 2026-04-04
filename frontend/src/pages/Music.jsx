@@ -9,6 +9,7 @@ import { GENRES } from "./music/constants";
 import {
   searchYouTubeContent,
   fetchPlaylistTracks,
+  prefetchYouTubeSearches,
 } from "./music/youtube.service";
 import { normalizeYoutubeUrl } from "../utils/youtube";
 import MusicCard from "./music/MusicCard";
@@ -176,6 +177,28 @@ const Music = () => {
   useEffect(() => {
     runSearch(GENRES[0].term, { type: "video", maxResults: "30" });
     hydrateSavedMap();
+
+    if (import.meta.env.VITE_YOUTUBE_API_KEY) {
+      const hotQueries = [
+        GENRES[0]?.term,
+        GENRES.find((genre) => genre.label === "Trending")?.term,
+        "bollywood music",
+        "trending music",
+      ].filter(Boolean);
+
+      const timer = setTimeout(() => {
+        prefetchYouTubeSearches(hotQueries, {
+          type: "video",
+          maxResults: "24",
+        }).catch(() => {});
+      }, 0);
+
+      return () => {
+        clearTimeout(timer);
+        abortRef.current?.abort();
+      };
+    }
+
     return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

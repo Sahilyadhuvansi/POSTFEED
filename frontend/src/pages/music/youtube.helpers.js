@@ -4,8 +4,10 @@ import {
   MIN_TRACK_DURATION_SECONDS,
   MUSIC_INTENT_KEYWORDS,
   PREFERRED_CHANNEL_HINTS,
+  QUERY_NOISE_KEYWORDS,
   SHORT_FORM_KEYWORDS,
   SOFT_QUALITY_PENALTY_KEYWORDS,
+  TRENDING_QUERY_KEYWORDS,
 } from "./youtube.constants";
 
 export const parseIso8601DurationToSeconds = (isoDuration = "") => {
@@ -50,10 +52,77 @@ export const hasMusicIntent = (text = "") => {
 };
 
 export const buildMusicSearchQuery = (term = "") => {
-  const normalized = term.trim();
+  const normalized = normalizeMusicSearchTerm(term);
   if (!normalized) return normalized;
   if (hasMusicIntent(normalized)) return normalized;
   return `${normalized} song music official video lyrics audio`;
+};
+
+export const normalizeMusicSearchTerm = (term = "") => {
+  const lower = term.toLowerCase().trim();
+  if (!lower) return "";
+
+  const stripped = QUERY_NOISE_KEYWORDS.reduce((value, keyword) => {
+    const pattern = new RegExp(
+      `(?:^|\\s)${keyword.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}(?:$|\\s)`,
+      "gi",
+    );
+    return value.replace(pattern, " ");
+  }, lower);
+
+  return stripped
+    .replace(/[^a-z0-9\s]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+export const normalizeCacheKey = (value = "") =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_\-:]+/g, "");
+
+export const buildYouTubeCacheKey = (term = "", options = {}) => {
+  const normalizedQuery = normalizeMusicSearchTerm(term);
+  const normalizedOptions = normalizeCacheKey(
+    JSON.stringify({
+      type: options.type || "video",
+      maxResults: options.maxResults || "30",
+      order: options.order || "default",
+      videoCategoryId: options.videoCategoryId || "music",
+      strictMusicOnly: options.strictMusicOnly !== false,
+      enhanceMusicQuery: options.enhanceMusicQuery !== false,
+    }),
+  );
+
+  return normalizeCacheKey(`yt:${normalizedQuery}:${normalizedOptions}`);
+};
+
+export const isTrendingSearchQuery = (term = "") => {
+  const normalized = normalizeMusicSearchTerm(term);
+  if (!normalized) return false;
+  return TRENDING_QUERY_KEYWORDS.some((keyword) =>
+    normalized.includes(keyword),
+  );
+};
+
+export const getYouTubeSearchTtlMs = (term = "", options = {}) => {
+  const trending = isTrendingSearchQuery(term) || options.order === "date";
+  const baseTtl = trending ? 30 * 60 * 1000 : 24 * 60 * 60 * 1000;
+  return options.type === "playlist"
+    ? Math.min(baseTtl, 12 * 60 * 60 * 1000)
+    : baseTtl;
+};
+
+export const dedupeByKey = (items = [], getKey) => {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = getKey(item);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 export const isLikelyMusicContent = ({
