@@ -5,7 +5,7 @@ import {
   useRef,
   useCallback,
 } from "react";
-import ReactPlayer from "react-player";
+import ReactPlayer from "react-player/youtube";
 import { normalizeYoutubeUrl } from "../../utils/youtube";
 
 const MusicContext = createContext(null);
@@ -165,20 +165,19 @@ export const MusicProvider = ({ children }) => {
     >
       {children}
 
-      {/* Background audio engine — positioned off-screen with a real size.
-          YouTube's IFrame API refuses to initialise in zero-sized or
-          near-zero-sized containers, so we give it 200×200 px and push it
-          far off-screen via left:-9999px. opacity:1 + no negative z-index
-          keeps Chromium from throttling/suspending the iframe. */}
+      {/* Background audio engine — positioned within the visible viewport but visually hidden.
+          YouTube IFrame API will completely fail to initialize if:
+          1) The container is zero-sized / near zero-sized
+          2) The container is completely off-screen (e.g. left: -9999px)
+          Using opacity: 0.01 and pointerEvents: "none" keeps it active but invisible. */}
       <div
         style={{
           position: "fixed",
           top: 0,
-          left: -9999,
+          left: 0,
           width: 200,
           height: 200,
-          overflow: "hidden",
-          opacity: 1,
+          opacity: 0.01,
           pointerEvents: "none",
           zIndex: 1,
         }}
