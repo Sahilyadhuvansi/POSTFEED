@@ -35,25 +35,57 @@ const Player = () => {
     return () => window.removeEventListener("keydown", onEscape);
   }, []);
 
+  // ─── Native Back Button Support ──────────────────────────────────────────
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    // Guard against duplicate push states
+    if (!window.history.state?.modal) {
+      window.history.pushState({ modal: "player-expanded" }, "");
+    }
+
+    const handleBack = () => {
+      setIsExpanded(false);
+    };
+
+    window.addEventListener("popstate", handleBack);
+    return () => window.removeEventListener("popstate", handleBack);
+  }, [isExpanded]);
+
+  // ─── Production-Grade Scroll Locking ──────────────────────────────────────
   useEffect(() => {
     document.body.classList.toggle(
       "has-mini-player",
       !!currentTrack && !isExpanded,
     );
-    if (!!currentTrack && isExpanded) {
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-    }
 
-    return () => {
-      document.body.classList.remove("has-mini-player");
-      document.body.classList.remove("has-expanded-player");
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-    };
+    if (!!currentTrack && isExpanded) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      
+      // Freeze the background + prevent horizontal shifts (mobile keyboard safety)
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.width = "100%";
+      document.body.style.overflow = "hidden";
+      
+      return () => {
+        // Restore background scroll position
+        const savedY = document.body.style.top;
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.body.style.right = "";
+        document.body.style.width = "";
+        document.body.style.overflow = "";
+        
+        if (savedY) {
+          window.scrollTo(0, parseInt(savedY || "0") * -1);
+        }
+      };
+    }
   }, [currentTrack, isExpanded]);
 
   const formatTime = (seconds) => {
@@ -86,11 +118,15 @@ const Player = () => {
   return (
     <>
       {isExpanded && (
-        <div className="fixed inset-0 z-[1300]">
-          <button
-            aria-label="Close expanded player"
+        <div 
+          className="fixed inset-0 z-[1300]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Music Player"
+        >
+          <div
             onClick={() => setIsExpanded(false)}
-            className="absolute inset-0 bg-black/52 backdrop-blur-[28px]"
+            className="absolute inset-0 bg-black/40 backdrop-blur-[28px] backdrop-saturate-150 backdrop-brightness-75 transition-all duration-500 will-change-[backdrop-filter]"
           />
 
           <div className="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-6">
