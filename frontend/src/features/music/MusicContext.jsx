@@ -165,24 +165,22 @@ export const MusicProvider = ({ children }) => {
     >
       {children}
 
-      {/* Background audio engine — uses a small visible iframe to avoid
-          browser throttling. The player must remain technically "visible"
-          (not opacity:0 / display:none / negative z-index) or Chromium will
-          suspend the YouTube iframe and prevent playback.  We place a 1×1 px
-          element in the bottom-left corner with clip to hide it visually
-          while keeping it alive for the browser engine. */}
+      {/* Background audio engine — positioned off-screen with a real size.
+          YouTube's IFrame API refuses to initialise in zero-sized or
+          near-zero-sized containers, so we give it 200×200 px and push it
+          far off-screen via left:-9999px. opacity:1 + no negative z-index
+          keeps Chromium from throttling/suspending the iframe. */}
       <div
         style={{
           position: "fixed",
-          bottom: 0,
-          left: 0,
-          width: 1,
-          height: 1,
+          top: 0,
+          left: -9999,
+          width: 200,
+          height: 200,
           overflow: "hidden",
           opacity: 1,
           pointerEvents: "none",
-          zIndex: 9999,
-          clip: "rect(0,1px,1px,0)",
+          zIndex: 1,
         }}
       >
         <ReactPlayer
@@ -193,8 +191,8 @@ export const MusicProvider = ({ children }) => {
           volume={volume}
           muted={false}
           controls={false}
-          width="1px"
-          height="1px"
+          width="200px"
+          height="200px"
           onReady={() => {
             if (currentTrack) console.log("✅ Engine ready:", currentTrack.title);
           }}
