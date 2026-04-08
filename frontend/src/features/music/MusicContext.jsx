@@ -4,11 +4,18 @@ import {
   useState,
   useRef,
   useCallback,
+  useEffect,
 } from "react";
-import ReactPlayer from "react-player/youtube";
+import YouTube from "react-youtube";
 import { normalizeYoutubeUrl } from "../../utils/youtube";
 
 const MusicContext = createContext(null);
+
+const extractVideoId = (url) => {
+  if (!url) return null;
+  const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+  return match ? match[1] : null;
+};
 
 export const MusicProvider = ({ children }) => {
   const [playlist, setPlaylist] = useState([]);
@@ -21,30 +28,92 @@ export const MusicProvider = ({ children }) => {
   const [duration, setDuration] = useState(0);
 
   const playerRef = useRef(null);
+  const progressIntervalRef = useRef(null);
   const currentTrack = playlist[currentIndex] || null;
+  const videoId = extractVideoId(currentTrack?.youtubeUrl);
 
-  const getCurrentTime = useCallback(() => {
+  const getCurrentTime = useCallback(async () => {
     const player = playerRef.current;
     if (!player) return 0;
-    if (typeof player.currentTime === "number") return player.currentTime;
-    if (typeof player.getCurrentTime === "function")
-      return player.getCurrentTime();
-    return 0;
+    try {
+      return await player.getCurrentTime();
+    } catch {
+      return 0;
+    }
   }, []);
 
   const setCurrentTime = useCallback((seconds) => {
     const player = playerRef.current;
     if (!player || !Number.isFinite(seconds)) return;
-
-    if (typeof player.currentTime === "number") {
-      player.currentTime = seconds;
-      return;
-    }
-
-    if (typeof player.seekTo === "function") {
-      player.seekTo(seconds, "seconds");
+    try {
+      player.seekTo(seconds, true);
+    } catch (e) {
+      console.warn("Manual seek failed", e);
     }
   }, []);
+
+  // ─── Playback Progress Polling ────────────────────────────────────────────
+  const startProgressPolling = useCallback(() => {
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    progressIntervalRef.current = setInterval(async () => {
+      if (!playerRef.current) return;
+      try {
+        const currentTime = await playerRef.current.getCurrentTime();
+        if (duration > 0) {
+          setProgress((currentTime / duration) * 100);
+        }
+      } catch (e) {
+        // Ignore errors if player is not ready
+      }
+    }, 1000);
+  }, [duration]);
+
+  const stopProgressPolling = useCallback(() => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  }, []);
+
+  // Sync isPlaying with React-YouTube and polling
+  useEffect(() => {
+    if (isPlaying) {
+      if (playerRef.current) {
+        try {
+          playerRef.current.playVideo();
+          startProgressPolling();
+        } catch (e) {
+          console.warn("playVideo failed", e);
+        }
+      }
+    } else {
+      if (playerRef.current) {
+        try {
+          playerRef.current.pauseVideo();
+        } catch (e) {
+          console.warn("pauseVideo failed", e);
+        }
+      }
+      stopProgressPolling();
+    }
+  }, [isPlaying, startProgressPolling, stopProgressPolling]);
+
+  // Sync volume
+  useEffect(() => {
+    if (playerRef.current) {
+      try {
+        // YouTube API expects 0-100, our state is 0-1
+        playerRef.current.setVolume(volume * 100);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }, [volume]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopProgressPolling();
+  }, [stopProgressPolling]);
 
   // ─── Toggle Play/Pause ────────────────────────────────────────────────────
   const togglePlay = useCallback(() => {
@@ -55,24 +124,11 @@ export const MusicProvider = ({ children }) => {
   // ─── Play a Track ─────────────────────────────────────────────────────────
   const playTrack = useCallback(
     (track, newPlaylist) => {
-      if (!track?._id) {
-        console.error("❌ Track missing _id:", track);
-        return;
-      }
+      if (!track?._id) return;
 
-      // Validate and normalize YouTube URL
       const normalizedUrl = normalizeYoutubeUrl(track.youtubeUrl);
-      if (!normalizedUrl) {
-        console.error(
-          "❌ Invalid YouTube URL:",
-          track.youtubeUrl,
-          "Track:",
-          track,
-        );
-        return;
-      }
+      if (!normalizedUrl) return;
 
-      // Ensure track has normalized youtubeUrl
       if (track.youtubeUrl !== normalizedUrl) {
         track.youtubeUrl = normalizedUrl;
       }
@@ -81,12 +137,8 @@ export const MusicProvider = ({ children }) => {
       if (newPlaylist) setPlaylist(newPlaylist);
 
       const idx = targetPlaylist.findIndex((t) => t._id === track._id);
-      if (idx === -1) {
-        console.error("❌ Track not found in playlist:", track._id);
-        return;
-      }
+      if (idx === -1) return;
 
-      // Same track already loaded → just toggle play/pause
       if (currentIndex === idx && !newPlaylist) {
         togglePlay();
         return;
@@ -102,7 +154,7 @@ export const MusicProvider = ({ children }) => {
     [currentIndex, playlist, togglePlay, volume],
   );
 
-  // ─── Skip Next ────────────────────────────────────────────────────────────
+  // ─── Skip Next / Previous ────────────────────────────────────────────────
   const playNext = useCallback(() => {
     if (!playlist.length) return;
     const next = (currentIndex + 1) % playlist.length;
@@ -112,11 +164,10 @@ export const MusicProvider = ({ children }) => {
     setIsPlaying(true);
   }, [currentIndex, playlist]);
 
-  // ─── Skip Previous ────────────────────────────────────────────────────────
-  const playPrevious = useCallback(() => {
+  const playPrevious = useCallback(async () => {
     if (!playlist.length) return;
-    // If more than 3 seconds in — restart current track
-    if (getCurrentTime() > 3) {
+    const currentTime = await getCurrentTime();
+    if (currentTime > 3) {
       setCurrentTime(0);
       return;
     }
@@ -139,11 +190,44 @@ export const MusicProvider = ({ children }) => {
     [duration, setCurrentTime],
   );
 
-  // ─── Volume persist ───────────────────────────────────────────────────────
   const handleVolumeChange = useCallback((v) => {
     setVolume(v);
     localStorage.setItem("playerVolume", String(v));
   }, []);
+
+  const onPlayerReady = async (event) => {
+    console.log("✅ Engine ready:", currentTrack?.title);
+    playerRef.current = event.target;
+    playerRef.current.setVolume(volume * 100);
+    if (isPlaying) {
+      playerRef.current.playVideo();
+      startProgressPolling();
+    }
+    try {
+      const d = await event.target.getDuration();
+      console.log("✅ Duration set:", d);
+      setDuration(d);
+    } catch (e) {
+      console.warn("Could not get duration on ready");
+    }
+  };
+
+  const onPlayerStateChange = async (event) => {
+    // YT.PlayerState: PLAYING (1), PAUSED (2), ENDED (0)
+    if (event.data === 1) { // Playing
+      setIsPlaying(true);
+      startProgressPolling();
+      try {
+        const d = await event.target.getDuration();
+        if (d > 0 && d !== duration) setDuration(d);
+      } catch (e) {}
+    } else if (event.data === 2) { // Paused
+      setIsPlaying(false);
+      stopProgressPolling();
+    } else if (event.data === 0) { // Ended
+      playNext();
+    }
+  };
 
   return (
     <MusicContext.Provider
@@ -165,12 +249,8 @@ export const MusicProvider = ({ children }) => {
     >
       {children}
 
-      {/* Background audio engine — positioned within the visible viewport but visually hidden.
-          YouTube IFrame API will completely fail to initialize if:
-          1) The container is zero-sized / near zero-sized
-          2) The container is completely off-screen (e.g. left: -9999px)
-          Using opacity: 0.01 and pointerEvents: "none" keeps it active but invisible. */}
-      {currentTrack?.youtubeUrl && (
+      {/* Background audio engine — positioned within the visible viewport but visually hidden */}
+      {videoId && (
         <div
           style={{
             position: "fixed",
@@ -183,54 +263,26 @@ export const MusicProvider = ({ children }) => {
             zIndex: 1,
           }}
         >
-          <ReactPlayer
-            key="global-music-engine"
-            ref={playerRef}
-            url={currentTrack.youtubeUrl}
-            playing={isPlaying}
-            volume={volume}
-            muted={false}
-            controls={false}
-            width="200px"
-            height="200px"
-            onReady={() => {
-              console.log("✅ Engine ready:", currentTrack.title);
-            }}
-            onPlay={() => {
-              console.log("▶️ Playing:", currentTrack.title);
-              setIsPlaying(true);
-            }}
-            onPause={() => setIsPlaying(false)}
-            onBuffer={() => console.log("⏳ Buffering...")}
-            onBufferEnd={() => console.log("✅ Buffer end")}
-            onProgress={(state) => {
-              if (state.playedSeconds > 0 || state.played > 0) {
-                setProgress(state.played * 100);
-              }
-            }}
-            onDuration={(d) => {
-              console.log("✅ Duration set:", d);
-              setDuration(d);
-            }}
-            onEnded={playNext}
-            onError={(err) => {
-              console.error("❌ Player error:", err);
-              playNext();
-            }}
-            config={{
-              youtube: {
-                playerVars: {
-                  autoplay: 1,
-                  modestbranding: 1,
-                  rel: 0,
-                  iv_load_policy: 3,
-                  origin: window.location.origin,
-                  enablejsapi: 1,
-                  widget_referrer: window.location.origin,
-                  playsinline: 1,
-                  controls: 0,
-                },
+          <YouTube
+            videoId={videoId}
+            opts={{
+              height: '200',
+              width: '200',
+              playerVars: {
+                autoplay: isPlaying ? 1 : 0,
+                modestbranding: 1,
+                rel: 0,
+                origin: window.location.origin,
+                enablejsapi: 1,
+                playsinline: 1,
+                controls: 0,
               },
+            }}
+            onReady={onPlayerReady}
+            onStateChange={onPlayerStateChange}
+            onError={(e) => {
+              console.error("❌ YouTube Player error:", e.data);
+              playNext();
             }}
           />
         </div>
@@ -239,7 +291,6 @@ export const MusicProvider = ({ children }) => {
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useMusic = () => {
   const ctx = useContext(MusicContext);
   if (!ctx) throw new Error("useMusic must be used inside MusicProvider");
