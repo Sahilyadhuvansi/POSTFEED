@@ -170,73 +170,71 @@ export const MusicProvider = ({ children }) => {
           1) The container is zero-sized / near zero-sized
           2) The container is completely off-screen (e.g. left: -9999px)
           Using opacity: 0.01 and pointerEvents: "none" keeps it active but invisible. */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: 200,
-          height: 200,
-          opacity: 0.01,
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      >
-        <ReactPlayer
-          key="global-music-engine"
-          ref={playerRef}
-          url={currentTrack?.youtubeUrl || ""}
-          playing={isPlaying}
-          volume={volume}
-          muted={false}
-          controls={false}
-          width="200px"
-          height="200px"
-          onReady={() => {
-            if (currentTrack) console.log("✅ Engine ready:", currentTrack.title);
+      {currentTrack?.youtubeUrl && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: 200,
+            height: 200,
+            opacity: 0.01,
+            pointerEvents: "none",
+            zIndex: 1,
           }}
-          onPlay={() => {
-            if (currentTrack) {
+        >
+          <ReactPlayer
+            key="global-music-engine"
+            ref={playerRef}
+            url={currentTrack.youtubeUrl}
+            playing={isPlaying}
+            volume={volume}
+            muted={false}
+            controls={false}
+            width="200px"
+            height="200px"
+            onReady={() => {
+              console.log("✅ Engine ready:", currentTrack.title);
+            }}
+            onPlay={() => {
               console.log("▶️ Playing:", currentTrack.title);
               setIsPlaying(true);
-            }
-          }}
-          onPause={() => setIsPlaying(false)}
-          onBuffer={() => console.log("⏳ Buffering...")}
-          onBufferEnd={() => console.log("✅ Buffer end")}
-          onProgress={(state) => {
-            if (state.playedSeconds > 0 || state.played > 0) {
-              setProgress(state.played * 100);
-            }
-          }}
-          onDuration={(d) => {
-            console.log("✅ Duration set:", d);
-            setDuration(d);
-          }}
-          onEnded={playNext}
-          onError={(err) => {
-            if (currentTrack) {
+            }}
+            onPause={() => setIsPlaying(false)}
+            onBuffer={() => console.log("⏳ Buffering...")}
+            onBufferEnd={() => console.log("✅ Buffer end")}
+            onProgress={(state) => {
+              if (state.playedSeconds > 0 || state.played > 0) {
+                setProgress(state.played * 100);
+              }
+            }}
+            onDuration={(d) => {
+              console.log("✅ Duration set:", d);
+              setDuration(d);
+            }}
+            onEnded={playNext}
+            onError={(err) => {
               console.error("❌ Player error:", err);
               playNext();
-            }
-          }}
-          config={{
-            youtube: {
-              playerVars: {
-                autoplay: 1,
-                modestbranding: 1,
-                rel: 0,
-                iv_load_policy: 3,
-                origin: window.location.origin,
-                enablejsapi: 1,
-                widget_referrer: window.location.origin,
-                playsinline: 1,
-                controls: 0,
+            }}
+            config={{
+              youtube: {
+                playerVars: {
+                  autoplay: 1,
+                  modestbranding: 1,
+                  rel: 0,
+                  iv_load_policy: 3,
+                  origin: window.location.origin,
+                  enablejsapi: 1,
+                  widget_referrer: window.location.origin,
+                  playsinline: 1,
+                  controls: 0,
+                },
               },
-            },
-          }}
-        />
-      </div>
+            }}
+          />
+        </div>
+      )}
     </MusicContext.Provider>
   );
 };
