@@ -18,12 +18,7 @@ class AnalyticsService {
   }
 
   track(eventName, properties = {}) {
-    const timestamp = new Date().toISOString();
-    if (this.isDevelopment) {
-      console.log(`[Analytics] ${timestamp} | ${eventName}`, properties);
-      return;
-    }
-    // In production, send to monitored logging endpoint
+    // Analytics tracking placeholder for production monitoring
   }
 
   reportLatency(type, latencyMs, metadata = {}) {

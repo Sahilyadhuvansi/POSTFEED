@@ -1,9 +1,27 @@
 "use strict";
 
 const musicModel = require("./music.model");
+const Playlist = require("../playlists/playlists.model");
 const ErrorResponse = require("../../utils/ErrorResponse");
 const MESSAGES = require("./music.messages");
 const { serializeMusic } = require("./music.serializer");
+
+const ensureLikedSongsPlaylist = async (ownerId) => {
+  let playlist = await Playlist.findOne({
+    owner: ownerId,
+    kind: "system_liked",
+  });
+  if (playlist) return playlist;
+
+  playlist = await Playlist.create({
+    owner: ownerId,
+    name: "Liked Songs",
+    kind: "system_liked",
+    tracks: [],
+  });
+
+  return playlist;
+};
 
 /**
  * MUSIC CONTROLLER - Post Music AI (Production Refactor)
@@ -28,6 +46,24 @@ const createMusic = async (req, res, next) => {
     });
 
     if (existing) {
+      try {
+        const liked = await ensureLikedSongsPlaylist(req.user.id);
+        const alreadyPresent = (liked.tracks || []).some(
+          (t) => t.youtubeUrl === existing.youtubeUrl,
+        );
+        if (!alreadyPresent) {
+          liked.tracks.push({
+            youtubeUrl: existing.youtubeUrl,
+            title: existing.title,
+            thumbnailUrl: existing.thumbnailUrl || null,
+            addedAt: new Date(),
+          });
+          await liked.save();
+        }
+      } catch (_) {
+        // Non-blocking sync.
+      }
+
       return res.status(200).json({
         success: true,
         message: MESSAGES.TRACK_ALREADY_FAVORITE,
@@ -42,6 +78,25 @@ const createMusic = async (req, res, next) => {
       thumbnailUrl: thumbnailUrl || null,
       artist: req.user.id,
     });
+
+    try {
+      const liked = await ensureLikedSongsPlaylist(req.user.id);
+      const alreadyPresent = (liked.tracks || []).some(
+        (t) => t.youtubeUrl === music.youtubeUrl,
+      );
+
+      if (!alreadyPresent) {
+        liked.tracks.push({
+          youtubeUrl: music.youtubeUrl,
+          title: music.title,
+          thumbnailUrl: music.thumbnailUrl || null,
+          addedAt: new Date(),
+        });
+        await liked.save();
+      }
+    } catch (_) {
+      // Non-blocking sync: music save should still succeed.
+    }
 
     return res.status(201).json({
       success: true,
@@ -73,7 +128,10 @@ const createMultipleMusic = async (req, res, next) => {
           continue;
         }
 
-        const existing = await musicModel.findOne({ artist: userId, youtubeUrl });
+        const existing = await musicModel.findOne({
+          artist: userId,
+          youtubeUrl,
+        });
         if (existing) {
           results.skipped.push(title);
           continue;
@@ -171,6 +229,21 @@ const deleteMusic = async (req, res, next) => {
 
     await musicModel.findByIdAndDelete(req.params.musicId);
 
+    try {
+      const liked = await Playlist.findOne({
+        owner: req.user.id,
+        kind: "system_liked",
+      });
+      if (liked) {
+        liked.tracks = (liked.tracks || []).filter(
+          (t) => t.youtubeUrl !== music.youtubeUrl,
+        );
+        await liked.save();
+      }
+    } catch (_) {
+      // Non-blocking sync: deletion should still succeed.
+    }
+
     return res.status(200).json({
       success: true,
       message: MESSAGES.TRACK_REMOVED,
@@ -181,4 +254,10 @@ const deleteMusic = async (req, res, next) => {
   }
 };
 
-module.exports = { createMusic, getAllMusics, getMyMusics, deleteMusic };
+module.exports = {
+  createMusic,
+  createMultipleMusic,
+  getAllMusics,
+  getMyMusics,
+  deleteMusic,
+};

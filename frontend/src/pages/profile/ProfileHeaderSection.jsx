@@ -64,7 +64,7 @@ const ProfileHeaderSection = ({
             {user.username}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Member since {new Date(user.createdAt || Date.now()).getFullYear()}
+            Member since {user.createdAt ? new Date(user.createdAt).getFullYear() : "2026"}
           </p>
           {user.bio && (
             <p className="text-sm text-gray-400 mt-2 max-w-md">{user.bio}</p>

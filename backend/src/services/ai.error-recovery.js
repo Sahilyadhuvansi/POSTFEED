@@ -5,7 +5,6 @@
  * Implements intelligent, context-aware recovery for AI failures
  */
 
-const aiService = require('./ai.service');
 
 const ErrorCategory = {
   TRANSIENT: 'transient',        // Timeout, rate limits

@@ -27,11 +27,9 @@ const SEARCH_METRICS = {
 };
 const STALE_WHILE_REVALIDATE_MS = 15 * 60 * 1000;
 
-const isDev = import.meta.env.DEV;
 
-const logMetric = (event, payload = {}) => {
-  if (!isDev) return;
-  console.info(`[YouTube] ${event}`, payload);
+const logMetric = (_event, _payload = {}) => {
+  // Metric logging placeholder for production health monitoring
 };
 
 const cloneTrack = (track) => ({

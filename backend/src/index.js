@@ -15,6 +15,7 @@ const authRoutes = require("./features/auth/auth.routes");
 const postRoutes = require("./features/posts/posts.routes");
 const userRoutes = require("./features/users/users.routes");
 const musicRoutes = require("./features/music/music.routes");
+const playlistRoutes = require("./features/playlists/playlists.routes");
 const aiRoutes = require("./features/ai/ai.routes");
 const ErrorResponse = require("./utils/ErrorResponse");
 const requestId = require("./middlewares/request-id.middleware");
@@ -193,6 +194,7 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/posts", apiLimiter, postRoutes);
 app.use("/api/users", apiLimiter, userRoutes);
 app.use("/api/music", apiLimiter, musicRoutes);
+app.use("/api/playlists", apiLimiter, playlistRoutes);
 app.use("/api/ai", apiLimiter, aiRoutes);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────

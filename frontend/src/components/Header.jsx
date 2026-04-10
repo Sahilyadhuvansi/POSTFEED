@@ -6,6 +6,21 @@ import {
 } from "lucide-react";
 import { DEFAULT_AVATAR } from "../config";
 
+const NavLink = ({ to, children, icon: Icon, isStatic = false, location, onClick }) => {
+  const active = location.pathname === to || (isStatic && location.pathname === "/");
+  const base = "flex items-center gap-2 px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300";
+  return (
+    <Link 
+      to={to} 
+      className={`${base} ${active ? "text-white bg-white/10 shadow-[0_4px_24px_rgba(255,255,255,0.1)]" : "text-neutral-500 hover:text-white hover:bg-white/5"}`}
+      onClick={onClick}
+    >
+      {Icon && <Icon className="w-3.5 h-3.5" />}
+      {children}
+    </Link>
+  );
+};
+
 const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -25,20 +40,8 @@ const Header = () => {
     navigate("/login");
   };
 
-  const NavLink = ({ to, children, icon: Icon, isStatic = false }) => {
-    const active = location.pathname === to || (isStatic && location.pathname === "/");
-    const base = "flex items-center gap-2 px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300";
-    return (
-      <Link 
-        to={to} 
-        className={`${base} ${active ? "text-white bg-white/10 shadow-[0_4px_24px_rgba(255,255,255,0.1)]" : "text-neutral-500 hover:text-white hover:bg-white/5"}`}
-        onClick={() => setMobileOpen(false)}
-      >
-        {Icon && <Icon className="w-3.5 h-3.5" />}
-        {children}
-      </Link>
-    );
-  };
+  const closeMobile = () => setMobileOpen(false);
+
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b ${scrolled ? "glass-dark border-white/5 py-3 shadow-2xl" : "bg-transparent border-transparent py-5"}`}>
@@ -58,12 +61,12 @@ const Header = () => {
 
         {/* Global Navigation Hub */}
         <div className="hidden md:flex items-center gap-2 p-1 rounded-full glass border-white/5 bg-white/5">
-          <NavLink to="/music" icon={Music} isStatic={true}>Vibes</NavLink>
-          <NavLink to="/feed" icon={LayoutGrid}>Stream</NavLink>
+          <NavLink to="/music" icon={Music} isStatic={true} location={location} onClick={closeMobile}>Vibes</NavLink>
+          <NavLink to="/feed" icon={LayoutGrid} location={location} onClick={closeMobile}>Stream</NavLink>
           {user && (
             <>
               <div className="w-px h-4 bg-white/10 mx-1" />
-              <NavLink to="/create-post" icon={Plus}>Express</NavLink>
+              <NavLink to="/create-post" icon={Plus} location={location} onClick={closeMobile}>Express</NavLink>
             </>
           )}
         </div>
@@ -107,12 +110,12 @@ const Header = () => {
       {/* Mobile Stream Interface */}
       <div className={`md:hidden absolute top-full left-0 right-0 glass-dark border-b border-white/5 transition-all duration-500 ${mobileOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-8 pointer-events-none"}`}>
         <div className="p-8 space-y-3">
-          <NavLink to="/music" icon={Music} isStatic={true}>Frequency</NavLink>
-          <NavLink to="/feed" icon={LayoutGrid}>Mainline</NavLink>
+          <NavLink to="/music" icon={Music} isStatic={true} location={location} onClick={closeMobile}>Frequency</NavLink>
+          <NavLink to="/feed" icon={LayoutGrid} location={location} onClick={closeMobile}>Mainline</NavLink>
           {user ? (
             <>
-              <NavLink to="/create-post" icon={Plus}>Broadcast</NavLink>
-              <NavLink to="/profile" icon={User}>Personal Hub</NavLink>
+              <NavLink to="/create-post" icon={Plus} location={location} onClick={closeMobile}>Broadcast</NavLink>
+              <NavLink to="/profile" icon={User} location={location} onClick={closeMobile}>Personal Hub</NavLink>
               <button 
                 onClick={handleLogout} 
                 className="flex items-center gap-4 p-5 w-full rounded-2xl text-xs font-black uppercase tracking-[0.2em] text-red-400 bg-red-400/5 mt-4"

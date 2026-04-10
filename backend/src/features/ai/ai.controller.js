@@ -7,7 +7,6 @@
 
 const musicRecommendation = require("../../services/music-recommendation.service");
 const contentModeration = require("../../services/content-moderation.service");
-const youtubeService = require("../../services/youtube.service");
 const aiService = require("../../services/ai.service");
 const aiConfig = require("../../config/ai.config");
 const Post = require("../posts/posts.model");
@@ -19,6 +18,14 @@ const {
   resolveContextualAction,
   attachInterpretationMessage,
 } = require("./ai.context-resolver");
+
+const {
+  ACTIONS,
+  TOOL_REGISTRY,
+  TOOL_METRICS,
+  preprocessUserIntent,
+  searchMusicInternal,
+} = require("./ai.tool-handlers");
 
 // Cache context (limit lookups)
 let cachedContext = null;
@@ -36,445 +43,28 @@ const SYSTEM_PROMPTS = {
   actionSelector: `You are an AI action router for a music app.\nAllowed actions only: search_music, fetch_favorites, like_song, delete_song, import_playlist, batch_like, respond_normally.\nReturn ONLY valid JSON object with shape: {"action":"...","args":{},"reply":"short summary"}.\nRules:\n- If user asks to fetch/view favorites -> fetch_favorites\n- If user asks to save/like/favorite a song and provides youtube url -> like_song\n- If user asks to remove/unfavorite/delete song -> delete_song\n- If user asks to search/find music -> search_music\n- If spotify playlist link provided -> import_playlist\n- If user provides a list of multiple tracks or asks to like/save several songs at once -> batch_like\n- If intent is unclear -> respond_normally\n- like_song MUST apply to ONE song only\n- batch_like MUST handle an array of tracks in args {"tracks": [{"title": "...", "artist": "..."}]}\n- NEVER process multiple songs in one like/delete action; use batch_like instead\n- ALWAYS choose the most relevant/top result for single actions\n- If user says first/second/third/that one/this song and lastSearchResults exist, map reference to ONE item and call like_song OR delete_song with songId`,
 };
 
-const ACTIONS = {
-  SEARCH_MUSIC: "search_music",
-  FETCH_FAVORITES: "fetch_favorites",
-  LIKE_SONG: "like_song",
-  DELETE_SONG: "delete_song",
-  IMPORT_PLAYLIST: "import_playlist",
-  BATCH_LIKE: "batch_like",
-  RESPOND_NORMALLY: "respond_normally",
-};
-
-const TOOL_METRICS = {
-  [ACTIONS.SEARCH_MUSIC]: { success: 0, fail: 0 },
-  [ACTIONS.FETCH_FAVORITES]: { success: 0, fail: 0 },
-  [ACTIONS.LIKE_SONG]: { success: 0, fail: 0 },
-  [ACTIONS.DELETE_SONG]: { success: 0, fail: 0 },
-  [ACTIONS.IMPORT_PLAYLIST]: { success: 0, fail: 0 },
-  [ACTIONS.BATCH_LIKE]: { success: 0, fail: 0 },
-};
-
 const normalizeText = (value = "") => value.toString().trim();
-
-const extractYoutubeUrl = (text = "") => {
-  const match = text.match(
-    /https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/[^\s]+/i,
-  );
-  return match ? match[0] : null;
-};
-
-const extractSpotifyUrl = (text = "") => {
-  const match = text.match(/https?:\/\/(?:open\.)?spotify\.com\/[^\s]+/i);
-  return match ? match[0] : null;
-};
-
-const extractQuotedText = (text = "") => {
-  const match = text.match(/["“](.*?)["”]/);
-  return match?.[1]?.trim() || null;
-};
-
-const createToolResponse = ({
-  success,
-  action,
-  data = null,
-  content = "",
-  requiresAuth = false,
-}) => ({
-  success,
-  action,
-  data,
-  content,
-  requiresAuth,
-});
-
-const safeParseAIAction = (output) => {
-  try {
-    const parsed =
-      typeof output === "string" ? JSON.parse(output) : output || {};
-    const action = normalizeText(parsed.action).toLowerCase();
-
-    if (!Object.values(ACTIONS).includes(action)) {
-      return { action: ACTIONS.RESPOND_NORMALLY, args: {}, reply: "" };
-    }
-
-    return {
-      action,
-      args: parsed.args && typeof parsed.args === "object" ? parsed.args : {},
-      reply: normalizeText(parsed.reply || ""),
-    };
-  } catch {
-    return { action: ACTIONS.RESPOND_NORMALLY, args: {}, reply: "" };
-  }
-};
-
-const hardFallbackAction = (message = "") => {
-  const lowered = normalizeText(message).toLowerCase();
-  const spotifyUrl = extractSpotifyUrl(message);
-  const youtubeUrl = extractYoutubeUrl(message);
-  const isSpotify = /spotify\.com\/(playlist|track)/i.test(message);
-  const isCommand = /^(like|save|delete|remove)/i.test(lowered);
-
-  if (isSpotify && spotifyUrl) {
-    return {
-      action: ACTIONS.IMPORT_PLAYLIST,
-      args: { source: "spotify", url: spotifyUrl },
-      forced: true,
-    };
-  }
-
-  if (/(favorites?|saved songs?|my music|liked songs?)/i.test(lowered)) {
-    return {
-      action: ACTIONS.FETCH_FAVORITES,
-      args: {},
-      forced: true,
-    };
-  }
-
-  if (isCommand && /(save|like|favorite|add)/i.test(lowered) && youtubeUrl) {
-    return {
-      action: ACTIONS.LIKE_SONG,
-      args: {
-        youtubeUrl,
-        title: extractQuotedText(message) || "Imported Favorite",
-      },
-      forced: true,
-    };
-  }
-
-  if (isCommand && /(remove|delete|unfavorite|unlike)/i.test(lowered)) {
-    return {
-      action: ACTIONS.DELETE_SONG,
-      args: { youtubeUrl, title: extractQuotedText(message) },
-      forced: true,
-    };
-  }
-
-  if (/(search|find|show me|look for)/i.test(lowered)) {
-    const query =
-      extractQuotedText(message) ||
-      lowered.replace(/^(search|find|show me|look for)\s+/i, "").trim();
-    return {
-      action: ACTIONS.SEARCH_MUSIC,
-      args: { query },
-      forced: true,
-    };
-  }
-
-  return { action: ACTIONS.RESPOND_NORMALLY, args: {}, forced: false };
-};
-
-const preprocessUserIntent = (message = "") => {
-  return hardFallbackAction(message);
-};
-
-const fetchFavoritesTool = async (_args, req) => {
-  const musics = await Music.find({ artist: req.user.id })
-    .select("youtubeUrl title thumbnailUrl artist createdAt")
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .lean();
-
-  return createToolResponse({
-    success: true,
-    action: ACTIONS.FETCH_FAVORITES,
-    message: musics.length
-      ? `Found ${musics.length} favorite tracks.`
-      : "You do not have favorites yet.",
-    data: { musics },
-  });
-};
-
-const searchMusicTool = async (args, _req) => {
-  const query = normalizeText(args?.query);
-  if (!query) {
-    return createToolResponse({
-      success: false,
-      action: ACTIONS.SEARCH_MUSIC,
-      message: "Please tell me what song or artist you want to search.",
-      data: null,
-    });
-  }
-
-  const musics = await searchMusicInternal(query, 30);
-
-  return createToolResponse({
-    success: true,
-    action: ACTIONS.SEARCH_MUSIC,
-    message: musics.length
-      ? `Found ${musics.length} matches for "${query}".`
-      : `No songs found for "${query}" yet.`,
-    data: { query, musics },
-  });
-};
-
-const searchMusicInternal = async (query, limit = 30) => {
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(escaped, "i");
-  const exactRegex = new RegExp(`^${escaped}$`, "i");
-
-  const musics = await Music.find({
-    $or: [{ title: regex }, { youtubeUrl: regex }],
-  })
-    .select("youtubeUrl title thumbnailUrl artist createdAt")
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .lean();
-
-  return musics.sort((a, b) => {
-    const aExact = exactRegex.test(a.title || "") ? 1 : 0;
-    const bExact = exactRegex.test(b.title || "") ? 1 : 0;
-    if (aExact !== bExact) return bExact - aExact;
-
-    const aStarts = (a.title || "")
-      .toLowerCase()
-      .startsWith(query.toLowerCase())
-      ? 1
-      : 0;
-    const bStarts = (b.title || "")
-      .toLowerCase()
-      .startsWith(query.toLowerCase())
-      ? 1
-      : 0;
-    if (aStarts !== bStarts) return bStarts - aStarts;
-
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-};
-
-const likeSongTool = async (args, req) => {
-  const youtubeUrl = normalizeText(args?.youtubeUrl);
-  const songId = normalizeText(args?.songId);
-  const query = normalizeText(args?.query || args?.title);
-  const title = normalizeText(args?.title || "Imported Favorite");
-
-  let targetSong = null;
-
-  // Input priority (highest confidence first): songId > youtubeUrl > query
-  if (songId) {
-    targetSong = await Music.findById(songId)
-      .select("youtubeUrl title thumbnailUrl")
-      .lean();
-  } else if (youtubeUrl) {
-    targetSong = {
-      youtubeUrl,
-      title,
-      thumbnailUrl: normalizeText(args?.thumbnailUrl) || null,
-    };
-  } else if (query) {
-    const results = await searchMusicInternal(query, 30);
-    if (!results.length) {
-      return createToolResponse({
-        success: false,
-        action: ACTIONS.LIKE_SONG,
-        message: "No song found.",
-        data: null,
-      });
-    }
-
-    targetSong = results[0];
-  }
-
-  if (!targetSong?.youtubeUrl) {
-    return createToolResponse({
-      success: false,
-      action: ACTIONS.LIKE_SONG,
-      message:
-        "Please provide a song query, song id, or YouTube song link to like.",
-      data: null,
-    });
-  }
-
-  const existing = await Music.findOne({
-    artist: req.user.id,
-    youtubeUrl: targetSong.youtubeUrl,
-  }).lean();
-  if (existing) {
-    return createToolResponse({
-      success: true,
-      action: ACTIONS.LIKE_SONG,
-      message: `"${existing.title}" is already in your favorites.`,
-      data: existing,
-    });
-  }
-
-  const created = await Music.create({
-    artist: req.user.id,
-    youtubeUrl: targetSong.youtubeUrl,
-    title: normalizeText(targetSong.title || title),
-    thumbnailUrl: targetSong.thumbnailUrl || null,
-  });
-
-  return createToolResponse({
-    success: true,
-    action: ACTIONS.LIKE_SONG,
-    message: `Liked: "${created.title}" 🎵`,
-    data: created.toObject(),
-  });
-};
-
-const deleteSongTool = async (args, req) => {
-  const songId = normalizeText(args?.songId);
-  const youtubeUrl = normalizeText(args?.youtubeUrl);
-  const title = normalizeText(args?.title);
-
-  if (!songId && !youtubeUrl && !title) {
-    return createToolResponse({
-      success: false,
-      action: ACTIONS.DELETE_SONG,
-      message:
-        "Tell me the song, or provide song id / title / YouTube URL to remove.",
-      data: null,
-    });
-  }
-
-  const filter = { artist: req.user.id };
-  if (songId) {
-    filter._id = songId;
-  } else if (youtubeUrl) {
-    filter.youtubeUrl = youtubeUrl;
-  } else {
-    filter.title = new RegExp(
-      title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-      "i",
-    );
-  }
-
-  const found = await Music.findOne(filter).lean();
-  if (!found) {
-    return createToolResponse({
-      success: false,
-      action: ACTIONS.DELETE_SONG,
-      message: "I couldn't find that song in your favorites.",
-      data: null,
-    });
-  }
-
-  await Music.findByIdAndDelete(found._id);
-  return createToolResponse({
-    success: true,
-    action: ACTIONS.DELETE_SONG,
-    message: `Removed "${found.title}" from your favorites.`,
-    data: { removedId: found._id },
-  });
-};
-
-const batchLikeTool = async (args, req) => {
-  const tracks = Array.isArray(args?.tracks) ? args.tracks : [];
-  if (!tracks.length) {
-    return createToolResponse({
-      success: false,
-      action: ACTIONS.BATCH_LIKE,
-      message: "No tracks found to process.",
-      data: null,
-    });
-  }
-
-  const userId = req.user.id;
-  const results = { saved: [], skipped: [], failed: [] };
-
-  for (const t of tracks) {
-    try {
-      const query = `${t.title} ${t.artist || ""}`.trim();
-      const yt = await youtubeService.findSingleTrack(query);
-      if (!yt) {
-        results.failed.push({ title: t.title, reason: "YouTube link not found" });
-        continue;
-      }
-
-      const existing = await Music.findOne({
-        artist: userId,
-        youtubeUrl: yt.youtubeUrl,
-      }).lean();
-      if (existing) {
-        results.skipped.push(t.title);
-        continue;
-      }
-
-      const music = await Music.create({
-        artist: userId,
-        youtubeUrl: yt.youtubeUrl,
-        title: yt.title,
-        thumbnailUrl: yt.thumbnailUrl || null,
-      });
-      results.saved.push(music.title);
-    } catch (e) {
-      results.failed.push({ title: t.title, reason: e.message });
-    }
-  }
-
-  return createToolResponse({
-    success: true,
-    action: ACTIONS.BATCH_LIKE,
-    message: `Batch complete: Saved ${results.saved.length}, Skipped ${results.skipped.length}, Failed ${results.failed.length}.`,
-    data: results,
-  });
-};
-
-const importPlaylistTool = async (args, req) => {
-  const url = args?.url || "";
-  return createToolResponse({
-    success: true,
-    action: ACTIONS.IMPORT_PLAYLIST,
-    message:
-      "I've initialized the playlist resolver. Please confirm if you'd like me to start the batch import now.",
-    data: { source: args?.source || "spotify", url },
-  });
-};
-
-const TOOL_REGISTRY = {
-  [ACTIONS.SEARCH_MUSIC]: {
-    handler: searchMusicTool,
-    requiresAuth: false,
-    description: "Search saved music by title or YouTube URL",
-  },
-  [ACTIONS.FETCH_FAVORITES]: {
-    handler: fetchFavoritesTool,
-    requiresAuth: true,
-    description: "Fetch the user's favorite songs",
-  },
-  [ACTIONS.LIKE_SONG]: {
-    handler: likeSongTool,
-    requiresAuth: true,
-    description: "Save a YouTube song to favorites",
-  },
-  [ACTIONS.DELETE_SONG]: {
-    handler: deleteSongTool,
-    requiresAuth: true,
-    description: "Delete a song from favorites",
-  },
-  [ACTIONS.IMPORT_PLAYLIST]: {
-    handler: importPlaylistTool,
-    requiresAuth: true,
-    description: "Import playlist from external source (Spotify)",
-  },
-  [ACTIONS.BATCH_LIKE]: {
-    handler: batchLikeTool,
-    requiresAuth: true,
-    description: "Like and save multiple songs from a list",
-  },
-};
 
 const runTool = async (action, args, req) => {
   const tool = TOOL_REGISTRY[action];
   if (!tool) {
-    return createToolResponse({
+    return {
       success: false,
       action: ACTIONS.RESPOND_NORMALLY,
       message: "Unknown tool requested.",
       data: null,
-    });
+    };
   }
 
   if (tool.requiresAuth && !req.user?.id) {
     TOOL_METRICS[action].fail += 1;
-    return createToolResponse({
+    return {
       success: false,
       action,
       requiresAuth: true,
       message: "Please log in first.",
       data: null,
-    });
+    };
   }
 
   try {
@@ -489,17 +79,16 @@ const runTool = async (action, args, req) => {
     return result;
   } catch (error) {
     TOOL_METRICS[action].fail += 1;
-    return createToolResponse({
+    return {
       success: false,
       action,
       message: `Tool execution failed: ${error.message}`,
       data: null,
-    });
+    };
   }
 };
 
-const getActionDecision = async (userMessage, appContext) => {
-  const contextualMemory = arguments[2] || {};
+const getActionDecision = async (userMessage, appContext, contextualMemory = {}) => {
   const recentResults = Array.isArray(contextualMemory.lastSearchResults)
     ? contextualMemory.lastSearchResults.slice(0, 10)
     : [];
@@ -519,7 +108,18 @@ const getActionDecision = async (userMessage, appContext) => {
     strict: true,
   });
 
-  return safeParseAIAction(aiRes?.content);
+  const parsed = typeof aiRes?.content === "string" ? JSON.parse(aiRes.content) : aiRes?.content || {};
+  const action = normalizeText(parsed.action).toLowerCase();
+
+  if (!Object.values(ACTIONS).includes(action)) {
+    return { action: ACTIONS.RESPOND_NORMALLY, args: {}, reply: "" };
+  }
+
+  return {
+    action,
+    args: parsed.args && typeof parsed.args === "object" ? parsed.args : {},
+    reply: normalizeText(parsed.reply || ""),
+  };
 };
 
 const talkToolResult = async (toolResult, userMessage, appContext) => {
@@ -732,7 +332,7 @@ exports.chat = async (req, res, next) => {
         success: toolResult.success,
         type: "tool_result",
         action: selectedAction.action,
-        content: finalMessage, // Changed from 'message' to 'content' for frontend rendering
+        content: finalMessage,
         payload: toolResult.data,
         requestId: req.id,
       });
@@ -763,7 +363,7 @@ exports.chat = async (req, res, next) => {
   }
 };
 
-exports.suggestHashtags = async (req, res, next) => {
+exports.suggestHashtags = async (req, res) => {
   try {
     const { caption = "", musicTitle = "", genre = "" } = req.body;
     const prompt = SYSTEM_PROMPTS.hashtagSuggestion

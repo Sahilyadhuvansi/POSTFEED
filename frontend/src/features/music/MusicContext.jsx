@@ -21,6 +21,14 @@ export const MusicProvider = ({ children }) => {
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [shuffleEnabled, setShuffleEnabled] = useState(false);
+  const [repeatMode, setRepeatMode] = useState("all");
+  const [playbackRules, setPlaybackRulesState] = useState({
+    maxDurationMinutes: null,
+    slowOnly: false,
+    noRemixes: false,
+    language: null,
+  });
   const [volume, setVolume] = useState(() =>
     parseFloat(localStorage.getItem("playerVolume") || "0.7"),
   );
@@ -31,6 +39,39 @@ export const MusicProvider = ({ children }) => {
   const progressIntervalRef = useRef(null);
   const currentTrack = playlist[currentIndex] || null;
   const videoId = extractVideoId(currentTrack?.youtubeUrl);
+
+  const setPlaybackRules = useCallback((patch = {}) => {
+    setPlaybackRulesState((prev) => ({ ...prev, ...patch }));
+  }, []);
+
+  const isAllowedByRules = useCallback(
+    (track) => {
+      if (!track) return false;
+      const title = (track.title || "").toLowerCase();
+
+      if (playbackRules.noRemixes && /\bremix\b/.test(title)) {
+        return false;
+      }
+
+      if (
+        playbackRules.slowOnly &&
+        /\b(remix|edm|hard|trap|phonk)\b/.test(title)
+      ) {
+        return false;
+      }
+
+      if (
+        playbackRules.maxDurationMinutes &&
+        Number.isFinite(track.durationSeconds) &&
+        track.durationSeconds > playbackRules.maxDurationMinutes * 60
+      ) {
+        return false;
+      }
+
+      return true;
+    },
+    [playbackRules],
+  );
 
   const getCurrentTime = useCallback(async () => {
     const player = playerRef.current;
@@ -47,8 +88,8 @@ export const MusicProvider = ({ children }) => {
     if (!player || !Number.isFinite(seconds)) return;
     try {
       player.seekTo(seconds, true);
-    } catch (e) {
-      console.warn("Manual seek failed", e);
+    } catch (_) {
+      // Seek failed silenty to prevent UI interruption
     }
   }, []);
 
@@ -82,16 +123,16 @@ export const MusicProvider = ({ children }) => {
         try {
           playerRef.current.playVideo();
           startProgressPolling();
-        } catch (e) {
-          console.warn("playVideo failed", e);
+        } catch (_) {
+          // Playback failed
         }
       }
     } else {
       if (playerRef.current) {
         try {
           playerRef.current.pauseVideo();
-        } catch (e) {
-          console.warn("pauseVideo failed", e);
+        } catch (_) {
+          // Pause failed
         }
       }
       stopProgressPolling();
@@ -121,6 +162,16 @@ export const MusicProvider = ({ children }) => {
     setIsPlaying((p) => !p);
   }, [currentTrack]);
 
+  const pause = useCallback(() => {
+    if (!currentTrack) return;
+    setIsPlaying(false);
+  }, [currentTrack]);
+
+  const resume = useCallback(() => {
+    if (!currentTrack) return;
+    setIsPlaying(true);
+  }, [currentTrack]);
+
   // ─── Play a Track ─────────────────────────────────────────────────────────
   const playTrack = useCallback(
     (track, newPlaylist) => {
@@ -144,7 +195,6 @@ export const MusicProvider = ({ children }) => {
         return;
       }
 
-      console.log("✅ Playing track:", track.title, "Index:", idx);
       setCurrentIndex(idx);
       setProgress(0);
       setDuration(0);
@@ -155,14 +205,56 @@ export const MusicProvider = ({ children }) => {
   );
 
   // ─── Skip Next / Previous ────────────────────────────────────────────────
-  const playNext = useCallback(() => {
-    if (!playlist.length) return;
-    const next = (currentIndex + 1) % playlist.length;
-    setCurrentIndex(next);
-    setProgress(0);
-    setDuration(0);
-    setIsPlaying(true);
-  }, [currentIndex, playlist]);
+  const playNext = useCallback(
+    (forceAdvance = false) => {
+      if (!playlist.length) return;
+
+      if (repeatMode === "one" && !forceAdvance) {
+        setIsPlaying(true);
+        return;
+      }
+
+      const filteredIndexes = playlist
+        .map((track, idx) => ({ track, idx }))
+        .filter(({ track }) => isAllowedByRules(track))
+        .map(({ idx }) => idx);
+
+      if (!filteredIndexes.length) {
+        setIsPlaying(false);
+        return;
+      }
+
+      let next = currentIndex;
+
+      if (shuffleEnabled && filteredIndexes.length > 1) {
+        const candidates = filteredIndexes.filter(
+          (idx) => idx !== currentIndex,
+        );
+        next =
+          candidates[Math.floor(Math.random() * candidates.length)] ??
+          currentIndex;
+      } else {
+        const currentPos = filteredIndexes.indexOf(currentIndex);
+        const hasNext =
+          currentPos >= 0 && currentPos < filteredIndexes.length - 1;
+
+        if (hasNext) {
+          next = filteredIndexes[currentPos + 1];
+        } else if (repeatMode === "all") {
+          next = filteredIndexes[0];
+        } else {
+          setIsPlaying(false);
+          return;
+        }
+      }
+
+      setCurrentIndex(next);
+      setProgress(0);
+      setDuration(0);
+      setIsPlaying(true);
+    },
+    [currentIndex, isAllowedByRules, playlist, repeatMode, shuffleEnabled],
+  );
 
   const playPrevious = useCallback(async () => {
     if (!playlist.length) return;
@@ -195,8 +287,38 @@ export const MusicProvider = ({ children }) => {
     localStorage.setItem("playerVolume", String(v));
   }, []);
 
+  const clearQueue = useCallback(() => {
+    setPlaylist([]);
+    setCurrentIndex(-1);
+    setIsPlaying(false);
+    setProgress(0);
+    setDuration(0);
+  }, []);
+
+  const addToQueue = useCallback(
+    (track, options = {}) => {
+      if (!track?._id && !track?.youtubeUrl) return;
+
+      setPlaylist((prev) => {
+        const exists = prev.find(
+          (item) => item.youtubeUrl === track.youtubeUrl,
+        );
+        if (exists) return prev;
+
+        const { next = false } = options;
+        if (next && currentIndex >= 0) {
+          const nextList = [...prev];
+          nextList.splice(currentIndex + 1, 0, track);
+          return nextList;
+        }
+
+        return [...prev, track];
+      });
+    },
+    [currentIndex],
+  );
+
   const onPlayerReady = async (event) => {
-    console.log("✅ Engine ready:", currentTrack?.title);
     playerRef.current = event.target;
     playerRef.current.setVolume(volume * 100);
     if (isPlaying) {
@@ -205,26 +327,28 @@ export const MusicProvider = ({ children }) => {
     }
     try {
       const d = await event.target.getDuration();
-      console.log("✅ Duration set:", d);
       setDuration(d);
-    } catch (e) {
-      console.warn("Could not get duration on ready");
+    } catch (_) {
+      // Could not get duration
     }
   };
 
   const onPlayerStateChange = async (event) => {
     // YT.PlayerState: PLAYING (1), PAUSED (2), ENDED (0)
-    if (event.data === 1) { // Playing
+    if (event.data === 1) {
+      // Playing
       setIsPlaying(true);
       startProgressPolling();
       try {
         const d = await event.target.getDuration();
         if (d > 0 && d !== duration) setDuration(d);
-      } catch (e) {}
-    } else if (event.data === 2) { // Paused
+      } catch (_) {}
+    } else if (event.data === 2) {
+      // Paused
       setIsPlaying(false);
       stopProgressPolling();
-    } else if (event.data === 0) { // Ended
+    } else if (event.data === 0) {
+      // Ended
       playNext();
     }
   };
@@ -236,6 +360,8 @@ export const MusicProvider = ({ children }) => {
         isPlaying,
         playTrack,
         togglePlay,
+        pause,
+        resume,
         volume,
         setVolume: handleVolumeChange,
         progress,
@@ -245,6 +371,14 @@ export const MusicProvider = ({ children }) => {
         currentIndex,
         playNext,
         playPrevious,
+        clearQueue,
+        addToQueue,
+        repeatMode,
+        setRepeatMode,
+        shuffleEnabled,
+        setShuffleEnabled,
+        playbackRules,
+        setPlaybackRules,
       }}
     >
       {children}
@@ -266,8 +400,8 @@ export const MusicProvider = ({ children }) => {
           <YouTube
             videoId={videoId}
             opts={{
-              height: '200',
-              width: '200',
+              height: "200",
+              width: "200",
               playerVars: {
                 autoplay: isPlaying ? 1 : 0,
                 modestbranding: 1,
@@ -280,8 +414,7 @@ export const MusicProvider = ({ children }) => {
             }}
             onReady={onPlayerReady}
             onStateChange={onPlayerStateChange}
-            onError={(e) => {
-              console.error("❌ YouTube Player error:", e.data);
+            onError={(_) => {
               playNext();
             }}
           />

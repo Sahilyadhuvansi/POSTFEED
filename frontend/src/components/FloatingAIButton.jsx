@@ -3,6 +3,9 @@ import { X, Send } from "lucide-react";
 import api from "../services/api";
 import { PostCard, SongCard, EmptyStateCard } from "./ui/AIChatCards";
 import "../styles/FloatingAIButton.css";
+import { useNavigate } from "react-router-dom";
+import { useMusic } from "../features/music/MusicContext";
+import { runMusicCommandBrain } from "../features/music/music-command-brain";
 
 /**
  * Floating AI Chat Button Component
@@ -14,11 +17,19 @@ import "../styles/FloatingAIButton.css";
  * - Clean chat interface (no Claude/Anthropic branding)
  */
 const FloatingAIButton = () => {
+  const navigate = useNavigate();
+  const music = useMusic();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [brainContext, setBrainContext] = useState({
+    lastResults: [],
+    lastQuery: "",
+    lastImportedTracks: [],
+    lastPlaylistName: "",
+  });
   const messagesEndRef = useRef(null);
 
   // Scroll to bottom when messages update
@@ -30,13 +41,14 @@ const FloatingAIButton = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
-    if (!inputValue.trim()) return;
+    const cleanInput = inputValue.trim();
+    if (!cleanInput) return;
 
     // Add user message to chat state immediately for UI responsiveness
     const userMessage = {
       id: Date.now(),
       role: "user",
-      content: inputValue,
+      content: cleanInput,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -45,6 +57,40 @@ const FloatingAIButton = () => {
     setError("");
 
     try {
+      const brainResult = await runMusicCommandBrain({
+        input: cleanInput,
+        context: {
+          music,
+          navigate,
+          api,
+          lastResults: brainContext.lastResults,
+          lastQuery: brainContext.lastQuery,
+          lastImportedTracks: brainContext.lastImportedTracks,
+          lastPlaylistName: brainContext.lastPlaylistName,
+        },
+      });
+
+      if (brainResult.handled) {
+        if (brainResult.nextContext) {
+          setBrainContext((prev) => ({ ...prev, ...brainResult.nextContext }));
+        }
+
+        const aiMessage = {
+          id: Date.now() + 1,
+          role: "assistant",
+          type: "execution-report",
+          payload: brainResult.execution || null,
+          content:
+            brainResult.execution?.steps?.length > 0
+              ? JSON.stringify({ steps: brainResult.execution.steps }, null, 2)
+              : brainResult.message || "Done.",
+          model: "music-command-brain",
+        };
+
+        setMessages((prev) => [...prev, aiMessage]);
+        return;
+      }
+
       // Use centralized axios instance for consistent headers and error handling
       const { data } = await api.post("/ai/chat", {
         messages: [
@@ -52,7 +98,7 @@ const FloatingAIButton = () => {
             role: msg.role,
             content: msg.content,
           })),
-          { role: "user", content: inputValue },
+          { role: "user", content: cleanInput },
         ],
         options: {
           temperature: 0.7,

@@ -2,6 +2,8 @@
 
 const yts = require("yt-search");
 
+const logger = require("../utils/logger");
+
 /**
  * Find the most relevant YouTube video for a query (e.g., "Song Name - Artist")
  */
@@ -19,7 +21,8 @@ exports.findSingleTrack = async (query) => {
       views: video.views,
     };
   } catch (error) {
-    console.error("[YouTubeService] Search error:", error);
+    logger.error("[YouTubeService] Search error:", error);
     return null;
   }
 };
+

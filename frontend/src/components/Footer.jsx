@@ -7,30 +7,31 @@ import {
  * PRODUCTION FOOTER v2.5.0
  * Deep clean & modular architecture
  */
+const FooterSection = ({ title, children }) => (
+  <div className="space-y-6">
+    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500">{title}</h4>
+    <div className="flex flex-col gap-3">
+      {children}
+    </div>
+  </div>
+);
+
+const FooterLink = ({ to, children, external = false }) => {
+  const base = "text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-2 group";
+  if (external) {
+    return (
+      <a href={to} target="_blank" rel="noreferrer" className={base}>
+        {children}
+        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </a>
+    );
+  }
+  return <Link to={to} className={base}>{children}</Link>;
+};
+
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
-  const FooterSection = ({ title, children }) => (
-    <div className="space-y-6">
-      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500">{title}</h4>
-      <div className="flex flex-col gap-3">
-        {children}
-      </div>
-    </div>
-  );
-
-  const FooterLink = ({ to, children, external = false }) => {
-    const base = "text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-2 group";
-    if (external) {
-      return (
-        <a href={to} target="_blank" rel="noreferrer" className={base}>
-          {children}
-          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </a>
-      );
-    }
-    return <Link to={to} className={base}>{children}</Link>;
-  };
 
   return (
     <footer className="relative mt-32 border-t border-white/5 bg-black/40 backdrop-blur-3xl pt-24 pb-12 overflow-hidden">
