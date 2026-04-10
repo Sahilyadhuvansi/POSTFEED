@@ -260,4 +260,5 @@ module.exports = {
   getAllMusics,
   getMyMusics,
   deleteMusic,
+  ensureLikedSongsPlaylist,
 };

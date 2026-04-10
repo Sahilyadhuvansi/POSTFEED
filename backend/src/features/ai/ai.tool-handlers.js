@@ -2,9 +2,11 @@
 
 const youtubeService = require("../../services/youtube.service");
 const Music = require("../music/music.model");
+const { ensureLikedSongsPlaylist } = require("../music/music.controller");
 
 const ACTIONS = {
   SEARCH_MUSIC: "search_music",
+  PLAY_SONG: "play_song",
   FETCH_FAVORITES: "fetch_favorites",
   LIKE_SONG: "like_song",
   DELETE_SONG: "delete_song",
@@ -15,6 +17,7 @@ const ACTIONS = {
 
 const TOOL_METRICS = {
   [ACTIONS.SEARCH_MUSIC]: { success: 0, fail: 0 },
+  [ACTIONS.PLAY_SONG]: { success: 0, fail: 0 },
   [ACTIONS.FETCH_FAVORITES]: { success: 0, fail: 0 },
   [ACTIONS.LIKE_SONG]: { success: 0, fail: 0 },
   [ACTIONS.DELETE_SONG]: { success: 0, fail: 0 },
@@ -105,6 +108,15 @@ const hardFallbackAction = (message = "") => {
       lowered.replace(/^(search|find|show me|look for)\s+/i, "").trim();
     return {
       action: ACTIONS.SEARCH_MUSIC,
+      args: { query, source: "youtube" },
+      forced: true,
+    };
+  }
+
+  if (/^(play|tune in to|listen to)\s+/i.test(lowered)) {
+    const query = lowered.replace(/^(play|tune in to|listen to)\s+/i, "").trim();
+    return {
+      action: ACTIONS.PLAY_SONG,
       args: { query },
       forced: true,
     };
@@ -181,15 +193,82 @@ const handlers = {
       });
     }
 
-    const musics = await searchMusicInternal(query, 30);
+    // Phase 1: Local Library Search
+    const localMusics = await searchMusicInternal(query, 10);
+    
+    // Phase 2: YouTube Fallback/Expansion
+    let youtubeMusics = [];
+    try {
+      youtubeMusics = await youtubeService.findTracks(query, { maxResults: 15 });
+    } catch (_) {
+      // YouTube quota or network error
+    }
+
+    // Merge and format results
+    // We want to ensure they look similar to the UI expectation
+    const combined = [
+      ...localMusics.map(m => ({ ...m, source: "library" })),
+      ...youtubeMusics
+        .filter(yt => !localMusics.some(l => l.youtubeUrl === yt.youtubeUrl))
+        .map(yt => ({ 
+          _id: `yt_${yt.videoId}`, 
+          songId: `yt_${yt.videoId}`,
+          title: yt.title, 
+          youtubeUrl: yt.youtubeUrl, 
+          thumbnailUrl: yt.thumbnailUrl || yt.thumbnail, 
+          source: "youtube" 
+        }))
+    ];
 
     return createToolResponse({
       success: true,
       action: ACTIONS.SEARCH_MUSIC,
-      message: musics.length
-        ? `Found ${musics.length} matches for "${query}".`
-        : `No songs found for "${query}" yet.`,
-      data: { query, musics },
+      message: combined.length
+        ? `Found ${combined.length} matches for "${query}" (including YouTube).`
+        : `No songs found for "${query}" anywhere.`,
+      data: { query, musics: combined },
+    });
+  },
+
+  [ACTIONS.PLAY_SONG]: async (args) => {
+    const query = normalizeText(args?.query);
+    const youtubeUrl = normalizeText(args?.youtubeUrl);
+
+    if (!query && !youtubeUrl) {
+      return createToolResponse({
+        success: false,
+        action: ACTIONS.PLAY_SONG,
+        message: "Which song should I play?",
+      });
+    }
+
+    let track = null;
+    if (youtubeUrl) {
+      track = { youtubeUrl, title: args?.title || "Requested Track" };
+    } else {
+      const results = await youtubeService.findTracks(query, { maxResults: 1 });
+      if (results.length) {
+        track = {
+          youtubeUrl: results[0].youtubeUrl,
+          title: results[0].title,
+          thumbnailUrl: results[0].thumbnailUrl || results[0].thumbnail,
+        };
+      }
+    }
+
+    if (!track) {
+      return createToolResponse({
+        success: false,
+        action: ACTIONS.PLAY_SONG,
+        message: `I couldn't find "${query}" to play.`,
+      });
+    }
+
+    return createToolResponse({
+      success: true,
+      action: ACTIONS.PLAY_SONG,
+      message: `Tuning in to: ${track.title} 🎧`,
+      data: { track },
     });
   },
 
@@ -253,6 +332,25 @@ const handlers = {
       thumbnailUrl: targetSong.thumbnailUrl || null,
     });
 
+    // Synchronize with the "Liked Songs" system playlist for UI consistency
+    try {
+      const likedPlaylist = await ensureLikedSongsPlaylist(req.user.id);
+      const exists = (likedPlaylist.tracks || []).some(
+        (t) => t.youtubeUrl === targetSong.youtubeUrl,
+      );
+      if (!exists) {
+        likedPlaylist.tracks.push({
+          youtubeUrl: targetSong.youtubeUrl,
+          title: created.title,
+          thumbnailUrl: created.thumbnailUrl || null,
+          addedAt: new Date(),
+        });
+        await likedPlaylist.save();
+      }
+    } catch (_) {
+      // Sync failed is non-critical for the tools report
+    }
+
     return createToolResponse({
       success: true,
       action: ACTIONS.LIKE_SONG,
@@ -296,13 +394,36 @@ const handlers = {
         data: null,
       });
     }
+    const deleted = await Music.findOneAndDelete({
+      _id: found._id,
+      artist: req.user.id,
+    });
 
-    await Music.findByIdAndDelete(found._id);
+    if (deleted) {
+      // Sync remove from "Liked Songs" playlist
+      try {
+        const likedPlaylist = await Playlist.findOne({
+          owner: req.user.id,
+          kind: "system_liked",
+        });
+        if (likedPlaylist) {
+          likedPlaylist.tracks = likedPlaylist.tracks.filter(
+            (t) => t.youtubeUrl !== deleted.youtubeUrl,
+          );
+          await likedPlaylist.save();
+        }
+      } catch (_) {
+        // Sync fail is non-critical
+      }
+    }
+
     return createToolResponse({
-      success: true,
+      success: !!deleted,
       action: ACTIONS.DELETE_SONG,
-      message: `Removed "${found.title}" from your favorites.`,
-      data: { removedId: found._id },
+      message: deleted
+        ? `Removed: "${deleted.title}" from your favorites.`
+        : "Song not found in your favorites.",
+      data: deleted ? deleted.toObject() : null,
     });
   },
 
@@ -373,7 +494,12 @@ const TOOL_REGISTRY = {
   [ACTIONS.SEARCH_MUSIC]: {
     handler: handlers[ACTIONS.SEARCH_MUSIC],
     requiresAuth: false,
-    description: "Search saved music by title or YouTube URL",
+    description: "Search music by title or artists (searches library + YouTube)",
+  },
+  [ACTIONS.PLAY_SONG]: {
+    handler: handlers[ACTIONS.PLAY_SONG],
+    requiresAuth: false,
+    description: "Find and play a specific song by its title or URL",
   },
   [ACTIONS.FETCH_FAVORITES]: {
     handler: handlers[ACTIONS.FETCH_FAVORITES],

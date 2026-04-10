@@ -116,6 +116,22 @@ const FloatingAIButton = () => {
         model: data.model,
       };
 
+      // Direct Tool Execution side-effects
+      if (data.type === "tool_result") {
+        if (data.action === "play_song" && data.payload?.track) {
+          const track = data.payload.track;
+          music.playTrack(
+            { ...track, _id: track._id || `ai_${Date.now()}` },
+            [track]
+          );
+        } else if (data.action === "search_music" && Array.isArray(data.payload?.musics)) {
+          setBrainContext(prev => ({
+            ...prev,
+            lastResults: data.payload.musics
+          }));
+        }
+      }
+
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       const errorMsg =
